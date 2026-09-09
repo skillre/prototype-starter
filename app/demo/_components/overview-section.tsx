@@ -27,7 +27,6 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
 import {
   ArrowUpRightIcon,
   DollarSignIcon,
@@ -68,10 +67,18 @@ function SortablePriority({ item }: { item: Priority }) {
     id: item.id,
   })
 
+  // 手写 transform（避免依赖 @dnd-kit/utilities —— pnpm 12 对其存在链接 bug）
+  const style = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0) scaleX(${transform.scaleX}) scaleY(${transform.scaleY})`,
+        transition,
+      }
+    : { transition }
+
   return (
     <li
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
+      style={style}
       className={cn(
         "flex cursor-grab touch-none items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5 active:cursor-grabbing",
         isDragging && "z-10 opacity-80 shadow-lg ring-1 ring-ring/30"
