@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import {
   ActivityIcon,
   BlocksIcon,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 
 /**
@@ -25,6 +27,16 @@ export interface NavItemDef {
   icon: LucideIcon
   /** 可选徽标数字（例如未读数）；为 0 或未传时不渲染。 */
   badge?: number
+  /**
+   * 可选真实路由。提供时导航项渲染为 <Link>（可新开标签、可分享 URL），
+   * 否则退回为 button + onNavigate（Starter 的 /demo 仍走这条路径）。
+   */
+  href?: string
+  /**
+   * "action" 表示这是一个动作（例如打开对话框）而不是页面跳转，
+   * 会与页面导航之间加分隔线并使用强调样式，避免语义混淆。
+   */
+  tone?: "nav" | "action"
 }
 
 export interface NavBrandDef {
@@ -103,28 +115,25 @@ export function SidebarNav({
   user?: NavUserDef
   usage?: NavUsageDef | null
 }) {
+  const pageItems = items.filter((item) => item.tone !== "action")
+  const actionItems = items.filter((item) => item.tone === "action")
+
   return (
     <div className="flex h-full flex-col">
       <Brand brand={brand} />
       <nav className="flex flex-col gap-1 px-2" aria-label="主导航">
-        {items.map((item) => {
+        {pageItems.map((item) => {
           const isActive = item.id === active
           const Icon = item.icon
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onNavigate(item.id)}
-              aria-current={isActive ? "page" : undefined}
-              data-testid={`nav-${item.id}`}
-              className={cn(
-                "flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium transition-colors outline-none",
-                "focus-visible:ring-2 focus-visible:ring-ring/60",
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
+          const itemClass = cn(
+            "flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium transition-colors outline-none",
+            "focus-visible:ring-2 focus-visible:ring-ring/60",
+            isActive
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          )
+          const content = (
+            <>
               <Icon className="size-4" />
               <span className="flex-1 text-left">{item.label}</span>
               {item.badge && item.badge > 0 ? (
@@ -139,9 +148,62 @@ export function SidebarNav({
                   {item.badge}
                 </Badge>
               ) : null}
+            </>
+          )
+
+          // 有真实路由时用 <Link>：可分享 URL、可新开标签、可被爬虫/测试直接访问。
+          if (item.href) {
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                aria-current={isActive ? "page" : undefined}
+                data-testid={`nav-${item.id}`}
+                onClick={() => onNavigate(item.id)}
+                className={itemClass}
+              >
+                {content}
+              </Link>
+            )
+          }
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onNavigate(item.id)}
+              aria-current={isActive ? "page" : undefined}
+              data-testid={`nav-${item.id}`}
+              className={itemClass}
+            >
+              {content}
             </button>
           )
         })}
+
+        {actionItems.length > 0 ? (
+          <>
+            <Separator className="my-2" />
+            {actionItems.map((item) => {
+              const Icon = item.icon
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => onNavigate(item.id)}
+                  data-testid={`nav-${item.id}`}
+                  className={cn(
+                    "flex h-8 items-center gap-2.5 rounded-lg border border-dashed border-border px-2.5 text-sm font-medium transition-colors outline-none",
+                    "text-foreground hover:border-solid hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/60"
+                  )}
+                >
+                  <Icon className="size-4" />
+                  <span className="flex-1 text-left">{item.label}</span>
+                </button>
+              )
+            })}
+          </>
+        ) : null}
       </nav>
 
       <div className="mt-auto flex flex-col gap-3 p-3">

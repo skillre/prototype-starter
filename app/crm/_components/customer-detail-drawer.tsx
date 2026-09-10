@@ -39,8 +39,17 @@ const KIND_ICON: Record<ActivityKind, typeof MailIcon> = {
   status: ZapIcon,
 }
 
-/** 客户详情抽屉：资料、标签、备注、AI 摘要与活动时间线。 */
-export function CustomerDetailDrawer() {
+/**
+ * 客户详情抽屉：资料、标签、备注、AI 摘要与活动时间线。
+ *
+ * `onViewAccount` 由 shell 注入：抽屉底部的「Open account」会导航到真实的
+ * /crm/customers/[id] 页面，而不是停留在提示性的 toast。
+ */
+export function CustomerDetailDrawer({
+  onViewAccount,
+}: {
+  onViewAccount: (customerId: string) => void
+}) {
   const selectedCustomerId = useCrmStore((s) => s.selectedCustomerId)
   const customers = useCrmStore((s) => s.customers)
   const activities = useCrmStore((s) => s.activities)
@@ -100,12 +109,8 @@ export function CustomerDetailDrawer() {
             <Button
               type="button"
               className="flex-1"
-              onClick={() => {
-                selectCustomer(null)
-                toast.info(`Opening ${customer.company} in the CRM`, {
-                  description: "Account workspace would open here.",
-                })
-              }}
+              onClick={() => onViewAccount(customer.id)}
+              data-testid="open-account"
             >
               Open account
               <ArrowRightIcon />

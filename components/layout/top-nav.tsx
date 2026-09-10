@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useTheme } from "@/components/theme-provider"
 import { toast } from "sonner"
 import {
@@ -15,7 +16,6 @@ import {
   SunIcon,
   TriangleAlertIcon,
   UserPlusIcon,
-  UsersIcon,
   ZapIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -54,17 +54,43 @@ const KIND_ICON = {
  * 顶栏的数据来源。默认（不传）时行为与 Starter 完全一致：读取 dashboard-store。
  * 其他原型（如 AI CRM）可注入自己的通知、状态与动作，而无需复制这个组件。
  */
+/** 通知条目可携带关联客户 id，用于生成真实详情页链接。 */
+export interface TopNavNotification extends AppNotification {
+  customerId?: string
+}
+
 export interface TopNavDataSource {
-  notifications: AppNotification[]
+  notifications: TopNavNotification[]
   status: "loading" | "ready" | "error"
   onRefresh: () => void
   onSimulateFailure?: () => void
   onReset?: () => void
   onMarkAllRead: () => void
-  onOpenNotification?: (title: string) => void
-  /** 账户菜单里「快速上手」的目标 id。 */
-  settingsNavId?: NavId
+  /** 传入后，「退出登录」调用它（CRM 用它打开真实确认对话框）。 */
+  onSignOut?: () => void
+  /** 传入后，通知条目会导航到对应客户的详情页（而不是只弹 toast）。 */
+  notificationHref?: (notification: TopNavNotification) => string
+  /** 账户菜单里第一项的目标 id（默认「快速上手」）。 */
+  primaryNavId?: NavId
+  /** 账户菜单里第一项的文案（默认「快速上手」）。 */
+  primaryNavLabel?: string
   account: { name: string; email: string; initials: string }
+  /** 文案可覆盖，未传时沿用 Starter 中文默认值。 */
+  labels?: {
+    simulateSlowLoad?: string
+    simulateFailure?: string
+    resetData?: string
+    resetToastTitle?: string
+    resetToastDescription?: string
+    markAllRead?: string
+    signOut?: string
+    signOutToastTitle?: string
+    signOutToastDescription?: string
+    notificationsEmpty?: string
+    prototypeState?: string
+    prototypeStateDescription?: string
+    accountMenu?: string
+  }
 }
 
 type TopNavProps = {
@@ -99,8 +125,26 @@ export function TopNav({
   const resetDemo = dataSource?.onReset ?? storeReset
   const status = dataSource?.status ?? storeStatus
   const account = dataSource?.account ?? { name: "Taylor Wu", email: "taylor@northwind.dev", initials: "TW" }
-  const settingsNavId = dataSource?.settingsNavId ?? "settings"
-  const onOpenNotification = dataSource?.onOpenNotification
+  const primaryNavId = dataSource?.primaryNavId ?? "settings"
+  const primaryNavLabel = dataSource?.primaryNavLabel ?? "快速上手"
+  const notificationHref = dataSource?.notificationHref
+  const onSignOut = dataSource?.onSignOut
+  const labels = {
+    simulateSlowLoad: "模拟慢加载",
+    simulateFailure: "模拟接口失败",
+    resetData: "重置演示数据",
+    resetToastTitle: "演示数据已重置",
+    resetToastDescription: "所有筛选、编辑与状态改动都已恢复。",
+    markAllRead: "全部标为已读",
+    signOut: "退出登录",
+    signOutToastTitle: "已退出登录",
+    signOutToastDescription: "已回到演示初始状态。",
+    notificationsEmpty: "没有新通知了。",
+    prototypeState: "原型状态",
+    prototypeStateDescription: "强制触发加载、错误与重置流程，预览所有状态。",
+    accountMenu: "账户菜单",
+    ...dataSource?.labels,
+  }
 
   const { resolvedTheme, setTheme } = useTheme()
 
@@ -110,16 +154,14 @@ export function TopNav({
 
   const handleReset = () => {
     resetDemo()
-    toast.success("演示数据已重置", {
-      description: "所有筛选、编辑与状态改动都已恢复。",
+    toast.success(labels.resetToastTitle, {
+      description: labels.resetToastDescription,
     })
   }
 
   const openNotification = (title: string) => {
-    if (onOpenNotification) {
-      onOpenNotification(title)
-      return
-    }
+    // 通知条目在有 href 时会自行导航；这里只负责「无链接」时的兜底反馈。
+    if (notificationHref) return
     onNavigate("activity")
     toast.info(title)
   }
@@ -198,7 +240,7 @@ export function TopNav({
                       type="button"
                       variant="ghost"
                       size="icon-sm"
-                      aria-label="通知"
+                      aria-label="Notifications"
                       data-testid="notifications"
                       className="relative"
                     />
@@ -213,23 +255,19 @@ export function TopNav({
                 </span>
               ) : null}
             </TooltipTrigger>
-            <TooltipContent side="bottom">通知</TooltipContent>
+            <TooltipContent side="bottom">Notifications</TooltipContent>
           </Tooltip>
           <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel>通知</DropdownMenuLabel>
+            <DropdownMenuLabel>Notifications</DropdownMenuLabel>
             {notifications.length === 0 ? (
               <p className="px-2 py-4 text-center text-xs text-muted-foreground">
-                没有新通知了。
+                {labels.notificationsEmpty}
               </p>
             ) : (
               notifications.map((notification) => {
                 const Icon = KIND_ICON[notification.kind]
-                return (
-                  <DropdownMenuItem
-                    key={notification.id}
-                    onSelect={() => openNotification(notification.title)}
-                    className="items-start gap-2.5 py-2"
-                  >
+                const rowContent = (
+                  <>
                     <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
                       <Icon className="size-3.5" />
                     </span>
@@ -245,6 +283,31 @@ export function TopNav({
                       </span>
                       <span className="text-[10px] text-muted-foreground">{notification.time}</span>
                     </span>
+                  </>
+                )
+
+                // 有对应客户时渲染为真实链接——通知条目本身可导航，不嵌套额外按钮。
+                const href = notificationHref?.(notification)
+                if (href) {
+                  return (
+                    <DropdownMenuItem
+                      key={notification.id}
+                      render={<Link href={href} />}
+                      onSelect={() => openNotification(notification.title)}
+                      className="items-start gap-2.5 py-2"
+                    >
+                      {rowContent}
+                    </DropdownMenuItem>
+                  )
+                }
+
+                return (
+                  <DropdownMenuItem
+                    key={notification.id}
+                    onSelect={() => openNotification(notification.title)}
+                    className="items-start gap-2.5 py-2"
+                  >
+                    {rowContent}
                   </DropdownMenuItem>
                 )
               })
@@ -253,7 +316,7 @@ export function TopNav({
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={markAllNotificationsRead} className="justify-center">
-                  全部标为已读
+                  {labels.markAllRead}
                 </DropdownMenuItem>
               </>
             ) : null}
@@ -284,14 +347,12 @@ export function TopNav({
           </Tooltip>
           <PopoverContent align="end" className="w-64">
             <PopoverHeader>
-              <PopoverTitle>原型状态</PopoverTitle>
-              <PopoverDescription>
-                强制触发加载、错误与重置流程，预览所有状态。
-              </PopoverDescription>
+              <PopoverTitle>{labels.prototypeState}</PopoverTitle>
+              <PopoverDescription>{labels.prototypeStateDescription}</PopoverDescription>
             </PopoverHeader>
             <div className="flex flex-col gap-1">
               <Button variant="ghost" type="button" className="justify-start" onClick={refresh}>
-                <RotateCwIcon /> 模拟慢加载
+                <RotateCwIcon /> {labels.simulateSlowLoad}
               </Button>
               <Button
                 variant="ghost"
@@ -299,16 +360,16 @@ export function TopNav({
                 className="justify-start text-destructive hover:text-destructive"
                 onClick={() => {
                   simulateApiFailure()
-                  toast.error("请求失败", {
-                    description: "仪表盘已切换到错误状态。",
+                  toast.error("Request failed", {
+                    description: "The dashboard switched to its error state.",
                   })
                 }}
               >
-                <TriangleAlertIcon /> 模拟接口失败
+                <TriangleAlertIcon /> {labels.simulateFailure}
               </Button>
               <Separator className="my-1" />
               <Button variant="ghost" type="button" className="justify-start" onClick={handleReset}>
-                <RotateCwIcon /> 重置演示数据
+                <RotateCwIcon /> {labels.resetData}
               </Button>
             </div>
           </PopoverContent>
@@ -322,7 +383,7 @@ export function TopNav({
                 type="button"
                 variant="ghost"
                 size="sm"
-                aria-label="账户菜单"
+                aria-label={labels.accountMenu}
                 data-testid="account-menu"
                 className="gap-2 pl-1.5"
               />
@@ -342,27 +403,24 @@ export function TopNav({
               </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => onNavigate(settingsNavId)}>
-              <SettingsIcon /> 快速上手
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={() =>
-                toast.info("当前仅有一个工作区", {
-                  description: "多工作区切换会在后续版本提供。",
-                })
-              }
-            >
-              <UsersIcon /> 工作区
+            <DropdownMenuItem onSelect={() => onNavigate(primaryNavId)}>
+              <SettingsIcon /> {primaryNavLabel}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
               onSelect={() => {
+                if (onSignOut) {
+                  onSignOut()
+                  return
+                }
                 handleReset()
-                toast.error("已退出登录", { description: "已回到演示初始状态。" })
+                toast.success(labels.signOutToastTitle, {
+                  description: labels.signOutToastDescription,
+                })
               }}
             >
-              <LogOutIcon /> 退出登录
+              <LogOutIcon /> {labels.signOut}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

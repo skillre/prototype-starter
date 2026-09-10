@@ -33,6 +33,13 @@ type StatsCardProps = {
   className?: string
   /** Lands on the KPI card — used by e2e tests. */
   testId?: string
+  /**
+   * 传入后整张卡片变成一个真实的按钮（可键盘聚焦、可回车触发）。
+   * 只有确实有目的地时才传——避免出现"看起来能点但没反应"的卡片。
+   */
+  onActivate?: () => void
+  /** 激活时的无障碍描述，例如 "View all customers"。 */
+  activateLabel?: string
 }
 
 /** KPI card with an animated number, delta chip and optional hint. */
@@ -47,6 +54,8 @@ export function StatsCard({
   loading = false,
   className,
   testId,
+  onActivate,
+  activateLabel,
 }: StatsCardProps) {
   // 布局占位同样带上 testId，避免加载态与就绪态出现两套选择器。
   if (loading) {
@@ -72,66 +81,85 @@ export function StatsCard({
         ? ArrowDownRightIcon
         : MinusIcon
 
-  return (
-    <motion.div
-      className={className}
-      whileHover={{ y: -3 }}
-      transition={softSpring}
+  const card = (
+    <Card
+      size="sm"
+      className={cn("h-full", onActivate && "transition-colors group-hover/kpi:border-foreground/25")}
+      data-testid={testId}
     >
-      <Card size="sm" className="h-full" data-testid={testId}>
-        <CardHeader>
-          <CardTitle className="text-sm text-muted-foreground">{label}</CardTitle>
-          {Icon ? (
-            <CardAction>
-              <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                <Icon className="size-4" />
-              </span>
-            </CardAction>
-          ) : null}
-        </CardHeader>
-        <CardContent className="gap-2.5">
-          <div className="flex items-baseline gap-1.5">
-            {format === "duration" ? (
-              <AnimatedNumber
-                value={value}
-                formatValue={formatSeconds}
-                className="text-title tracking-tight font-semibold"
-              />
-            ) : (
-              <AnimatedNumber
-                value={value}
-                formatOptions={FORMAT_OPTIONS[format] ?? undefined}
-                prefix={format === "currency" ? undefined : undefined}
-                className="text-title tracking-tight font-semibold"
-              />
-            )}
-            {format === "percent" ? <span className="text-lg font-medium">%</span> : null}
+      <CardHeader>
+        <CardTitle className="text-sm text-muted-foreground">{label}</CardTitle>
+        {Icon ? (
+          <CardAction>
+            <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+              <Icon className="size-4" />
+            </span>
+          </CardAction>
+        ) : null}
+      </CardHeader>
+      <CardContent className="gap-2.5">
+        <div className="flex items-baseline gap-1.5">
+          {format === "duration" ? (
+            <AnimatedNumber
+              value={value}
+              formatValue={formatSeconds}
+              className="text-title tracking-tight font-semibold"
+            />
+          ) : (
+            <AnimatedNumber
+              value={value}
+              formatOptions={FORMAT_OPTIONS[format] ?? undefined}
+              className="text-title tracking-tight font-semibold"
+            />
+          )}
+          {format === "percent" ? <span className="text-lg font-medium">%</span> : null}
+        </div>
+        {delta !== undefined ? (
+          <div className="flex items-center gap-1.5">
+            <Badge
+              className={cn(
+                "h-5 px-1.5 font-medium",
+                deltaTone === "positive" &&
+                  "border-transparent bg-chart-3/15 text-chart-3 dark:bg-chart-3/20 dark:text-chart-3",
+                deltaTone === "negative" &&
+                  "border-transparent bg-chart-5/15 text-chart-5 dark:bg-chart-5/20 dark:text-chart-5",
+                deltaTone === "neutral" && "border-transparent bg-muted text-muted-foreground"
+              )}
+            >
+              <DeltaIcon className="size-3" />
+              {delta > 0 ? "+" : ""}
+              {delta}%
+            </Badge>
+            {deltaLabel ? (
+              <span className="text-caption text-muted-foreground">{deltaLabel}</span>
+            ) : null}
           </div>
-          {delta !== undefined ? (
-            <div className="flex items-center gap-1.5">
-              <Badge
-                className={cn(
-                  "h-5 px-1.5 font-medium",
-                  deltaTone === "positive" &&
-                    "border-transparent bg-chart-3/15 text-chart-3 dark:bg-chart-3/20 dark:text-chart-3",
-                  deltaTone === "negative" &&
-                    "border-transparent bg-chart-5/15 text-chart-5 dark:bg-chart-5/20 dark:text-chart-5",
-                  deltaTone === "neutral" && "border-transparent bg-muted text-muted-foreground"
-                )}
-              >
-                <DeltaIcon className="size-3" />
-                {delta > 0 ? "+" : ""}
-                {delta}%
-              </Badge>
-              {deltaLabel ? (
-                <span className="text-caption text-muted-foreground">{deltaLabel}</span>
-              ) : null}
-            </div>
-          ) : hint ? (
-            <span className="text-caption text-muted-foreground">{hint}</span>
-          ) : null}
-        </CardContent>
-      </Card>
+        ) : hint ? (
+          <span className="text-caption text-muted-foreground">{hint}</span>
+        ) : null}
+      </CardContent>
+    </Card>
+  )
+
+  // 没有目的地时保持纯展示；有目的地时才是真正的可交互元素。
+  if (!onActivate) {
+    return (
+      <motion.div className={className} whileHover={{ y: -3 }} transition={softSpring}>
+        {card}
+      </motion.div>
+    )
+  }
+
+  return (
+    <motion.div className={className} whileHover={{ y: -3 }} transition={softSpring}>
+      <button
+        type="button"
+        onClick={onActivate}
+        aria-label={activateLabel ?? `${label} — view details`}
+        className="group/kpi block w-full cursor-pointer rounded-card text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+      >
+        {card}
+      </button>
     </motion.div>
   )
 }

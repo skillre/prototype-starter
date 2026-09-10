@@ -4,11 +4,13 @@ import { create } from "zustand"
 import {
   CRM_ACTIVITIES,
   CRM_CUSTOMERS,
+  CRM_NOTIFICATIONS,
   CRM_TASKS,
   STATUS_ORDER,
   type ActivityKind,
   type CrmActivity,
   type CrmCustomer,
+  type CrmNotification,
   type CustomerPlan,
   type CustomerStatus,
   type CrmTask,
@@ -44,6 +46,7 @@ interface CrmState {
   customers: CrmCustomer[]
   activities: CrmActivity[]
   tasks: Record<TaskColumnId, CrmTask[]>
+  notifications: CrmNotification[]
 
   selectedCustomerId: string | null
   aiStatus: AiStatus
@@ -78,6 +81,8 @@ interface CrmState {
 
   moveTask: (taskId: string, from: TaskColumnId, to: TaskColumnId, toIndex: number) => void
   resetBoard: () => void
+  markNotificationRead: (id: string) => void
+  markAllNotificationsRead: () => void
   setActivityKindFilter: (value: ActivityKind | "all") => void
   setActivityOwnerFilter: (value: CrmOwner | "all") => void
 }
@@ -97,6 +102,7 @@ export const useCrmStore = create<CrmState>((set, get) => ({
   customers: [],
   activities: CRM_ACTIVITIES,
   tasks: cloneTasks(),
+  notifications: CRM_NOTIFICATIONS,
 
   selectedCustomerId: null,
   aiStatus: "idle",
@@ -139,6 +145,7 @@ export const useCrmStore = create<CrmState>((set, get) => ({
       errorMessage: null,
       customers: [...CRM_CUSTOMERS],
       tasks: cloneTasks(),
+      notifications: CRM_NOTIFICATIONS.map((n) => ({ ...n })),
       selectedCustomerId: null,
       aiStatus: "idle",
       aiSummary: null,
@@ -260,6 +267,18 @@ export const useCrmStore = create<CrmState>((set, get) => ({
 
   /** 只把任务看板恢复为初始顺序——不会影响客户、筛选或 AI 摘要。 */
   resetBoard: () => set({ tasks: cloneTasks() }),
+
+  markNotificationRead: (id) =>
+    set((state) => ({
+      notifications: state.notifications.map((n) =>
+        n.id === id ? { ...n, unread: false } : n
+      ),
+    })),
+
+  markAllNotificationsRead: () =>
+    set((state) => ({
+      notifications: state.notifications.map((n) => ({ ...n, unread: false })),
+    })),
 }))
 
 /* -------------------------------------------------------------------------- */

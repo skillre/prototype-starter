@@ -620,3 +620,56 @@ export const STAGE_COLORS: Record<CustomerStatus, string> = {
   "at-risk": "var(--chart-5)",
   churned: "var(--chart-1)",
 }
+
+/* -------------------------------------------------------------------------- */
+/* Notifications                                                               */
+/* -------------------------------------------------------------------------- */
+
+export interface CrmNotification {
+  id: string
+  kind: "trial" | "payment" | "usage" | "report"
+  title: string
+  description: string
+  time: string
+  unread: boolean
+  /** 关联客户——点击通知可直接进入该客户详情页。 */
+  customerId?: string
+}
+
+export const CRM_NOTIFICATIONS: CrmNotification[] = [
+  {
+    id: "cn1",
+    kind: "trial",
+    title: "Trial ending soon",
+    description: "Helio Semiconductor's trial closes in 5 days",
+    time: "2h ago",
+    unread: true,
+    customerId: "c-002",
+  },
+  {
+    id: "cn2",
+    kind: "payment",
+    title: "Contract signed",
+    description: "Beacon Health Group returned the 3-year term",
+    time: "5h ago",
+    unread: true,
+    customerId: "c-004",
+  },
+  {
+    id: "cn3",
+    kind: "usage",
+    title: "Account at risk",
+    description: "Verdant Agriculture has gone 12 days without contact",
+    time: "1d ago",
+    unread: true,
+    customerId: "c-003",
+  },
+  {
+    id: "cn4",
+    kind: "report",
+    title: "Weekly pipeline report",
+    description: "Aug 31 – Sep 6 summary is ready",
+    time: "3d ago",
+    unread: false,
+  },
+]

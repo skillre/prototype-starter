@@ -60,9 +60,11 @@ const initials = (name: string) =>
 
 type CustomersViewProps = {
   onAddCustomer: () => void
+  /** 打开客户详情（shell 负责同时更新 store 与 URL）。 */
+  onOpenCustomer: (customerId: string) => void
 }
 
-export function CustomersView({ onAddCustomer }: CustomersViewProps) {
+export function CustomersView({ onAddCustomer, onOpenCustomer }: CustomersViewProps) {
   const customers = useCrmStore((s) => s.customers)
   const search = useCrmStore((s) => s.search)
   const statusFilter = useCrmStore((s) => s.statusFilter)
@@ -77,7 +79,6 @@ export function CustomersView({ onAddCustomer }: CustomersViewProps) {
   const setSort = useCrmStore((s) => s.setSort)
   const setPage = useCrmStore((s) => s.setPage)
   const resetFilters = useCrmStore((s) => s.resetFilters)
-  const selectCustomer = useCrmStore((s) => s.selectCustomer)
 
   // 派生数据在组件内 useMemo —— selector 只取原始值（zustand v5 约定）。
   const filtered = useMemo(
@@ -273,7 +274,7 @@ export function CustomersView({ onAddCustomer }: CustomersViewProps) {
         columns={columns}
         rows={paged.rows}
         rowKey={(row) => row.id}
-        onRowClick={(row) => selectCustomer(row.id)}
+        onRowClick={(row) => onOpenCustomer(row.id)}
         emptyState={
           <EmptyState
             icon={UsersIcon}

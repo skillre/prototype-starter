@@ -59,16 +59,21 @@ function DropdownMenuLabel({
 }: MenuPrimitive.GroupLabel.Props & {
   inset?: boolean
 }) {
+  // Base UI 的 GroupLabel 必须包在 Group 内（否则 MenuGroupContext 缺失并抛错）。
+  // shadcn 的旧用法允许裸用 <DropdownMenuLabel>，这里自动补一层 Group，
+  // 保证「通知 / 账户」这类含标题的菜单可以正常打开。
   return (
-    <MenuPrimitive.GroupLabel
-      data-slot="dropdown-menu-label"
-      data-inset={inset}
-      className={cn(
-        "px-1.5 py-1 text-xs font-medium text-muted-foreground data-inset:pl-7",
-        className
-      )}
-      {...props}
-    />
+    <MenuPrimitive.Group>
+      <MenuPrimitive.GroupLabel
+        data-slot="dropdown-menu-label"
+        data-inset={inset}
+        className={cn(
+          "px-1.5 py-1 text-xs font-medium text-muted-foreground data-inset:pl-7",
+          className
+        )}
+        {...props}
+      />
+    </MenuPrimitive.Group>
   )
 }
 
@@ -76,10 +81,18 @@ function DropdownMenuItem({
   className,
   inset,
   variant = "default",
+  onSelect,
+  onClick,
   ...props
 }: MenuPrimitive.Item.Props & {
   inset?: boolean
   variant?: "default" | "destructive"
+  /**
+   * Radix 风格的 onSelect。Base UI 的 Menu.Item 并不支持这个 prop——
+   * 直接传会被静默忽略（菜单项看着正常、点了却毫无反应）。
+   * 这里统一映射到 onClick，让两种写法都能真实触发。
+   */
+  onSelect?: () => void
 }) {
   return (
     <MenuPrimitive.Item
@@ -90,6 +103,10 @@ function DropdownMenuItem({
         "group/dropdown-menu-item relative flex cursor-default items-center gap-1.5 rounded-md px-1.5 py-1 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-inset:pl-7 data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:focus:text-destructive dark:data-[variant=destructive]:focus:bg-destructive/20 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-[variant=destructive]:*:[svg]:text-destructive",
         className
       )}
+      onClick={(event) => {
+        onClick?.(event)
+        onSelect?.()
+      }}
       {...props}
     />
   )

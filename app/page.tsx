@@ -12,7 +12,7 @@ import {
 } from "lucide-react"
 import { FadeIn } from "@/components/motion/fade-in"
 import { StaggerContainer } from "@/components/motion/stagger-container"
-import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
 const HIGHLIGHTS = [
@@ -58,16 +58,16 @@ export default function LandingPage() {
             </p>
           </FadeIn>
           <FadeIn delay={0.24} className="flex flex-wrap items-center justify-center gap-3">
-            <Button render={<Link href="/crm" />} size="lg">
+            <Link href="/crm" className={buttonVariants({ size: "lg" })}>
               打开 AI CRM 原型
               <ArrowRightIcon />
-            </Button>
-            <Button render={<Link href="/demo" />} variant="outline" size="lg">
+            </Link>
+            <Link href="/demo" className={buttonVariants({ variant: "outline", size: "lg" })}>
               打开演示仪表盘
-            </Button>
-            <Button render={<Link href="#stack" />} variant="ghost" size="lg">
+            </Link>
+            <Link href="#stack" className={buttonVariants({ variant: "ghost", size: "lg" })}>
               里面有什么
-            </Button>
+            </Link>
           </FadeIn>
         </div>
       </section>

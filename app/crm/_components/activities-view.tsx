@@ -52,14 +52,18 @@ const initials = (name: string) =>
     .join("")
     .toUpperCase()
 
-export function ActivitiesView() {
+type ActivitiesViewProps = {
+  /** 点击企业名进入该客户详情页。 */
+  onOpenCustomer: (customerId: string) => void
+}
+
+export function ActivitiesView({ onOpenCustomer }: ActivitiesViewProps) {
   const activities = useCrmStore((s) => s.activities)
   const customers = useCrmStore((s) => s.customers)
   const kindFilter = useCrmStore((s) => s.activityKindFilter)
   const ownerFilter = useCrmStore((s) => s.activityOwnerFilter)
   const setKindFilter = useCrmStore((s) => s.setActivityKindFilter)
   const setOwnerFilter = useCrmStore((s) => s.setActivityOwnerFilter)
-  const selectCustomer = useCrmStore((s) => s.selectCustomer)
 
   const companyOf = useMemo(() => {
     const map = new Map<string, { company: string; id: string }>()
@@ -207,7 +211,7 @@ export function ActivitiesView() {
                   event={event}
                   company={companyOf.get(event.customerId)?.company ?? "—"}
                   isLast={index === visible.length - 1}
-                  onOpen={() => selectCustomer(event.customerId)}
+                  onOpen={() => onOpenCustomer(event.customerId)}
                 />
               ))}
             </ol>
