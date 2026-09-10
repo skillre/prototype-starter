@@ -172,6 +172,13 @@ Agent 默认**禁止自动 merge**；默认禁止 push main、合并 main、删�
 
 一切视觉常量来自 `app/globals.css` 的 design token 层（typography `text-display/title/subtitle/caption/label`、semantic spacing `p-gutter/gap-stack/mt-section`、radius `rounded-field/rounded-card`、motion `duration-*`/`ease-*`、内容宽度 `max-w-dashboard/content/text`）。禁止在页面里撒 magic number。
 
+## 文案与本地化
+
+- 默认语言 **zh-CN**。`app/**` 与 `components/**` 里**不允许**出现硬编码的用户可见文案，一律经 `useMessages()`（服务端用 `messages`）从 `lib/i18n` 取。
+- 词典负责**界面文案**；**业务记录内容**（客户名、公司名、备注、金额）留在 `lib/crm-data.ts` / `lib/mock-data.ts`，不做翻译。
+- 路由 slug 保持英文（`/crm/customers`），界面显示中文。新增 locale 只需在 `lib/i18n/` 增加一个 `Messages` 形状的文件。
+- 允许保留原文的只有：品牌名、URL、Email、技术栈名称、代码、键盘快捷键。这份白名单集中在 `tests/support/localization.ts`，并断言 `/`、`/demo` 与全部 `/crm` 路由（含浮层）零泄漏。
+
 ## Zustand 约定
 
 - selector 只取**原始值**（如 `customers` 数组本身），派生（filter/sort/计数）在组件内用 `useMemo`。**禁止在 selector 里返回新数组/新对象**（zustand v5 会无限渲染）。

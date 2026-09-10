@@ -29,21 +29,21 @@ test("adds a customer and sees it in the table and drawer", async ({ page }) => 
   const dialog = page.getByTestId("add-customer-dialog")
   await expect(dialog).toBeVisible()
 
-  await page.getByTestId("add-customer-name").fill("Planet Express")
-  await dialog.getByPlaceholder("Alicia Monroe").fill("Professor Farnsworth")
-  await dialog.getByPlaceholder("alicia@acme.com").fill("prof@planetexpress.com")
+  await page.getByTestId("add-customer-name").fill("天穹智能")
+  await dialog.getByPlaceholder("张启明").fill("周立")
+  await dialog.getByPlaceholder("zhangqiming@hanzhou-data.cn").fill("zhouli@tianqiong.cn")
   await page.getByTestId("add-customer-submit").click()
 
   await expect(dialog).not.toBeVisible()
   await expect(table.locator("tbody tr")).toHaveCount(15)
-  await expect(table).toContainText("Planet Express")
+  await expect(table).toContainText("天穹智能")
 
   // 新客户实时出现在表格中，打开其详情抽屉核对内容。
-  await table.locator("tbody tr", { hasText: "Planet Express" }).click()
+  await table.locator("tbody tr", { hasText: "天穹智能" }).click()
   const drawer = page.getByTestId("customer-drawer")
   await expect(drawer).toBeVisible()
   await expect(drawer.getByText("账户备注")).toBeVisible()
-  await expect(drawer.getByText("Professor Farnsworth", { exact: true })).toBeVisible()
+  await expect(drawer.getByText("周立", { exact: true })).toBeVisible()
   await expect(drawer.getByRole("button", { name: "关停账户" })).toBeVisible()
 
   await drawer.getByRole("button", { name: "关闭", exact: true }).click()
@@ -60,9 +60,9 @@ test("detail drawer shows record data and footer actions", async ({ page }) => {
   const drawer = page.getByTestId("customer-drawer")
   await expect(drawer).toBeVisible()
 
-  // 默认按「最近活跃」升序，第一行是 Pied Piper。
-  await expect(drawer.getByText("Pied Piper", { exact: true })).toBeVisible()
-  await expect(drawer.getByText("Richard Hendricks", { exact: true })).toBeVisible()
+  // 默认按「最近活跃」升序，第一行是「星槎出行」。
+  await expect(drawer.getByText("星槎出行", { exact: true })).toBeVisible()
+  await expect(drawer.getByText("郑一诺", { exact: true })).toBeVisible()
   await expect(drawer.getByText("账户备注")).toBeVisible()
   await expect(drawer.getByRole("button", { name: "复制邮箱" })).toBeVisible()
   await expect(drawer.getByRole("button", { name: "关停账户" })).toBeVisible()

@@ -44,27 +44,6 @@ export const CRM_OWNERS = ["陈美雅", "高子墨", "苏芮", "韦俊", "潘丽
 export type CrmOwner = (typeof CRM_OWNERS)[number]
 
 /**
- * 头像文字。中文名取姓名末两字（名），西文名取首字母缩写——
- * 全站头像都走这一个函数，避免每个视图各写一份。
- *
- * `max` 用于密集场景：24px 及以下的小头像放不下两个汉字，
- * 传 1 只取一个姓氏字符，避免文字被裁切成不可读的碎片。
- */
-export const personInitials = (name: string, max: 1 | 2 = 2): string => {
-  const trimmed = name.trim()
-  if (!trimmed) return "?"
-  const parts = trimmed.split(/\s+/)
-  if (parts.length > 1) {
-    return parts
-      .slice(0, max)
-      .map((part) => part[0])
-      .join("")
-      .toUpperCase()
-  }
-  return trimmed.length > max ? trimmed.slice(-max) : trimmed
-}
-
-/**
  * 状态视觉。文案在 i18n（`t.status[status]`），这里只保留色调：
  * 语义色优先于图表色，保证徽章、指示灯与环形图三处颜色永远一致。
  */

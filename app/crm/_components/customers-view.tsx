@@ -26,7 +26,6 @@ import {
   CRM_OWNERS,
   STATUS_META,
   STATUS_ORDER,
-  personInitials,
   type CrmCustomer,
   type CrmOwner,
 } from "@/lib/crm-data"
@@ -39,7 +38,7 @@ import {
   type CrmSortKey,
   type CrmStatusFilter,
 } from "@/stores/crm-store"
-import { formatCurrency, formatDate } from "@/lib/format"
+import { formatCurrency, formatDate, personInitials } from "@/lib/format"
 import { useMessages } from "@/components/i18n/locale-provider"
 import { cn } from "@/lib/utils"
 

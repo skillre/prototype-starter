@@ -1,11 +1,10 @@
 /**
  * Shared formatting — one place that decides how the product renders money,
- * numbers and dates.
+ * numbers, dates and person initials.
  *
  * Money rules (kept deliberately consistent):
  *   • Detail views, tables and records  → full precision, ¥ + thousands:  ¥1,480,000
  *   • KPI hero numbers and chart axes   → 万元 compact:                   ¥2,650万
- *   • The legacy /demo dashboard keeps USD by passing "USD" explicitly.
  */
 
 export type Currency = "CNY" | "USD"
@@ -67,6 +66,27 @@ export const formatRelativeHours = (hours: number): string => {
 }
 
 /* -------------------------------------------------------------------------- */
+
+/**
+ * 头像文字。中文名取姓名末两字（名），西文名取首字母缩写——
+ * 全站头像都走这一个函数，避免每个视图各写一份。
+ *
+ * `max` 用于密集场景：24px 及以下的小头像放不下两个汉字，
+ * 传 1 只取一个姓氏字符，避免文字被裁切成不可读的碎片。
+ */
+export const personInitials = (name: string, max: 1 | 2 = 2): string => {
+  const trimmed = name.trim()
+  if (!trimmed) return "?"
+  const parts = trimmed.split(/\s+/)
+  if (parts.length > 1) {
+    return parts
+      .slice(0, max)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+  }
+  return trimmed.length > max ? trimmed.slice(-max) : trimmed
+}
 
 /** One decimal only when it adds information: 4.85 → "4.9", 26.5 → "26.5", 30 → "30". */
 function trim(value: number): string {

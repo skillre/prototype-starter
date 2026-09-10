@@ -12,15 +12,16 @@ import { zhCN, type Messages } from "./zh-CN"
  * 词典负责 **界面文案**，以及由界面生成的文案模板：
  *   ✅ components/**        所有共享 UI（含 Sidebar / TopNav / FilterBar /
  *                           Pagination / DetailDrawer 等组件的默认文案）
- *   ✅ app/crm/**           CRM 产品的全部界面文案
+ *   ✅ app/**               全部路由：CRM（/crm/**）、内置演示（/demo/**）、
+ *                           落地页（/）、404 页
  *   ✅ lib/ai-summary.ts    AI 摘要的生成模板（是文案，不是数据）
  *
  * 词典**不**负责 **业务记录内容**——那是数据，不是可翻译的文案：
- *   ⛔ lib/crm-data.ts      客户名、公司名、备注、活动标题、标签、金额
+ *   ⛔ lib/crm-data.ts      CRM 的客户名、公司名、备注、活动标题、标签、金额
+ *   ⛔ lib/mock-data.ts     演示工作区的账户、活动流、通知
  *
- * 尚未迁移：`app/demo/**`（Starter 自带演示版块）与 `app/page.tsx`（Starter
- * 落地页）的版块文案仍写在 JSX 里；它们的**共享布局文案**已经走词典。
- * 剩余部分是机械迁移，不影响本阶段结论，但新增原型应直接从词典取文案。
+ * 因此 `app/**` 与 `components/**` 里不应再出现任何用户可见的字面文案；
+ * 新增原型直接从词典取文案即可。
  */
 export const LOCALES = ["zh-CN"] as const
 

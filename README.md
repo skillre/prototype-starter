@@ -23,8 +23,9 @@ First e2e run needs browsers once: `pnpm exec playwright install chromium`.
 - **Design System V2.** A complete token hierarchy in one layer (`app/globals.css`) with a
   JS mirror (`lib/motion-presets.ts`) — Light and Dark, semantic colour roles, type scale,
   radius & elevation semantics, and intent-named motion. See below.
-- **Chinese-first localization.** Every user-visible string in `components/**` and
-  `app/crm/**` resolves through `lib/i18n` — no scattered copy. Adding a locale is one file.
+- **Chinese-first localization.** Every user-visible string in `app/**` and `components/**`
+  resolves through `lib/i18n` — landing page, demo dashboard, CRM and 404s alike.
+  No scattered copy; adding a locale is one file.
 - **Reusable component library.** Generic building blocks you copy into new prototypes:
   `components/prototype/*` (StatsCard, ChartCard, DataTable, FilterBar, DetailDrawer,
   CommandPalette, EmptyState, LoadingState, ErrorState, OnboardingWizard, AmbientBackdrop),
@@ -34,8 +35,8 @@ First e2e run needs browsers once: `pnpm exec playwright install chromium`.
   real interactions only, browser QA, quality gates, git safety & branch strategy).
   `skills/interactive-prototype/SKILL.md` defines the full build workflow
   and `skills/git-delivery/SKILL.md` defines the delivery workflow.
-- **Verified.** 53 Playwright e2e flows cover routing integrity, navigation, forms,
-  drawers, drag-and-drop, the command palette, localization coverage, theme tokens and
+- **Verified.** 59 Playwright e2e flows cover routing integrity, navigation, forms,
+  drawers, drag-and-drop, the command palette, English-leakage auditing, theme tokens and
   mobile viewports.
 
 ## Design System V2
@@ -86,7 +87,13 @@ Adding `en-US`: create `lib/i18n/en-US.ts` typed as `Messages`, append `"en-US"`
 `LOCALES` and the dictionary map. No component changes.
 
 **Dictionary = interface copy.** Record content (customer names, notes, amounts) lives in
-`lib/crm-data.ts` and is intentionally *not* translated. Route slugs stay English.
+`lib/crm-data.ts` / `lib/mock-data.ts` and is intentionally *not* translated. Route slugs
+stay English.
+
+`tests/support/localization.ts` holds the single allow-list for Latin text (brand names,
+URLs, emails, tech-stack names, keyboard shortcuts) and the visible-text scanner; the
+specs assert **zero** non-allow-listed English on `/`, `/demo` and every `/crm` route,
+including dialogs, drawers, menus and the command palette.
 
 ## Structure
 
@@ -103,11 +110,12 @@ hooks/                   # useMediaQuery, useDebouncedValue, useHotkey
 lib/
   i18n/                  # dictionaries (zh-CN) + locale registry
   crm-data.ts            # AI CRM mock records (Chinese business data)
-  mock-data.ts           # demo dashboard mock data
-  format.ts              # money / number / date formatting
+  mock-data.ts           # demo workspace mock records (Chinese business data)
+  format.ts              # money / number / date formatting + personInitials
   motion-presets.ts      # JS mirror of the motion tokens
 stores/                  # Zustand stores (dashboard demo + CRM)
 tests/                   # Playwright e2e specs
+  support/               # shared test helpers (English allow-list + text scanner)
 skills/                  # agent skills (interactive-prototype, git-delivery)
 ```
 

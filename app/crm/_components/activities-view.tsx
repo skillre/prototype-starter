@@ -24,13 +24,13 @@ import {
 } from "@/components/ui/select"
 import {
   CRM_OWNERS,
-  personInitials,
   type ActivityKind,
   type CrmActivity,
   type CrmOwner,
 } from "@/lib/crm-data"
 import { selectActivities, useCrmStore } from "@/stores/crm-store"
 import { durations, easings } from "@/lib/motion-presets"
+import { personInitials } from "@/lib/format"
 import { useMessages } from "@/components/i18n/locale-provider"
 import { cn } from "@/lib/utils"
 

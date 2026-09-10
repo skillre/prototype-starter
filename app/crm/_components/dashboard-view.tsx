@@ -43,11 +43,10 @@ import {
   STAGE_COLORS,
   STATUS_META,
   TASK_COLUMNS,
-  personInitials,
   type CustomerStatus,
 } from "@/lib/crm-data"
 import { selectKpis, selectMonthlySeries, useCrmStore } from "@/stores/crm-store"
-import { formatCurrency, formatCurrencyCompact } from "@/lib/format"
+import { formatCurrency, formatCurrencyCompact, personInitials } from "@/lib/format"
 import { durations } from "@/lib/motion-presets"
 import { useMessages } from "@/components/i18n/locale-provider"
 import { cn } from "@/lib/utils"

@@ -52,15 +52,19 @@ export const zhCN = {
   },
 
   /**
-   * 内置演示（/demo）的默认文案。Sidebar / TopNav / MobileNav 是共享布局组件，
-   * 未注入配置时就取这里的默认值——组件本身因此不含任何硬编码文案。
+   * 内置演示（/demo）的全部文案。
+   *
+   * 开头的几个键（品牌 / 用户 / 用量 / 导航）同时是共享布局组件 Sidebar、
+   * TopNav、MobileNav **未注入配置时**的默认身份；其余键是演示应用自己的页面
+   * 文案。放在同一组里，是因为它们描述的就是同一个演示工作区——组件本身依旧
+   * 不含任何硬编码文案。
    */
   demo: {
-    brandName: "Northwind",
-    brandSubtitle: "分析工作区",
-    userName: "Taylor Wu",
-    userEmail: "taylor@northwind.dev",
-    userInitials: "TW",
+    brandName: "云图分析",
+    brandSubtitle: "增长分析工作区",
+    userName: "吴桐",
+    userEmail: "wutong@yuntu.cn",
+    userInitials: "吴",
     usageLabel: "用量",
     usageValue: "64%",
     usageHint: "专业版已使用 206 / 320 个席位。",
@@ -71,6 +75,244 @@ export const zhCN = {
       activity: "动态",
       settings: "快速上手",
     },
+
+    meta: {
+      title: "演示仪表盘",
+      description: "云图分析 —— 一个真实可交互的 SaaS 仪表盘原型。",
+    },
+    workspace: "云图分析",
+    pages: {
+      overview: { title: "总览", subtitle: "云图分析 · 9月1日 – 9月7日" },
+      customers: { title: "客户", subtitle: "专业版及以下套餐的账户" },
+      activity: { title: "动态", subtitle: "工作区内的所有事件" },
+    },
+    commandHint: "打开命令面板",
+
+    palette: {
+      navigate: "导航",
+      actions: "操作",
+      overview: "前往总览",
+      customers: "前往客户",
+      activity: "前往动态",
+      addCustomer: "添加客户",
+      refresh: "刷新数据",
+      wizard: "快速上手",
+      theme: "切换主题",
+      reset: "重置演示数据",
+      keywords: {
+        overview: "dashboard 首页 概览",
+        customers: "账户 列表 表格",
+        activity: "通知 动态",
+        addCustomer: "新建 账户",
+        refresh: "重新加载 同步",
+        wizard: "引导 设置",
+        theme: "深浅色 外观",
+        reset: "恢复 初始",
+      },
+    },
+
+    overview: {
+      kpi: {
+        mrr: "月经常性收入",
+        accounts: "活跃账号",
+        conversion: "试用转化率",
+        session: "平均会话时长",
+        vsLastMonth: "较上月",
+      },
+      revenue: {
+        title: "月度经常性收入",
+        description: "近 12 个月收入与支出对比",
+        seriesRevenue: "收入",
+        seriesExpenses: "支出",
+      },
+      channel: {
+        title: "获客渠道",
+        description: "本月新增注册占比",
+      },
+      focus: {
+        title: "本周聚焦",
+        description: "拖拽排序，顺序保存在本地状态。",
+      },
+      recent: {
+        title: "最近动态",
+        description: "工作区最新事件。",
+      },
+    },
+
+    customers: {
+      searchPlaceholder: "搜索公司、联系人或地区…",
+      resultCaption: (visible: number, total: number) => `显示 ${visible} / ${total} 位客户`,
+      addCustomer: "添加客户",
+      allStatuses: "全部状态",
+      allPlans: "全部套餐",
+      sortPrefix: "排序：",
+      sort: {
+        lastActiveHours: "最近活跃",
+        mrr: "月经常性收入",
+        name: "名称",
+        since: "入驻时间",
+      },
+      columns: {
+        customer: "客户",
+        plan: "套餐",
+        status: "状态",
+        mrr: "月经常性收入",
+        region: "地区",
+        lastActive: "最近活跃",
+      },
+      empty: {
+        title: "没有符合条件的客户",
+        noSearch: "当前筛选条件下没有记录，试试清除筛选或切换状态。",
+        withSearch: (query: string) => `未找到与「${query}」匹配的记录。`,
+      },
+      clearFilters: "清除筛选",
+      drawer: {
+        contact: "联系人",
+        plan: "套餐",
+        status: "状态",
+        mrr: "月经常性收入",
+        seats: "席位",
+        region: "地区",
+        since: "入驻时间",
+        lastActive: "最近活跃",
+        noteLabel: "账户备注",
+        note: (contact: string, since: string) =>
+          `${contact} 每周会收到摘要邮件，并已签署数据处理协议。续费将在 ${since} 的周年日自动进行。`,
+        copyEmail: "复制邮箱",
+        reopen: "重新启用",
+        closeAccount: "关停账户",
+      },
+      dialog: {
+        title: "添加客户",
+        description: "在本地 store 中创建一条真实记录，筛选、排序与表格会立即响应。",
+        company: "公司名称",
+        contact: "联系人",
+        email: "邮箱",
+        plan: "套餐",
+        status: "状态",
+        mrr: "月经常性收入（元）",
+        seats: "席位",
+        region: "地区",
+        placeholderCompany: "瀚舟数据",
+        placeholderContact: "张启明",
+        placeholderEmail: "zhangqiming@hanzhou-data.cn",
+        placeholderRegion: "上海",
+        submit: "添加客户",
+        validation: {
+          company: "请填写公司名称。",
+          contact: "请填写联系人。",
+          email: "请输入有效的邮箱地址。",
+          mrr: "月经常性收入必须是非负数字。",
+          seats: "席位至少为 1。",
+        },
+      },
+      toast: {
+        reopened: "账户已重新启用",
+        reopenedDescription: (name: string, value: string) =>
+          `${name} 已恢复为活跃状态，月经常性收入 ${value}。`,
+        closed: "账户已关停",
+        closedDescription: (name: string) => `${name} 已标记为已流失，月经常性收入归零。`,
+        added: (name: string) => `已添加 ${name}`,
+        addedDescription: (plan: string, value: string) =>
+          `套餐 ${plan}，月经常性收入 ${value}。表格中已实时生效。`,
+      },
+    },
+
+    activity: {
+      tabAll: "全部",
+      tabUnread: "未读",
+      title: "通知",
+      description: "点击条目标记为已读，顶栏与侧栏的徽标会同步更新。",
+      markAllRead: "全部标为已读",
+      emptyTitle: "没有未读通知",
+      emptyDescription: "所有通知都已读——切换到「全部」查看历史记录。",
+      emptyAction: "查看全部通知",
+    },
+
+    wizard: {
+      welcome: {
+        title: "欢迎使用",
+        description: (workspace: string) => `简单告诉我们你将如何使用${workspace}。`,
+        team: "团队共享",
+        personal: "主要用于个人原型",
+      },
+      role: {
+        title: "你的角色",
+        description: "我们会据此定制引导流程。",
+        designer: "产品设计师",
+        engineer: "工程师",
+        founder: "创始人 / 产品经理",
+        required: "请选择一个角色后再继续。",
+      },
+      confirm: {
+        title: "确认信息",
+        description: "检查你的答案，然后完成设置。",
+        workspace: "工作区：",
+        team: "团队账户：",
+        role: "角色：",
+        yes: "是",
+        no: "否",
+      },
+      done: {
+        title: "工作区设置完成",
+        description: "这个向导是可复用的通用组件，见 components/prototype/onboarding-wizard。",
+      },
+    },
+
+    toast: {
+      reset: "演示数据已重置",
+    },
+  },
+
+  /**
+   * 原型 Starter 自身的落地页（/）。这里描述的是 Starter 而不是某个业务产品，
+   * 因此技术栈名称（Next.js、Playwright…）与命令按约定保留原文。
+   */
+  landing: {
+    badge: "Next.js 16 · Tailwind v4 · shadcn/ui · Motion",
+    title: "交互式原型 Starter",
+    description:
+      "面向高保真产品原型的可复用基础：纯前端 + 本地状态 + 真实感 mock 数据——没有任何静态假页面。",
+    primaryCta: "打开 AI CRM 原型",
+    secondaryCta: "打开演示仪表盘",
+    tertiaryCta: "里面有什么",
+    highlights: [
+      "shadcn/ui（Base UI）基础组件",
+      "Motion 驱动的动画组件库",
+      "Zustand 本地状态 + 真实感 mock 数据",
+      "Recharts 图表、拖拽排序与命令面板",
+      "设计 Token：排版 / 间距 / 圆角 / 动效",
+      "Playwright 端到端测试",
+    ],
+    stackTitle: "为高效迭代而生",
+    /** 路由以 <code> 呈现，所以拆成前后两段，避免在文案里混入 JSX。 */
+    stackDescriptionPrefix: "打开",
+    stackDescriptionSuffix: "即可看到一整套 SaaS 仪表盘演示，随后直接复用其中的模式。",
+    features: [
+      {
+        title: "真实交互",
+        description: "没有假按钮。筛选、拖拽、增删、恢复——每个可见控件都作用于本地状态。",
+      },
+      {
+        title: "设计 Token",
+        description: "排版、间距、圆角、动效时长与内容宽度集中在同一层，杜绝散落的魔法数字。",
+      },
+      {
+        title: "对 Agent 友好",
+        description:
+          "AGENTS.md 规则与 interactive-prototype Skill 要求先检查、复用组件、并在浏览器中验证。",
+      },
+      {
+        title: "测试把关",
+        description: "lint、类型检查、Playwright 与生产构建全绿后才算完成：pnpm check。",
+      },
+    ],
+    commands: [
+      "pnpm dev — 打开 /demo",
+      "pnpm check — lint + 类型检查 + Playwright",
+      "pnpm build — 交付前的生产构建",
+    ],
+    footer: "原型 Starter —— 前端 + 本地状态 + 真实感 mock 数据。刻意不做后端。",
   },
 
   /** 通用分页文案——Pagination 的默认标签取这里，调用方无需重复传入。 */
@@ -105,6 +347,8 @@ export const zhCN = {
     createdActivityDetail: (owner: string, company: string) =>
       `${owner} 将「${company}」加入管道。`,
     justNow: "刚刚",
+    /** 新建记录时的「入驻时间」——与 REFERENCE_MONTH 保持同步。 */
+    currentMonth: "2026年9月",
   },
 
   a11y: {

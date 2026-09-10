@@ -66,11 +66,11 @@ test("filter changes the table results", async ({ page }) => {
   const rows = page.getByTestId("customers-table").locator("tbody tr")
   await expect(rows).toHaveCount(14)
 
-  await search.fill("Hooli")
+  await search.fill("望江纺织")
   await expect(rows).toHaveCount(1)
-  await expect(page.getByTestId("customers-table")).toContainText("Hooli")
+  await expect(page.getByTestId("customers-table")).toContainText("望江纺织")
 
-  await search.fill("acme-does-not-exist")
+  await search.fill("不存在的公司")
   await expect(page.getByText("没有符合条件的客户")).toBeVisible()
 
   await page.getByRole("button", { name: "清除筛选" }).click()

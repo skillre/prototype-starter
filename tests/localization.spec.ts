@@ -1,101 +1,146 @@
 import { test, expect, type Page } from "@playwright/test"
+import { LOCALIZED_ROUTES, expectFullyLocalized } from "./support/localization"
 
 /**
- * 本地化完整性（Phase 12 — No English Leakage）。
+ * 本地化完整性（Phase 3 — English Leakage Audit）。
  *
- * 目标：CRM 的**界面文案**全部为中文。数据里的专有名词（客户公司名、人名、
- * 品牌名、URL、技术标识、快捷键、邮箱）不在断言范围内——它们是内容，不是 UI 文案。
+ * 覆盖 **整个 Starter**：落地页（/）、内置演示（/demo）与 CRM 全部路由。
+ * 判定规则集中在 `tests/support/localization.ts`，这里只负责"把页面打开、
+ * 把浮层展开、然后断言"。
+ *
+ * 数据里的专有名词（客户公司名、人名、邮箱、URL、技术栈名称、快捷键）由
+ * 允许列表统一放行——它们是内容或技术标识，不是界面文案。
  */
 
-const CRM_ROUTES = [
-  "/crm",
-  "/crm/customers",
-  "/crm/customers/c-004",
-  "/crm/tasks",
-  "/crm/activities",
-]
-
-/**
- * 允许出现的西文片段：
- *   • 纯数字 / 金额 / 日期 / 邮箱 / URL
- *   • 品牌名与技术栈名称
- *   • 键盘快捷键与产品品牌
- *   • 种子数据里的专有名词（公司、人名、邮箱域名）
- * 其余「纯西文且不含中文」的可见文本一律视为漏翻。
- */
-const ALLOWED = [
-  /^[\d\s.,:%¥$+\-–—/()]+$/,
-  /^(AI|CRM|AI CRM|G D|G C|G T|G A|N|K|⌘K|zhixiao-copilot-v2)$/,
-  /@/,
-  /^https?:\/\//,
-  /^\d{4}-\d{2}-\d{2}/,
-  /^(GET|POST|PUT|DELETE)\s/,
-  /^(Next\.js|Tailwind|shadcn|Motion|Zustand|Recharts|Playwright|Base UI)\b/,
-]
-
-async function visibleUntranslatedText(page: Page) {
-  return page.evaluate(() => {
-    const found: string[] = []
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
-    let node: Node | null
-    while ((node = walker.nextNode())) {
-      const text = (node.textContent ?? "").trim()
-      if (!text || text.length > 120) continue
-      const parent = node.parentElement
-      if (!parent) continue
-      if (parent.closest("[aria-hidden='true'], .sr-only, script, style, code, pre")) continue
-      const style = getComputedStyle(parent)
-      if (style.visibility === "hidden" || style.display === "none" || style.opacity === "0") continue
-      found.push(text)
-    }
-    return found
-  })
+async function waitReady(page: Page, route: string) {
+  if (route.startsWith("/crm")) {
+    await expect(page.getByTestId("crm-content")).toBeVisible({ timeout: 20_000 })
+  } else if (route === "/demo") {
+    await expect(page.getByTestId("demo-content")).toBeVisible({ timeout: 20_000 })
+  }
 }
 
-test.describe("CRM UI copy is fully localized", () => {
-  test("html declares zh-CN", async ({ page }) => {
+test.describe("Starter 界面文案零英文泄漏", () => {
+  test("html 声明 zh-CN", async ({ page }) => {
     await page.goto("/crm")
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN")
   })
 
-  for (const route of CRM_ROUTES) {
-    test(`${route} renders no untranslated UI copy`, async ({ page }) => {
+  for (const route of LOCALIZED_ROUTES) {
+    test(`${route} 渲染后没有未翻译的界面文案`, async ({ page }) => {
       await page.goto(route)
-      await expect(page.getByTestId("crm-content")).toBeVisible({ timeout: 20_000 })
-      await page.waitForTimeout(500)
-
-      const texts = await visibleUntranslatedText(page)
-      const unlocalized = texts.filter((text) => {
-        // 含中文 → 已本地化（中英混排的品牌名也归此类）。
-        if (/[\u4e00-\u9fff]/.test(text)) return false
-        // 不含连续 3 个以上字母 → 不是文案。
-        if (!/[A-Za-z]{3,}/.test(text)) return false
-        return !ALLOWED.some((rule) => rule.test(text))
-      })
-
-      expect(unlocalized).toEqual([])
+      await waitReady(page, route)
+      await expectFullyLocalized(page, route)
     })
   }
+})
 
-  test("key navigation and control labels are Chinese", async ({ page }) => {
+test.describe("浮层与表单同样完成本地化", () => {
+  test("CRM：命令面板 / 账户菜单 / 通知 / 演示控制 / 个人资料", async ({ page }) => {
     await page.goto("/crm")
     await expect(page.getByTestId("crm-content")).toBeVisible({ timeout: 20_000 })
 
-    // 侧栏导航文案
+    await page.keyboard.press("ControlOrMeta+K")
+    await expect(page.getByRole("dialog")).toBeVisible()
+    await expectFullyLocalized(page, "CRM 命令面板")
+    await page.keyboard.press("Escape")
+
+    await page.getByTestId("account-menu").click()
+    await expect(page.getByRole("menuitem", { name: "个人资料" })).toBeVisible()
+    await expectFullyLocalized(page, "CRM 账户菜单")
+    await page.keyboard.press("Escape")
+
+    await page.getByTestId("notifications").click()
+    await expect(page.getByText("通知")).toBeVisible()
+    await expectFullyLocalized(page, "CRM 通知面板")
+    await page.keyboard.press("Escape")
+
+    await page.getByTestId("demo-controls").click()
+    await expect(page.getByText("原型状态")).toBeVisible()
+    await expectFullyLocalized(page, "CRM 演示控制")
+    await page.keyboard.press("Escape")
+  })
+
+  test("演示：命令面板 / 引导向导 / 添加客户 / 详情抽屉", async ({ page }) => {
+    await page.goto("/demo")
+    await expect(page.getByTestId("demo-content")).toBeVisible({ timeout: 20_000 })
+
+    await page.keyboard.press("ControlOrMeta+K")
+    await expect(page.getByTestId("command-palette")).toBeVisible()
+    await expectFullyLocalized(page, "演示命令面板")
+    await page.keyboard.press("Escape")
+
+    await page.getByTestId("nav-settings").click()
+    await expect(page.getByTestId("onboarding-wizard")).toBeVisible()
+    await expectFullyLocalized(page, "演示引导向导")
+    await page.keyboard.press("Escape")
+    await expect(page.getByTestId("onboarding-wizard")).not.toBeVisible()
+
+    await page.getByTestId("nav-customers").click()
+    await page.getByTestId("add-customer").click()
+    const dialog = page.getByTestId("add-customer-dialog")
+    await expect(dialog).toBeVisible()
+    await expectFullyLocalized(page, "演示添加客户")
+    await dialog.getByRole("button", { name: "关闭", exact: true }).first().click()
+    await expect(dialog).not.toBeVisible()
+
+    await page.getByTestId("customers-table").locator("tbody tr").first().click()
+    await expect(page.getByTestId("customer-drawer")).toBeVisible()
+    await expectFullyLocalized(page, "演示详情抽屉")
+  })
+})
+
+test.describe("关键控件文案", () => {
+  test("CRM 导航与账户菜单为中文", async ({ page }) => {
+    await page.goto("/crm")
+    await expect(page.getByTestId("crm-content")).toBeVisible({ timeout: 20_000 })
+
     await expect(page.getByTestId("nav-dashboard")).toContainText("总览")
     await expect(page.getByTestId("nav-customers")).toContainText("客户")
     await expect(page.getByTestId("nav-tasks")).toContainText("任务")
     await expect(page.getByTestId("nav-activities")).toContainText("活动")
     await expect(page.getByTestId("nav-add-customer")).toContainText("添加客户")
 
-    // 账户菜单
     await page.getByTestId("account-menu").click()
     await expect(page.getByRole("menuitem", { name: "个人资料" })).toBeVisible()
     await expect(page.getByRole("menuitem", { name: "退出登录" })).toBeVisible()
     await page.keyboard.press("Escape")
   })
 
-  test("light and dark both expose the full semantic token set", async ({ page }) => {
+  test("演示的侧栏身份、排序与筛选控件为中文", async ({ page }) => {
+    await page.goto("/demo")
+    await expect(page.getByTestId("demo-content")).toBeVisible({ timeout: 20_000 })
+
+    await expect(page.getByTestId("nav-overview")).toContainText("总览")
+    await expect(page.getByTestId("demo-root")).toContainText("云图分析")
+    await expect(page.getByTestId("demo-root")).toContainText("吴桐")
+
+    await page.getByTestId("nav-customers").click()
+    // 排序触发器必须显示中文标签，而不是内部的 sortKey。
+    await expect(page.getByTestId("filter-sort")).toContainText("排序：最近活跃")
+    await expect(page.getByTestId("filter-status")).toContainText("全部状态")
+    await expect(page.getByTestId("filter-plan")).toContainText("全部套餐")
+  })
+
+  test("新增记录使用中文时间字段", async ({ page }) => {
+    await page.goto("/demo")
+    await expect(page.getByTestId("demo-content")).toBeVisible({ timeout: 20_000 })
+
+    await page.getByTestId("nav-customers").click()
+    await page.getByTestId("add-customer").click()
+    await page.getByTestId("add-customer-name").fill("天穹智能")
+    await page.getByTestId("add-customer-dialog").getByPlaceholder("张启明").fill("周立")
+    await page.getByTestId("add-customer-dialog").getByPlaceholder("zhangqiming@hanzhou-data.cn").fill("zhouli@tianqiong.cn")
+    await page.getByTestId("add-customer-submit").click()
+
+    const row = page.getByTestId("customers-table").locator("tbody tr", { hasText: "天穹智能" })
+    await expect(row).toContainText("刚刚")
+    await expect(row).not.toContainText("Just now")
+  })
+})
+
+test.describe("主题 token", () => {
+  test("Light 与 Dark 都提供完整的语义 token 且取值不同", async ({ page }) => {
     await page.goto("/crm")
     await expect(page.getByTestId("crm-content")).toBeVisible({ timeout: 20_000 })
 
