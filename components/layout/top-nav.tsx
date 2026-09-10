@@ -40,6 +40,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useDashboardStore } from "@/stores/dashboard-store"
 import type { NavId } from "@/components/layout/sidebar"
+import type { AppNotification } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 
 const KIND_ICON = {
@@ -49,21 +50,57 @@ const KIND_ICON = {
   report: BellIcon,
 } as const
 
+/**
+ * 顶栏的数据来源。默认（不传）时行为与 Starter 完全一致：读取 dashboard-store。
+ * 其他原型（如 AI CRM）可注入自己的通知、状态与动作，而无需复制这个组件。
+ */
+export interface TopNavDataSource {
+  notifications: AppNotification[]
+  status: "loading" | "ready" | "error"
+  onRefresh: () => void
+  onSimulateFailure?: () => void
+  onReset?: () => void
+  onMarkAllRead: () => void
+  onOpenNotification?: (title: string) => void
+  /** 账户菜单里「快速上手」的目标 id。 */
+  settingsNavId?: NavId
+  account: { name: string; email: string; initials: string }
+}
+
 type TopNavProps = {
   title: string
   subtitle: string
   onOpenCommand: () => void
   onNavigate: (id: NavId) => void
+  /** 不传则使用内置的 dashboard-store 数据源。 */
+  dataSource?: TopNavDataSource
 }
 
 /** 桌面端顶栏：页面标题、全局搜索、刷新、主题、通知、演示控制、账户菜单。 */
-export function TopNav({ title, subtitle, onOpenCommand, onNavigate }: TopNavProps) {
-  const notifications = useDashboardStore((state) => state.notifications)
-  const markAllNotificationsRead = useDashboardStore((state) => state.markAllNotificationsRead)
-  const refresh = useDashboardStore((state) => state.refresh)
-  const simulateApiFailure = useDashboardStore((state) => state.simulateApiFailure)
-  const resetDemo = useDashboardStore((state) => state.resetDemo)
-  const status = useDashboardStore((state) => state.status)
+export function TopNav({
+  title,
+  subtitle,
+  onOpenCommand,
+  onNavigate,
+  dataSource,
+}: TopNavProps) {
+  // Hooks 必须无条件调用；未注入时读到的 store 值仅用于兜底默认行为。
+  const storeNotifications = useDashboardStore((state) => state.notifications)
+  const storeMarkAll = useDashboardStore((state) => state.markAllNotificationsRead)
+  const storeRefresh = useDashboardStore((state) => state.refresh)
+  const storeSimulateFailure = useDashboardStore((state) => state.simulateApiFailure)
+  const storeReset = useDashboardStore((state) => state.resetDemo)
+  const storeStatus = useDashboardStore((state) => state.status)
+
+  const notifications = dataSource?.notifications ?? storeNotifications
+  const markAllNotificationsRead = dataSource?.onMarkAllRead ?? storeMarkAll
+  const refresh = dataSource?.onRefresh ?? storeRefresh
+  const simulateApiFailure = dataSource?.onSimulateFailure ?? storeSimulateFailure
+  const resetDemo = dataSource?.onReset ?? storeReset
+  const status = dataSource?.status ?? storeStatus
+  const account = dataSource?.account ?? { name: "Taylor Wu", email: "taylor@northwind.dev", initials: "TW" }
+  const settingsNavId = dataSource?.settingsNavId ?? "settings"
+  const onOpenNotification = dataSource?.onOpenNotification
 
   const { resolvedTheme, setTheme } = useTheme()
 
@@ -79,6 +116,10 @@ export function TopNav({ title, subtitle, onOpenCommand, onNavigate }: TopNavPro
   }
 
   const openNotification = (title: string) => {
+    if (onOpenNotification) {
+      onOpenNotification(title)
+      return
+    }
     onNavigate("activity")
     toast.info(title)
   }
@@ -288,20 +329,20 @@ export function TopNav({ title, subtitle, onOpenCommand, onNavigate }: TopNavPro
             }
           >
             <Avatar size="sm">
-              <AvatarFallback>TW</AvatarFallback>
+              <AvatarFallback>{account.initials}</AvatarFallback>
             </Avatar>
-            <span className="hidden text-xs font-medium lg:inline">Taylor Wu</span>
+            <span className="hidden text-xs font-medium lg:inline">{account.name}</span>
             <ChevronDownIcon className="hidden size-3 text-muted-foreground lg:inline" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel className="flex flex-col">
-              Taylor Wu
+              {account.name}
               <span className="text-[10px] font-normal text-muted-foreground">
-                taylor@northwind.dev
+                {account.email}
               </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => onNavigate("settings")}>
+            <DropdownMenuItem onSelect={() => onNavigate(settingsNavId)}>
               <SettingsIcon /> 快速上手
             </DropdownMenuItem>
             <DropdownMenuItem

@@ -58,11 +58,14 @@ export default function LandingPage() {
             </p>
           </FadeIn>
           <FadeIn delay={0.24} className="flex flex-wrap items-center justify-center gap-3">
-            <Button render={<Link href="/demo" />} size="lg">
-              打开演示仪表盘
+            <Button render={<Link href="/crm" />} size="lg">
+              打开 AI CRM 原型
               <ArrowRightIcon />
             </Button>
-            <Button render={<Link href="#stack" />} variant="outline" size="lg">
+            <Button render={<Link href="/demo" />} variant="outline" size="lg">
+              打开演示仪表盘
+            </Button>
+            <Button render={<Link href="#stack" />} variant="ghost" size="lg">
               里面有什么
             </Button>
           </FadeIn>

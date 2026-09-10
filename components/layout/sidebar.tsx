@@ -1,6 +1,5 @@
 "use client"
 
-import { useMemo } from "react"
 import {
   ActivityIcon,
   BlocksIcon,
@@ -12,16 +11,44 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
-import { useDashboardStore } from "@/stores/dashboard-store"
 
-export type NavId = "overview" | "customers" | "activity" | "settings"
+/**
+ * 导航项 id：由调用方自行定义（demo 用 overview/customers/activity/settings，
+ * CRM 用 dashboard/customers/tasks/activities）。保持 string 以便复用同一套
+ * Sidebar / MobileNav。
+ */
+export type NavId = string
 
 export interface NavItemDef {
   id: NavId
   label: string
   icon: LucideIcon
+  /** 可选徽标数字（例如未读数）；为 0 或未传时不渲染。 */
+  badge?: number
 }
 
+export interface NavBrandDef {
+  name: string
+  subtitle: string
+  icon?: LucideIcon
+  /** 自定义品牌图形，优先于 icon。 */
+  mark?: React.ReactNode
+}
+
+export interface NavUserDef {
+  name: string
+  email: string
+  initials: string
+}
+
+export interface NavUsageDef {
+  label: string
+  value: string
+  progress: number
+  hint: string
+}
+
+/** 默认导航项——与既有 /demo 完全一致；未传 items 时使用。 */
 export const NAV_ITEMS: NavItemDef[] = [
   { id: "overview", label: "总览", icon: LayoutDashboardIcon },
   { id: "customers", label: "客户", icon: UsersIcon },
@@ -29,39 +56,58 @@ export const NAV_ITEMS: NavItemDef[] = [
   { id: "settings", label: "快速上手", icon: SettingsIcon },
 ]
 
-function Brand() {
+const DEFAULT_BRAND: NavBrandDef = { name: "Northwind", subtitle: "分析工作区", icon: BlocksIcon }
+const DEFAULT_USER: NavUserDef = {
+  name: "Taylor Wu",
+  email: "taylor@northwind.dev",
+  initials: "TW",
+}
+const DEFAULT_USAGE: NavUsageDef = {
+  label: "用量",
+  value: "64%",
+  progress: 64,
+  hint: "专业版已使用 206 / 320 个席位。",
+}
+
+function Brand({ brand }: { brand: NavBrandDef }) {
+  const Icon = brand.icon ?? BlocksIcon
   return (
     <div className="flex items-center gap-2.5 px-3 py-4">
-      <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <BlocksIcon className="size-4" />
-      </span>
+      {brand.mark ?? (
+        <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <Icon className="size-4" />
+        </span>
+      )}
       <div className="flex min-w-0 flex-col leading-tight">
-        <span className="truncate text-sm font-semibold">Northwind</span>
-        <span className="truncate text-xs text-muted-foreground">分析工作区</span>
+        <span className="truncate text-sm font-semibold">{brand.name}</span>
+        <span className="truncate text-xs text-muted-foreground">{brand.subtitle}</span>
       </div>
     </div>
   )
 }
 
-/** Navigation column — shared by the desktop sidebar and the mobile drawer. */
+/** 导航列——桌面 Sidebar 与移动 Drawer 共用。 */
 export function SidebarNav({
   active,
   onNavigate,
+  brand = DEFAULT_BRAND,
+  items = NAV_ITEMS,
+  user = DEFAULT_USER,
+  /** 传 null 隐藏底部用量卡片。 */
+  usage = DEFAULT_USAGE,
 }: {
   active: NavId
   onNavigate: (id: NavId) => void
+  brand?: NavBrandDef
+  items?: NavItemDef[]
+  user?: NavUserDef
+  usage?: NavUsageDef | null
 }) {
-  const notifications = useDashboardStore((state) => state.notifications)
-  const unreadCount = useMemo(
-    () => notifications.filter((n) => n.unread).length,
-    [notifications]
-  )
-
   return (
     <div className="flex h-full flex-col">
-      <Brand />
+      <Brand brand={brand} />
       <nav className="flex flex-col gap-1 px-2" aria-label="主导航">
-        {NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const isActive = item.id === active
           const Icon = item.icon
           return (
@@ -81,14 +127,16 @@ export function SidebarNav({
             >
               <Icon className="size-4" />
               <span className="flex-1 text-left">{item.label}</span>
-              {item.id === "activity" && unreadCount > 0 ? (
+              {item.badge && item.badge > 0 ? (
                 <Badge
                   className={cn(
                     "h-4.5 min-w-4.5 px-1 text-[10px]",
-                    isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                    isActive
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
                   )}
                 >
-                  {unreadCount}
+                  {item.badge}
                 </Badge>
               ) : null}
             </button>
@@ -97,26 +145,29 @@ export function SidebarNav({
       </nav>
 
       <div className="mt-auto flex flex-col gap-3 p-3">
-        <div className="rounded-lg border bg-card p-3">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-medium">用量</span>
-            <span className="text-muted-foreground">64%</span>
+        {usage ? (
+          <div className="rounded-lg border bg-card p-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-medium">{usage.label}</span>
+              <span className="text-muted-foreground">{usage.value}</span>
+            </div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-chart-1"
+                style={{ width: `${usage.progress}%` }}
+              />
+            </div>
+            <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{usage.hint}</p>
           </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
-            <div className="h-full w-[64%] rounded-full bg-chart-1" />
-          </div>
-          <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-            专业版已使用 206 / 320 个席位。
-          </p>
-        </div>
+        ) : null}
 
         <div className="flex items-center gap-2.5 rounded-lg border bg-card p-2">
           <Avatar size="sm">
-            <AvatarFallback>TW</AvatarFallback>
+            <AvatarFallback>{user.initials}</AvatarFallback>
           </Avatar>
           <div className="flex min-w-0 flex-1 flex-col leading-tight">
-            <span className="truncate text-xs font-medium">Taylor Wu</span>
-            <span className="truncate text-[11px] text-muted-foreground">taylor@northwind.dev</span>
+            <span className="truncate text-xs font-medium">{user.name}</span>
+            <span className="truncate text-[11px] text-muted-foreground">{user.email}</span>
           </div>
         </div>
       </div>
@@ -124,17 +175,32 @@ export function SidebarNav({
   )
 }
 
-/** Fixed desktop sidebar — hidden below the `lg` breakpoint. */
+/** 固定桌面侧栏——`lg` 以下隐藏。 */
 export function Sidebar({
   active,
   onNavigate,
+  brand,
+  items,
+  user,
+  usage,
 }: {
   active: NavId
   onNavigate: (id: NavId) => void
+  brand?: NavBrandDef
+  items?: NavItemDef[]
+  user?: NavUserDef
+  usage?: NavUsageDef | null
 }) {
   return (
     <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground lg:flex">
-      <SidebarNav active={active} onNavigate={onNavigate} />
+      <SidebarNav
+        active={active}
+        onNavigate={onNavigate}
+        brand={brand}
+        items={items}
+        user={user}
+        usage={usage}
+      />
     </aside>
   )
 }

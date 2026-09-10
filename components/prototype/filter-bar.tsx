@@ -21,6 +21,9 @@ type FilterBarProps = {
   className?: string
   /** Lands on the search input — used by e2e tests. */
   searchTestId?: string
+  /** 无障碍标签可覆盖，默认沿用 Starter 中文文案。 */
+  clearSearchLabel?: string
+  resetLabel?: string
 }
 
 /**
@@ -39,6 +42,8 @@ export function FilterBar({
   onReset,
   className,
   searchTestId,
+  clearSearchLabel = "清除搜索",
+  resetLabel = "重置筛选",
 }: FilterBarProps) {
   return (
     <div className={cn("flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center", className)}>
@@ -57,7 +62,7 @@ export function FilterBar({
             type="button"
             variant="ghost"
             size="icon-xs"
-            aria-label="清除搜索"
+            aria-label={clearSearchLabel}
             onClick={() => onSearchChange("")}
           >
             ×
@@ -77,12 +82,18 @@ export function FilterBar({
           <Tooltip>
             <TooltipTrigger
               render={
-                <Button type="button" variant="ghost" size="icon-sm" aria-label="重置筛选" />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={resetLabel}
+                  onClick={onReset}
+                />
               }
             >
               <RotateCcwIcon />
             </TooltipTrigger>
-            <TooltipContent side="bottom">重置筛选</TooltipContent>
+            <TooltipContent side="bottom">{resetLabel}</TooltipContent>
           </Tooltip>
         ) : null}
         {actions}

@@ -31,6 +31,8 @@ type StatsCardProps = {
   hint?: string
   loading?: boolean
   className?: string
+  /** Lands on the KPI card — used by e2e tests. */
+  testId?: string
 }
 
 /** KPI card with an animated number, delta chip and optional hint. */
@@ -44,10 +46,12 @@ export function StatsCard({
   hint,
   loading = false,
   className,
+  testId,
 }: StatsCardProps) {
+  // 布局占位同样带上 testId，避免加载态与就绪态出现两套选择器。
   if (loading) {
     return (
-      <Card className={className}>
+      <Card className={className} data-testid={testId}>
         <CardHeader>
           <Skeleton className="h-4 w-32" />
         </CardHeader>
@@ -74,7 +78,7 @@ export function StatsCard({
       whileHover={{ y: -3 }}
       transition={softSpring}
     >
-      <Card size="sm" className="h-full">
+      <Card size="sm" className="h-full" data-testid={testId}>
         <CardHeader>
           <CardTitle className="text-sm text-muted-foreground">{label}</CardTitle>
           {Icon ? (

@@ -12,7 +12,7 @@ import {
   SunMoonIcon,
   UsersIcon,
 } from "lucide-react"
-import { Sidebar, type NavId } from "@/components/layout/sidebar"
+import { Sidebar, NAV_ITEMS, type NavId } from "@/components/layout/sidebar"
 import { TopNav } from "@/components/layout/top-nav"
 import { MobileNav } from "@/components/layout/mobile-nav"
 import { PageContainer } from "@/components/layout/page-container"
@@ -43,6 +43,7 @@ export function DemoApp() {
 
   const status = useDashboardStore((s) => s.status)
   const errorMessage = useDashboardStore((s) => s.errorMessage)
+  const notifications = useDashboardStore((s) => s.notifications)
   const initialize = useDashboardStore((s) => s.initialize)
   const refresh = useDashboardStore((s) => s.refresh)
   const resetDemo = useDashboardStore((s) => s.resetDemo)
@@ -66,6 +67,17 @@ export function DemoApp() {
     }
     setActiveTab(id)
   }
+
+  // 未读徽标由调用方派生（SidebarNav 本身不再读取 store，以便被其他原型复用）。
+  const navItems = useMemo(
+    () =>
+      NAV_ITEMS.map((item) =>
+        item.id === "activity"
+          ? { ...item, badge: notifications.filter((n) => n.unread).length }
+          : item
+      ),
+    [notifications]
+  )
 
   const meta = TAB_META[activeTab]
 
@@ -95,7 +107,7 @@ export function DemoApp() {
 
   return (
     <div data-testid="demo-root" className="flex min-h-dvh">
-      <Sidebar active={activeTab} onNavigate={navigate} />
+      <Sidebar active={activeTab} onNavigate={navigate} items={navItems} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="hidden lg:block">
@@ -112,6 +124,7 @@ export function DemoApp() {
             active={activeTab}
             onNavigate={navigate}
             onOpenCommand={() => setCommandOpen(true)}
+            items={navItems}
           />
         </div>
 

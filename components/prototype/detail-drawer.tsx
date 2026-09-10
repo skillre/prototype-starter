@@ -23,6 +23,8 @@ type DetailDrawerProps = {
   className?: string
   /** Lands on the drawer panel — used by e2e tests. */
   testId?: string
+  /** 关闭按钮的无障碍标签，默认沿用 Starter 中文文案。 */
+  closeLabel?: string
 }
 
 /**
@@ -38,6 +40,7 @@ export function DetailDrawer({
   footer,
   className,
   testId,
+  closeLabel = "关闭",
 }: DetailDrawerProps) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange} modal swipeDirection="right">
@@ -51,7 +54,7 @@ export function DetailDrawer({
             {description ? <DrawerDescription>{description}</DrawerDescription> : null}
           </div>
           <DrawerClose
-            render={<Button variant="ghost" size="icon-sm" aria-label="关闭" className="mt-0.5" />}
+            render={<Button variant="ghost" size="icon-sm" aria-label={closeLabel} className="mt-0.5" />}
           >
             <XIcon />
           </DrawerClose>

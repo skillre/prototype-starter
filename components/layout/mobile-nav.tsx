@@ -6,17 +6,38 @@ import { MoonIcon, PanelLeftIcon, SearchIcon, SunIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Drawer, DrawerContent } from "@/components/ui/drawer"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { SidebarNav, type NavId } from "@/components/layout/sidebar"
+import {
+  SidebarNav,
+  type NavBrandDef,
+  type NavId,
+  type NavItemDef,
+  type NavUsageDef,
+  type NavUserDef,
+} from "@/components/layout/sidebar"
 
 type MobileNavProps = {
   title: string
   active: NavId
   onNavigate: (id: NavId) => void
   onOpenCommand: () => void
+  /** 以下均为可选：不传时沿用 Starter 默认品牌与导航。 */
+  brand?: NavBrandDef
+  items?: NavItemDef[]
+  user?: NavUserDef
+  usage?: NavUsageDef | null
 }
 
 /** Sticky mobile header with a slide-in navigation drawer. `lg` and up uses TopNav instead. */
-export function MobileNav({ title, active, onNavigate, onOpenCommand }: MobileNavProps) {
+export function MobileNav({
+  title,
+  active,
+  onNavigate,
+  onOpenCommand,
+  brand,
+  items,
+  user,
+  usage,
+}: MobileNavProps) {
   const [open, setOpen] = useState(false)
   const { resolvedTheme, setTheme } = useTheme()
 
@@ -78,7 +99,14 @@ export function MobileNav({ title, active, onNavigate, onOpenCommand }: MobileNa
 
       <Drawer open={open} onOpenChange={setOpen} modal swipeDirection="left">
         <DrawerContent className="w-[78%] max-w-72 bg-sidebar text-sidebar-foreground">
-          <SidebarNav active={active} onNavigate={navigate} />
+          <SidebarNav
+            active={active}
+            onNavigate={navigate}
+            brand={brand}
+            items={items}
+            user={user}
+            usage={usage}
+          />
         </DrawerContent>
       </Drawer>
     </>
