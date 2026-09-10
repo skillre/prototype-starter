@@ -10,8 +10,10 @@ import { useMessages } from "@/components/i18n/locale-provider"
 import {
   SidebarNav,
   type NavBrandDef,
+  type NavContextDef,
   type NavId,
   type NavItemDef,
+  type NavStatusDef,
   type NavUsageDef,
   type NavUserDef,
 } from "@/components/layout/sidebar"
@@ -26,6 +28,10 @@ type MobileNavProps = {
   items?: NavItemDef[]
   user?: NavUserDef
   usage?: NavUsageDef | null
+  context?: NavContextDef | null
+  status?: NavStatusDef | null
+  onOpenAccount?: () => void
+  accountHint?: string
   sectionLabel?: string
 }
 
@@ -39,6 +45,10 @@ export function MobileNav({
   items,
   user,
   usage,
+  context,
+  status,
+  onOpenAccount,
+  accountHint,
   sectionLabel,
 }: MobileNavProps) {
   const [open, setOpen] = useState(false)
@@ -113,6 +123,17 @@ export function MobileNav({
             items={items}
             user={user}
             usage={usage}
+            context={context}
+            status={status}
+            onOpenAccount={
+              onOpenAccount
+                ? () => {
+                    setOpen(false)
+                    onOpenAccount()
+                  }
+                : undefined
+            }
+            accountHint={accountHint}
             sectionLabel={sectionLabel}
           />
         </DrawerContent>

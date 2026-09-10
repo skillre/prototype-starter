@@ -41,7 +41,9 @@ export function AiSummaryPanel({
       data-testid={testId}
       aria-labelledby="ai-summary-heading"
       className={cn(
-        "relative isolate flex flex-col gap-3 overflow-hidden rounded-panel border border-brand/20 bg-surface p-gutter shadow-card",
+        /* 这是页面上唯一带"品牌色内衬"的区块——AI 摘要值得一块自己的地面，
+           但不需要 elevation：不用阴影，改用品牌色左轨 + 极淡的品牌底。 */
+        "relative isolate flex flex-col gap-3 overflow-hidden rounded-panel border-l-2 border-brand/45 bg-brand-soft/25 py-gutter pr-gutter pl-[calc(var(--spacing-gutter)-2px)]",
         className
       )}
     >
@@ -151,10 +153,10 @@ export function AiSummaryPanel({
             </ul>
 
             <div className="rounded-card border border-brand/15 bg-background/60 p-3">
-              <span className="text-label tracking-[0.08em] text-muted-foreground uppercase">
+              <span className="eyebrow text-muted-foreground">
                 {t.aiSummary.recommendedNextStep}
               </span>
-              <p className="mt-1 text-caption leading-relaxed text-pretty">{summary.nextStep}</p>
+              <p className="mt-1.5 text-caption leading-relaxed text-pretty">{summary.nextStep}</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-label text-muted-foreground">

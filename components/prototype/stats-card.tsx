@@ -131,9 +131,7 @@ export function StatsCard({
       />
 
       <CardHeader>
-        <CardTitle className="text-label font-medium tracking-[0.08em] text-muted-foreground uppercase">
-          {label}
-        </CardTitle>
+        <CardTitle className="eyebrow text-muted-foreground">{label}</CardTitle>
         {Icon ? (
           <CardAction>
             <span

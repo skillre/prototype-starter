@@ -95,7 +95,7 @@ export function CustomersView({ onAddCustomer, onOpenCustomer }: CustomersViewPr
         onClick={() => setSort(column)}
         aria-label={t.customers.sort.aria(label)}
         className={cn(
-          "group/sort inline-flex items-center gap-1 rounded-sm outline-none transition-colors duration-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
+          "group/sort -my-1 inline-flex items-center gap-1 rounded-sm py-1 outline-none transition-colors duration-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
           active && "text-foreground"
         )}
       >
@@ -116,11 +116,13 @@ export function CustomersView({ onAddCustomer, onOpenCustomer }: CustomersViewPr
       header: sortHeader("name", t.customers.columns.customer),
       cell: (row) => (
         <div className="flex items-center gap-2.5">
-          <Avatar size="sm">
-            <AvatarFallback>{personInitials(row.name, 1)}</AvatarFallback>
+          <Avatar size="sm" className="size-7">
+            <AvatarFallback className="text-[11px]">
+              {personInitials(row.name, 1)}
+            </AvatarFallback>
           </Avatar>
           <div className="flex min-w-0 flex-col leading-tight">
-            <span className="truncate text-body-sm font-medium">{row.name}</span>
+            <span className="truncate text-body-sm font-semibold">{row.name}</span>
             <span className="truncate text-label text-muted-foreground">{row.company}</span>
           </div>
         </div>
@@ -132,13 +134,10 @@ export function CustomersView({ onAddCustomer, onOpenCustomer }: CustomersViewPr
       cell: (row) => {
         const meta = STATUS_META[row.status]
         return (
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-label font-medium",
-              meta.chip
-            )}
-          >
-            <span className={cn("size-1.5 rounded-full", meta.dot)} />
+          /* 状态是"读数"而不是"标签"：一个语义色圆点 + 同色文字，
+             比一整块彩色胶囊安静得多，也不会和数据抢注意力。 */
+          <span className={cn("inline-flex items-center gap-1.5 text-body-sm", meta.text)}>
+            <span className={cn("size-1.5 shrink-0 rounded-full", meta.dot)} />
             {t.status[row.status]}
           </span>
         )
@@ -151,9 +150,13 @@ export function CustomersView({ onAddCustomer, onOpenCustomer }: CustomersViewPr
       cell: (row) => (
         <div className="flex items-center gap-2">
           <Avatar size="sm" className="size-6">
-            <AvatarFallback className="text-[10px]">{personInitials(row.owner, 1)}</AvatarFallback>
+            <AvatarFallback className="text-[10px]">
+              {personInitials(row.owner, 1)}
+            </AvatarFallback>
           </Avatar>
-          <span className="text-body-sm whitespace-nowrap text-muted-foreground">{row.owner}</span>
+          <span className="text-body-sm whitespace-nowrap text-muted-foreground">
+            {row.owner}
+          </span>
         </div>
       ),
     },
@@ -164,7 +167,7 @@ export function CustomersView({ onAddCustomer, onOpenCustomer }: CustomersViewPr
       cell: (row) => (
         <span
           className={cn(
-            "numeric text-body-sm font-medium",
+            "numeric text-body font-semibold",
             row.value === 0 && "font-normal text-muted-foreground"
           )}
         >

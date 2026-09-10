@@ -178,14 +178,21 @@ export function TopNav({
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/70 bg-background/70 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/55 sm:px-6">
-      <div className="flex min-w-0 flex-col leading-tight">
-        <span className="truncate text-body-sm font-semibold">{title}</span>
-        <span className="truncate text-label text-muted-foreground">{subtitle}</span>
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-hairline bg-background/80 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 sm:px-6">
+      {/*
+        单行上下文，不做成第二份页面标题。页面标题属于页面头部/Hero；
+        这里只回答"我在哪一层"以及"我能做什么"。
+      */}
+      <div className="flex min-w-0 items-baseline gap-2.5">
+        <span className="truncate text-body-sm font-medium">{title}</span>
+        <span aria-hidden className="hidden h-3 w-px shrink-0 bg-border xl:block" />
+        <span className="hidden truncate text-label text-muted-foreground xl:inline">
+          {subtitle}
+        </span>
       </div>
 
       <div className="ml-auto flex items-center gap-1">
-        {/* 命令面板的可发现入口——比一个孤零零的图标更能说明「这里能搜」。 */}
+        {/* 命令入口做成一个真实的输入框样式：它说明了"这里能搜"，也说明了快捷键。 */}
         <Tooltip>
           <TooltipTrigger
             render={
@@ -196,18 +203,18 @@ export function TopNav({
                 aria-label={t.a11y.openCommand}
                 onClick={onOpenCommand}
                 data-testid="open-command"
-                className="gap-2 text-muted-foreground hover:text-foreground"
+                className="h-8 gap-2 border-border/60 bg-surface/60 pl-2.5 font-normal text-muted-foreground shadow-none hover:border-border hover:bg-interactive hover:text-foreground md:w-60 md:justify-start"
               />
             }
           >
-            <SearchIcon />
-            <span className="hidden text-body-sm font-normal xl:inline">
-              {t.common.search}
-            </span>
-            <kbd className="kbd-chip hidden xl:inline-flex">⌘K</kbd>
+            <SearchIcon className="size-3.5" />
+            <span className="hidden text-body-sm md:inline">{t.shell.commandHint}</span>
+            <kbd className="kbd-chip ml-auto hidden md:inline-flex">⌘K</kbd>
           </TooltipTrigger>
           <TooltipContent side="bottom">{t.a11y.commandHint}</TooltipContent>
         </Tooltip>
+
+        <span aria-hidden className="mx-1 h-5 w-px bg-border" />
 
         <Tooltip>
           <TooltipTrigger

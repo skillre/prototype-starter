@@ -27,7 +27,8 @@ First e2e run needs browsers once: `pnpm exec playwright install chromium`.
   resolves through `lib/i18n` — landing page, demo dashboard, CRM and 404s alike.
   No scattered copy; adding a locale is one file.
 - **Reusable component library.** Generic building blocks you copy into new prototypes:
-  `components/prototype/*` (StatsCard, ChartCard, DataTable, FilterBar, DetailDrawer,
+  `components/prototype/*` (OpenSection, SectionHeading, MetricStrip/MetricItem —
+  the V3 composition primitives; StatsCard, ChartCard, DataTable, FilterBar, DetailDrawer,
   CommandPalette, EmptyState, LoadingState, ErrorState, OnboardingWizard, AmbientBackdrop),
   `components/motion/*` (FadeIn, SlideIn, ScaleIn, PageTransition, StaggerContainer,
   AnimatedNumber), `components/layout/*` (Sidebar, TopNav, MobileNav, PageContainer).
@@ -39,36 +40,73 @@ First e2e run needs browsers once: `pnpm exec playwright install chromium`.
   drawers, drag-and-drop, the command palette, English-leakage auditing, theme tokens and
   mobile viewports.
 
-## Design System V2
+## Design System V3 — Premium Data Command Center
 
-Premium interactive SaaS: depth through layering, not effects.
+Premium interactive data product: **composition** carries the hierarchy, not card borders.
+
+### Three composition tiers
+
+Every screen opens with exactly one protagonist, then steps down. Modules do not all get
+the same weight.
+
+| Tier | What it is | Primitives |
+| --- | --- | --- |
+| **Primary** | One hero region — the largest number on the page plus its chart. Open (no border, no shadow); a radial wash and a masked grid give it a ground. | `OpenSection` (`ambient="hero"`), `text-metric` |
+| **Secondary** | A metric strip: 4 figures separated by hairlines, `text-metric-sm`, no card chrome. | `MetricStrip` / `MetricItem` |
+| **Supporting** | Open sections with an eyebrow + title + description over a hairline; content is a table, a list of rows with dividers, or a timeline. | `SectionHeading`, `DataTable`, `OpenSection` |
+
+**`Card` is a scarce resource.** Use it only where content genuinely floats above another
+layer: dialogs, drawers, popovers, tooltips, drag previews. If a block needs weight but
+not elevation, use an open section. `StatsCard` / `ChartCard` remain in the library as the
+card-shaped variants — they are simply not the default any more.
 
 ### Tokens (`app/globals.css`)
 
 | Group | Tokens |
 | --- | --- |
-| Colour roles | `background` · `surface` · `elevated` · `interactive` · `foreground` · `muted` · `border` · `accent` · `accent-soft` · `brand` · `success` · `warning` · `danger` · `info` (each with a `-soft` where it matters) |
-| Typography | `text-display` · `text-title` · `text-heading` · `text-subtitle` · `text-body` · `text-body-sm` · `text-caption` · `text-label` · `text-numeric` + the `.numeric` utility (tabular figures) |
+| Colour roles | `background` · `surface` · `elevated` · `interactive` · `foreground` · `muted` · `border` · `hairline` · `accent` · `accent-soft` · `brand` · `data-accent` · `success` · `warning` · `danger` · `info` (each with a `-soft` where it matters) |
+| Typography | `text-display` · `text-title` · `text-subtitle` · `text-heading` · `text-body` · `text-body-sm` · `text-caption` · `text-label` · `text-eyebrow` · `text-metric` · `text-metric-sm` · `text-numeric` + the `.numeric` / `.eyebrow` utilities |
 | Radius | `rounded-field` (controls) · `rounded-card` · `rounded-panel` · `rounded-floating` |
 | Elevation | `shadow-subtle` · `shadow-card` · `shadow-elevated` · `shadow-floating` — Light and Dark differ |
 | Motion | `duration-instant/fast/normal/slow/glacial` + `duration-press/hover/enter/exit/modal/drawer/list/page`; `ease-standard/out-expo/out-back/spring/emphasized` |
-| Ambient | `ambient-grid` · `ambient-wash` · `surface-sheen` · `kbd-chip` utilities |
+| Ambient | `ambient-grid` · `ambient-wash` · `hero-wash` · `chart-glow` · `surface-sheen` · `kbd-chip` · `section-tick` · `live-halo` |
 
 Rules: never hardcode a colour, duration or easing outside the token layer; pick motion by
 **intent** (`motion.enter`, `motion.press`) rather than by feel.
 
+### Colour direction
+
+Two hues are owned by the product: **deep cobalt** (`--brand`) and a **controlled cyan**
+(`--data-accent`). Chart series 1–2 are that pair; series 3–5 are semantic colours
+reserved for status (合作中 / 逾期 / 流失风险). No decorative rainbow, no AI purple, no
+random pastels.
+
+### Typography — the CJK rule
+
+Chinese glyphs are full-width and square. Negative tracking that flatters Latin display
+type makes 中文 look cramped, so **letter-spacing is 0 on every token that carries
+Chinese** and negative tracking lives only on the numeric tokens (`text-metric`,
+`text-numeric`, `.numeric`), whose glyphs are half-width digits. Line-heights are higher
+than a Latin-only scale would use — 1.05 on a 56px Chinese headline clips the glyphs.
+The font stack leads with Geist and then falls through PingFang / Hiragino / YaHei / Noto
+so 中文 is never synthesised from a Latin face.
+
 ### Themes
 
-- **Light** — premium clean SaaS: cool near-white canvas, white surfaces, soft elevations.
-- **Dark** — premium immersive SaaS: layered charcoal (never pure black), inset hairlines,
-  brand-tinted accents and a controlled ambient wash in the brand-blue family.
-- The brand is deep azure — deliberately not the "AI purple" template look.
+- **Light** — cool off-white canvas (`--background` is a blue-tinted grey, not white),
+  pure-white surfaces. The gap between the two is wide enough that a surface reads as
+  elevated *without* a border, which is what lets the layout drop most card outlines.
+- **Dark** — layered charcoal over a navy undertone. The three surface steps
+  (0.152 → 0.202 → 0.238) are deliberately wide apart so elevation reads as luminance, not
+  as a border. One controlled ambient bloom per screen, a faint grid, and a single chart
+  glow — never purple, never neon, never glass everywhere.
 
 ### Ambient layer
 
-`components/prototype/ambient-backdrop.tsx` is the only place that adds decoration. It is
-used on the page background, the dashboard hero, chart surfaces and the command palette —
-always `pointer-events-none` and always behind content.
+`components/prototype/ambient-backdrop.tsx` (page-level) and
+`components/prototype/open-section.tsx` (region-level) are the only places that add
+decoration. **One light source per screen**: pages that carry their own hero turn the
+global backdrop off (`<CrmDataBoundary ambient={false}>`) so two washes never cancel out.
 
 ### i18n (`lib/i18n/`)
 
@@ -111,6 +149,7 @@ lib/
   i18n/                  # dictionaries (zh-CN) + locale registry
   crm-data.ts            # AI CRM mock records (Chinese business data)
   mock-data.ts           # demo workspace mock records (Chinese business data)
+  activity-groups.ts     # shared day-bucketing for the activity timelines
   format.ts              # money / number / date formatting + personInitials
   motion-presets.ts      # JS mirror of the motion tokens
 stores/                  # Zustand stores (dashboard demo + CRM)

@@ -170,7 +170,25 @@ Agent 默认**禁止自动 merge**；默认禁止 push main、合并 main、删�
 
 ## 设计 Token
 
-一切视觉常量来自 `app/globals.css` 的 design token 层（typography `text-display/title/subtitle/caption/label`、semantic spacing `p-gutter/gap-stack/mt-section`、radius `rounded-field/rounded-card`、motion `duration-*`/`ease-*`、内容宽度 `max-w-dashboard/content/text`）。禁止在页面里撒 magic number。
+一切视觉常量来自 `app/globals.css` 的 design token 层（typography `text-display/title/subtitle/heading/caption/label/eyebrow/metric/metric-sm/numeric`、semantic spacing `p-gutter/gap-stack/mt-section`、radius `rounded-field/rounded-card/rounded-panel`、motion `duration-*`/`ease-*`、内容宽度 `max-w-dashboard/content/text`）。禁止在页面里撒 magic number。
+
+## 视觉构图（Design System V3 — Premium Data Command Center）
+
+**层级靠构图与排版承担，不靠卡片边框。**
+
+1. **一屏一个主角**。每个页面先定第一视觉焦点（通常是 Hero 里的那个大数字），其余信息按 Primary → Secondary → Supporting 递减。不要让所有模块视觉权重相同。
+2. **`Card` 是稀缺资源**。只有真正浮在别的层之上的内容才用它：对话框、抽屉、Popover、Tooltip、拖拽预览。需要"分量"但不需要 elevation 的区块用 `<OpenSection>` + `<SectionHeading>`。
+3. **抽象容器换成语义容器**。优先用 `open section + hairline` / 数式排版块 / 分隔线列表 / 整块图形区，而不是"又一个圆角盒子"。
+4. **构图允许非对称**（58/42、1.45fr/1fr）。全部 50/50 与全部 `gap-4` 会让页面读起来像表格。
+5. **一屏一个光源**。页面自带 Hero 时把全局环境光关掉（`<CrmDataBoundary ambient={false}>`），两个晕染互相抵消等于没有设计。
+6. **复用 V3 构图原语**：`OpenSection`、`SectionHeading`、`MetricStrip`/`MetricItem`。`StatsCard`/`ChartCard` 是"卡片形态"的变体，保留给确实需要卡片的布局，不是默认选择。
+
+### 中文排版红线
+
+- **中文不使用负字距**。负 tracking 只允许出现在纯数字 token 上（`text-metric` / `text-numeric` / `.numeric`）。含中文的量词、单位、时长（例如 `4分38秒`）不加 `.numeric`。
+- 中文行高高于纯拉丁方案：`text-display` 1.18、`text-title` 1.3、`text-body` 1.7。中文大标题在 1.05 行高下会被裁切。
+- 字体栈以 Geist 起头，再回落到 PingFang / Hiragino / YaHei / Noto，**不用拉丁字体合成中文**。
+- 控件命中区不小于 24px；密集列表的行内链接用 `py-1 -my-1` 扩大命中区而不改变排版。
 
 ## 文案与本地化
 

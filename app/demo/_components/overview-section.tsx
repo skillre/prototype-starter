@@ -27,20 +27,11 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
-import {
-  ArrowUpRightIcon,
-  DollarSignIcon,
-  GripVerticalIcon,
-  PercentIcon,
-  TimerIcon,
-  UsersIcon,
-} from "lucide-react"
-import { StatsCard } from "@/components/prototype/stats-card"
-import { ChartCard } from "@/components/prototype/chart-card"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ArrowUpRightIcon, GripVerticalIcon } from "lucide-react"
+import { MetricItem, MetricStrip } from "@/components/prototype/metric-strip"
+import { SectionHeading } from "@/components/prototype/section-heading"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { StaggerContainer } from "@/components/motion/stagger-container"
 import { useMessages } from "@/components/i18n/locale-provider"
 import { CHANNEL_SHARE, REVENUE_SERIES, type Priority } from "@/lib/mock-data"
 import { useDashboardStore } from "@/stores/dashboard-store"
@@ -135,61 +126,47 @@ export function OverviewSection() {
   const t = useMessages()
   const kpis = useDashboardStore((s) => s.kpis)
   const activities = useDashboardStore((s) => s.activities)
-  const status = useDashboardStore((s) => s.status)
-  const loading = status === "loading"
   const copy = t.demo.overview
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* KPI 数字卡片 */}
-      <StaggerContainer className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatsCard
+    <div className="flex flex-col gap-9">
+      {/* 次级指标带：与 CRM 同一套构图，指标不再被四张等宽卡片包住。 */}
+      <MetricStrip>
+        <MetricItem
           label={copy.kpi.mrr}
           value={kpis.mrr}
           format="currency"
           delta={kpis.mrrDelta}
           deltaLabel={copy.kpi.vsLastMonth}
-          icon={DollarSignIcon}
-          loading={loading}
         />
-        <StatsCard
+        <MetricItem
           label={copy.kpi.accounts}
           value={kpis.activeUsers}
           format="integer"
           delta={kpis.activeUsersDelta}
           deltaLabel={copy.kpi.vsLastMonth}
-          icon={UsersIcon}
-          loading={loading}
         />
-        <StatsCard
+        <MetricItem
           label={copy.kpi.conversion}
           value={kpis.conversionRate}
           format="percent"
           delta={kpis.conversionDelta}
           deltaLabel={copy.kpi.vsLastMonth}
-          icon={PercentIcon}
-          loading={loading}
         />
-        <StatsCard
+        <MetricItem
           label={copy.kpi.session}
           value={kpis.avgSessionSeconds}
           format="duration"
           delta={kpis.avgSessionDelta}
           deltaLabel={copy.kpi.vsLastMonth}
-          icon={TimerIcon}
-          loading={loading}
         />
-      </StaggerContainer>
+      </MetricStrip>
 
-      {/* 图表 */}
-      <StaggerContainer className="grid gap-4 lg:grid-cols-3">
-        <ChartCard
-          title={copy.revenue.title}
-          description={copy.revenue.description}
-          className="lg:col-span-2"
-          height={300}
-          loading={loading}
-        >
+      {/* 图表：开放式区块，只有一块地面，不再各套一张卡 */}
+      <div className="grid gap-9 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <section className="flex min-w-0 flex-col gap-4">
+          <SectionHeading title={copy.revenue.title} description={copy.revenue.description} />
+          <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={REVENUE_SERIES} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <defs>
@@ -252,14 +229,12 @@ export function OverviewSection() {
               />
             </AreaChart>
           </ResponsiveContainer>
-        </ChartCard>
+          </div>
+        </section>
 
-        <ChartCard
-          title={copy.channel.title}
-          description={copy.channel.description}
-          height={300}
-          loading={loading}
-        >
+        <section className="flex min-w-0 flex-col gap-4">
+          <SectionHeading title={copy.channel.title} description={copy.channel.description} />
+          <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -288,49 +263,40 @@ export function OverviewSection() {
               />
             </PieChart>
           </ResponsiveContainer>
-        </ChartCard>
-      </StaggerContainer>
+          </div>
+        </section>
+      </div>
 
-      {/* 本周聚焦 + 最近动态 */}
-      <StaggerContainer className="grid gap-4 lg:grid-cols-2">
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>{copy.focus.title}</CardTitle>
-            <CardDescription>{copy.focus.description}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <PriorityList />
-          </CardContent>
-        </Card>
+      {/* 本周聚焦 + 最近动态：开放式区块，只有排版与 hairline */}
+      <div className="grid gap-9 lg:grid-cols-2">
+        <section className="flex min-w-0 flex-col gap-4">
+          <SectionHeading title={copy.focus.title} description={copy.focus.description} />
+          <PriorityList />
+        </section>
 
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>{copy.recent.title}</CardTitle>
-            <CardDescription>{copy.recent.description}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="flex flex-col gap-3.5">
-              {activities.slice(0, 5).map((event) => (
-                <li key={event.id} className="flex items-start gap-3">
-                  <Avatar size="sm">
-                    <AvatarFallback className="text-label">
-                      {personInitials(event.actor, 1)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <p className="text-body-sm">
-                      <span className="font-medium">{event.actor}</span>{" "}
-                      <span className="text-muted-foreground">{event.action}</span>
-                    </p>
-                    <span className="text-label text-muted-foreground">{event.time}</span>
-                  </div>
-                  <ArrowUpRightIcon className="mt-1 size-3.5 shrink-0 text-muted-foreground" />
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      </StaggerContainer>
+        <section className="flex min-w-0 flex-col gap-4">
+          <SectionHeading title={copy.recent.title} description={copy.recent.description} />
+          <ul className="flex flex-col gap-3.5">
+            {activities.slice(0, 5).map((event) => (
+              <li key={event.id} className="flex items-start gap-3">
+                <Avatar size="sm">
+                  <AvatarFallback className="text-label">
+                    {personInitials(event.actor, 1)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <p className="text-body-sm">
+                    <span className="font-medium">{event.actor}</span>{" "}
+                    <span className="text-muted-foreground">{event.action}</span>
+                  </p>
+                  <span className="text-label text-muted-foreground">{event.time}</span>
+                </div>
+                <ArrowUpRightIcon className="mt-1 size-3.5 shrink-0 text-muted-foreground" />
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
     </div>
   )
 }

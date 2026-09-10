@@ -16,7 +16,6 @@ import { StaggerContainer } from "@/components/motion/stagger-container"
 import { AmbientBackdrop } from "@/components/prototype/ambient-backdrop"
 import { buttonVariants } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useMessages } from "@/components/i18n/locale-provider"
 
 /** 图标与文案一一对应——文案在词典里，图标留在组件里。 */
@@ -88,35 +87,38 @@ export default function LandingPage() {
             {copy.stackDescriptionSuffix}
           </p>
         </FadeIn>
-        <StaggerContainer className="grid gap-4 sm:grid-cols-2">
+        <StaggerContainer className="grid gap-x-10 gap-y-0 sm:grid-cols-2">
           {copy.features.map((item, index) => {
             const Icon = FEATURE_ICONS[index] ?? MousePointerClickIcon
+            /* 能力清单读起来应该像一份规格表：四块排开的文字 + hairline，
+               而不是四张一模一样的卡片。图标只是行首的一个标记。 */
             return (
-              <Card key={item.title} className="transition-[box-shadow,transform] duration-hover ease-standard hover:-translate-y-0.5 hover:shadow-elevated">
-                <CardHeader>
-                  <span className="mb-2 flex size-9 items-center justify-center rounded-field bg-brand-soft text-brand ring-1 ring-brand/15">
-                    <Icon className="size-4" />
-                  </span>
-                  <CardTitle className="text-heading">{item.title}</CardTitle>
-                  <CardDescription className="text-body-sm leading-relaxed">
+              <div
+                key={item.title}
+                className="flex gap-3.5 border-t border-hairline py-6"
+              >
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-field bg-brand-soft text-brand">
+                  <Icon className="size-4" />
+                </span>
+                <div className="flex min-w-0 flex-col gap-1.5">
+                  <h3 className="text-body font-semibold">{item.title}</h3>
+                  <p className="text-body-sm leading-relaxed text-muted-foreground">
                     {item.description}
-                  </CardDescription>
-                </CardHeader>
-              </Card>
+                  </p>
+                </div>
+              </div>
             )
           })}
         </StaggerContainer>
 
-        <Card className="mt-12 font-mono text-label leading-relaxed text-muted-foreground">
-          <CardContent className="flex flex-col gap-1">
-            {copy.commands.map((command) => (
-              <span key={command}>
-                <span className="mr-2 text-brand">$</span>
-                {command}
-              </span>
-            ))}
-          </CardContent>
-        </Card>
+        <div className="mt-10 flex flex-col gap-1 overflow-x-auto border-l-2 border-brand/45 py-1 pl-4 font-mono text-label leading-relaxed text-muted-foreground">
+          {copy.commands.map((command) => (
+            <span key={command} className="whitespace-nowrap">
+              <span className="mr-2 text-brand">$</span>
+              {command}
+            </span>
+          ))}
+        </div>
       </section>
 
       <footer className="border-t py-6">

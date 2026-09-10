@@ -49,6 +49,13 @@ export const zhCN = {
       day: "天",
       hour: "小时",
     },
+    /** 时间线按天分组的分组名（仪表盘与活动页共用）。 */
+    activityGroups: {
+      today: "今天",
+      yesterday: "昨天",
+      week: "本周内",
+      earlier: "更早",
+    },
   },
 
   /**
@@ -383,6 +390,21 @@ export const zhCN = {
     addCustomer: "添加客户",
   },
 
+  /**
+   * 外壳（Sidebar / TopNav）里不属于某个具体页面的文案。
+   * 侧栏的工作区上下文与实时状态都由真实数据派生——不是装饰。
+   */
+  shell: {
+    workspaceSection: "工作区",
+    goalLabel: "本季度目标",
+    goalHint: "距季度结算还有 12 天",
+    live: "实时数据",
+    liveHint: "更新于 2026 年 9 月",
+    syncing: "正在同步…",
+    accountHint: "打开个人资料",
+    commandHint: "搜索或运行命令",
+  },
+
   page: {
     dashboard: {
       eyebrow: "销售管道",
@@ -436,25 +458,71 @@ export const zhCN = {
       viewSignedTasks: "查看已签约客户的跟进任务",
       viewActive: "查看合作中的客户",
       vsLastMonth: "环比上月",
-      closedWonShare: "已签约客户占比",
+      closedWonShare: "已签约占比",
       activate: (label: string) => `${label} —— 查看明细`,
     },
+
+    /* 主视觉（Hero）：整个仪表盘的第一视觉焦点。 */
+    hero: {
+      sectionLabel: "销售管道",
+      label: "合同总额",
+      rangeLabel: "统计区间",
+      range: {
+        m12: "12 个月",
+        m6: "6 个月",
+        m3: "3 个月",
+      },
+      chartLabel: "近 12 个月已签约金额与在谈管道走势",
+      /* 悬停读数：图表光标处真正读出当期数字。 */
+      reading: (month: string) => `${month} 读数`,
+      readingHint: "悬停图表查看每月读数",
+      won: "已签约",
+      pipeline: "在谈管道",
+      coverage: "管道覆盖",
+      coverageValue: (ratio: string) => `${ratio} 倍`,
+      coverageHint: "在谈管道 ÷ 已签约",
+      live: "实时数据",
+      liveHint: "数据更新于 2026 年 9 月",
+      action: "查看已签约客户的跟进任务",
+    },
+
+    /* 次级指标：一条轻量指标带，不是五张卡。 */
+    metrics: {
+      sectionLabel: "关键指标",
+      cumulativeHint: "截至 2026 年 9 月",
+    },
+
     pipeline: {
       title: "管道表现",
       description: "近 12 个月已签约金额与在谈管道",
       won: "已签约",
       pipeline: "在谈管道",
     },
+
     stage: {
       title: "阶段分布",
-      description: "按每位客户的当前阶段实时统计",
+      description: "按当前阶段统计客户与合同金额，点击可下钻",
       customers: (value: number) => `${value} 位客户`,
+      /** 条形右侧的金额；未成交阶段显示为「—」。 */
+      countUnit: (value: number) => `${value} 位`,
+      shareOf: (percent: number) => `占比 ${percent}%`,
+      drilldown: (status: string) => `查看「${status}」的客户名单`,
     },
+
+    /* 负责人业绩：与阶段分布并列的第二个"小分布"。 */
+    owners: {
+      sectionLabel: "团队",
+      title: "负责人业绩",
+      description: "在管客户的合同金额与数量",
+      deals: (value: number) => `${value} 位客户`,
+    },
+
     recentActivity: {
       title: "最近动态",
       description: "名册中最新发生的触达记录。",
       open: (company: string, title: string) => `打开「${company} · ${title}」`,
     },
+
     tasksOverview: {
       title: "任务总览",
       summary: (open: number, dueThisWeek: number) =>
@@ -464,11 +532,26 @@ export const zhCN = {
       openColumn: (title: string) => `在看板中打开「${title}」列`,
       insight: (count: number, column: string) =>
         `未来五天内有 ${count} 项任务到期，建议先清空「${column}」列。`,
+      /* 按到期时间排序的优先队列。 */
+      queueLabel: "按到期时间排序",
+      dueOn: (date: string) => `${date} 到期`,
+      overdue: "已逾期",
+      openTask: (title: string, company: string) => `打开「${company} · ${title}」`,
     },
+
     accounts: {
       title: "高价值客户",
       description: "按年度合同金额排序。",
       live: "实时数据",
+      columns: {
+        account: "客户",
+        owner: "负责人",
+        status: "状态",
+        touch: "最近触达",
+        value: "合同金额",
+      },
+      open: (company: string, value: string) => `打开「${company}」，合同金额 ${value}`,
+      showingTop: (count: number, total: number) => `前 ${count} 位 / 共 ${total} 位`,
     },
   },
 

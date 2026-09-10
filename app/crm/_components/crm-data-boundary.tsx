@@ -17,6 +17,10 @@ type CrmDataBoundaryProps = {
   actions?: React.ReactNode
   /** 加载骨架的形态。 */
   loadingVariant?: "cards" | "section" | "rows"
+  /** 页头形态，见 PageContainer。总览用 compact（主视觉由 Hero 承担）。 */
+  variant?: "full" | "compact" | "none"
+  /** 页面自带主视觉时关掉全局环境光，避免两个光源互相抵消。 */
+  ambient?: boolean
   children: React.ReactNode
 }
 
@@ -31,6 +35,8 @@ export function CrmDataBoundary({
   eyebrow,
   actions,
   loadingVariant = "cards",
+  variant = "full",
+  ambient = true,
   children,
 }: CrmDataBoundaryProps) {
   const status = useCrmStore((s) => s.status)
@@ -45,6 +51,8 @@ export function CrmDataBoundary({
       title={title ?? meta.title}
       description={description ?? meta.description}
       actions={actions}
+      variant={variant}
+      ambient={ambient}
     >
       {status === "error" ? (
         <div data-testid="crm-error">

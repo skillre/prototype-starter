@@ -55,6 +55,12 @@ interface CrmState {
   selectedCustomerId: string | null
   aiStatus: AiStatus
   aiSummary: AiSummary | null
+  /**
+   * 递增的请求令牌，用来判断"这次 AI 请求还算不算数"。
+   * 不能用 `selectedCustomerId` 代替：详情页是直接按 URL 渲染的，
+   * 并不会把客户标记为"已选中"，那样生成请求会永远停在 loading。
+   */
+  aiRequest: number
 
   search: string
   statusFilter: CrmStatusFilter
@@ -111,6 +117,7 @@ export const useCrmStore = create<CrmState>((set, get) => ({
   selectedCustomerId: null,
   aiStatus: "idle",
   aiSummary: null,
+  aiRequest: 0,
 
   search: "",
   statusFilter: "all",
@@ -153,6 +160,7 @@ export const useCrmStore = create<CrmState>((set, get) => ({
       selectedCustomerId: null,
       aiStatus: "idle",
       aiSummary: null,
+      aiRequest: 0,
       search: "",
       statusFilter: "all",
       ownerFilter: "all",
@@ -178,7 +186,13 @@ export const useCrmStore = create<CrmState>((set, get) => ({
     set({ search: "", statusFilter: "all", ownerFilter: "all", page: 1 }),
 
   selectCustomer: (id) =>
-    set({ selectedCustomerId: id, aiStatus: "idle", aiSummary: null }),
+    set((state) => ({
+      selectedCustomerId: id,
+      aiStatus: "idle",
+      aiSummary: null,
+      // 切换记录时作废仍在飞行中的生成请求。
+      aiRequest: state.aiRequest + 1,
+    })),
 
   addCustomer: (input) => {
     const now = new Date()
@@ -232,15 +246,23 @@ export const useCrmStore = create<CrmState>((set, get) => ({
       set({ aiStatus: "error", aiSummary: null })
       return
     }
-    set({ aiStatus: "loading", aiSummary: null })
+    const token = get().aiRequest + 1
+    set({ aiStatus: "loading", aiSummary: null, aiRequest: token })
     setTimeout(() => {
-      // 请求返回时用户可能已经切走——只在该客户仍被选中时写入结果。
-      if (get().selectedCustomerId !== customerId) return
-      set({ aiStatus: "ready", aiSummary: buildAiSummary(customer) })
+      // 结果返回时用户可能已经切走或重新生成——只认最新一次请求。
+      if (get().aiRequest !== token) return
+      // 记录本身可能已被移除（例如重置数据）。
+      const current = get().customers.find((c) => c.id === customerId)
+      if (!current) {
+        set({ aiStatus: "error", aiSummary: null })
+        return
+      }
+      set({ aiStatus: "ready", aiSummary: buildAiSummary(current) })
     }, 1400)
   },
 
-  clearAiSummary: () => set({ aiStatus: "idle", aiSummary: null }),
+  clearAiSummary: () =>
+    set((state) => ({ aiStatus: "idle", aiSummary: null, aiRequest: state.aiRequest + 1 })),
 
   moveTask: (taskId, from, to, toIndex) =>
     set((state) => {

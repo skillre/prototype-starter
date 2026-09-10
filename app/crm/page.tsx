@@ -22,6 +22,9 @@ export default function CrmDashboardPage() {
   return (
     <CrmDataBoundary
       route="dashboard"
+      /* 总览以 Hero 开场：页头压成一行小标题，环境光交给 Hero。 */
+      variant="compact"
+      ambient={false}
       actions={
         <Button type="button" size="sm" onClick={openAddCustomer} data-testid="dashboard-add-customer">
           <PlusIcon />

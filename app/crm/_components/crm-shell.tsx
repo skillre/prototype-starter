@@ -25,7 +25,9 @@ import {
 import {
   Sidebar,
   type NavBrandDef,
+  type NavContextDef,
   type NavItemDef,
+  type NavStatusDef,
   type NavUserDef,
 } from "@/components/layout/sidebar"
 import { TopNav } from "@/components/layout/top-nav"
@@ -36,8 +38,12 @@ import { SignOutDialog } from "@/components/prototype/sign-out-dialog"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { useMessages } from "@/components/i18n/locale-provider"
 import { useCrmStore } from "@/stores/crm-store"
+import { formatCurrencyCompact } from "@/lib/format"
 import { AddCustomerDialog } from "./add-customer-dialog"
 import { CustomerDetailDrawer } from "./customer-detail-drawer"
+
+/** 本季度目标——侧栏工作区上下文用它与真实合同总额对比。 */
+const QUARTER_GOAL = 24_000_000
 
 /** CRM 的真实路由表——导航、命令面板与详情页都以此为唯一来源。 */
 export const CRM_ROUTES = {
@@ -107,6 +113,8 @@ export function CrmShell({ children }: { children: ReactNode }) {
   const selectedCustomerId = useCrmStore((s) => s.selectedCustomerId)
   const notifications = useCrmStore((s) => s.notifications)
   const markAllNotificationsRead = useCrmStore((s) => s.markAllNotificationsRead)
+  const customers = useCrmStore((s) => s.customers)
+  const taskBoard = useCrmStore((s) => s.tasks)
 
   const { resolvedTheme, setTheme } = useTheme()
 
@@ -120,11 +128,8 @@ export function CrmShell({ children }: { children: ReactNode }) {
     () => ({
       name: t.brand.name,
       subtitle: t.brand.subtitle,
-      mark: (
-        <span className="relative flex size-7 items-center justify-center rounded-field bg-primary text-[13px] font-semibold text-primary-foreground shadow-subtle">
-          {t.brand.mark}
-        </span>
-      ),
+      // Sidebar 自己提供品牌底色方块，这里只放字；否则会出现方块套方块。
+      mark: <span className="relative text-[15px] font-semibold leading-none">{t.brand.mark}</span>,
     }),
     [t]
   )
@@ -162,14 +167,63 @@ export function CrmShell({ children }: { children: ReactNode }) {
 
   const navItems = useMemo<NavItemDef[]>(
     () => [
-      { id: "dashboard", label: t.nav.dashboard, icon: LayoutDashboardIcon, href: CRM_ROUTES.dashboard },
-      { id: "customers", label: t.nav.customers, icon: UsersIcon, href: CRM_ROUTES.customers },
-      { id: "tasks", label: t.nav.tasks, icon: ListChecksIcon, href: CRM_ROUTES.tasks },
-      { id: "activities", label: t.nav.activities, icon: ActivityIcon, href: CRM_ROUTES.activities },
+      {
+        id: "dashboard",
+        label: t.nav.dashboard,
+        icon: LayoutDashboardIcon,
+        href: CRM_ROUTES.dashboard,
+      },
+      {
+        id: "customers",
+        label: t.nav.customers,
+        icon: UsersIcon,
+        href: CRM_ROUTES.customers,
+        badge: customers.length,
+      },
+      {
+        id: "tasks",
+        label: t.nav.tasks,
+        icon: ListChecksIcon,
+        href: CRM_ROUTES.tasks,
+        badge: Object.values(taskBoard).reduce((sum, list) => sum + list.length, 0),
+      },
+      {
+        id: "activities",
+        label: t.nav.activities,
+        icon: ActivityIcon,
+        href: CRM_ROUTES.activities,
+      },
       // 「添加客户」是一个动作而不是页面：用 tone 与页面导航区分开。
       { id: "add-customer", label: t.nav.addCustomer, icon: PlusIcon, tone: "action" },
     ],
-    [t]
+    [t, customers.length, taskBoard]
+  )
+
+  /**
+   * 侧栏的工作区上下文：用真实合同总额对比季度目标。
+   * 它代替了 V2 侧栏底部那一大片空白——空白不是"简洁"，是"没做完"。
+   */
+  const workspaceContext = useMemo<NavContextDef>(() => {
+    const revenue = customers.reduce((sum, c) => sum + (c.status === "churned" ? 0 : c.value), 0)
+    return {
+      label: t.shell.goalLabel,
+      value: formatCurrencyCompact(revenue),
+      target: formatCurrencyCompact(QUARTER_GOAL),
+      progress: Math.min(100, Math.round((revenue / QUARTER_GOAL) * 100)),
+      hint: t.shell.goalHint,
+    }
+  }, [customers, t])
+
+  /** 实时状态：刷新是真实动作，不是装饰指示灯。 */
+  const sidebarStatus = useMemo<NavStatusDef>(
+    () => ({
+      label: status === "loading" ? t.shell.syncing : t.shell.live,
+      hint: t.shell.liveHint,
+      busy: status === "loading",
+      onRefresh: refresh,
+      refreshLabel: t.a11y.refreshData,
+    }),
+    [status, refresh, t]
   )
 
   const navigate = useCallback(
@@ -304,6 +358,11 @@ export function CrmShell({ children }: { children: ReactNode }) {
           items={navItems}
           user={account}
           usage={null}
+          context={workspaceContext}
+          status={sidebarStatus}
+          onOpenAccount={() => setProfileOpen(true)}
+          accountHint={t.shell.accountHint}
+          sectionLabel={t.shell.workspaceSection}
         />
 
         <div className="flex min-w-0 flex-1 flex-col">
@@ -346,6 +405,11 @@ export function CrmShell({ children }: { children: ReactNode }) {
               items={navItems}
               user={account}
               usage={null}
+              context={workspaceContext}
+              status={sidebarStatus}
+              onOpenAccount={() => setProfileOpen(true)}
+              accountHint={t.shell.accountHint}
+              sectionLabel={t.shell.workspaceSection}
             />
           </div>
 

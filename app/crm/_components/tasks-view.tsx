@@ -21,13 +21,10 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CalendarIcon, GripVerticalIcon, RotateCcwIcon } from "lucide-react"
-import { CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { TASK_COLUMNS, type CrmTask, type TaskColumnId } from "@/lib/crm-data"
 import { useCrmStore } from "@/stores/crm-store"
-import { formatDateShort, personInitials } from "@/lib/format"
+import { formatDateShort } from "@/lib/format"
 import { useMessages } from "@/components/i18n/locale-provider"
 import { cssEasings, durations, ms } from "@/lib/motion-presets"
 import { cn } from "@/lib/utils"
@@ -96,8 +93,9 @@ export function TasksView() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-panel bg-surface/70 px-3 py-2.5 shadow-card ring-1 ring-border/60">
+    <div className="flex flex-col gap-6">
+      {/* 工具条是开放式的一行，不是又一块面板。 */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
         <p className="text-caption text-muted-foreground">{t.tasks.hint}</p>
         <Button
           type="button"
@@ -118,8 +116,15 @@ export function TasksView() {
         onDragEnd={handleDragEnd}
         onDragCancel={() => setActiveId(null)}
       >
+        {/*
+          泳道不再是一张张面板：列头 + hairline + 开放式列表。
+          这样整页的容器从「5 个列 Card × 13 个任务 Card」变成 0 个卡片容器，
+          层级由排版和留白承担，拖拽仍然落在同一片 droppable 区域上。
+          `xl:grid-cols-5` 让五条泳道排满一整行——3 列会在第 2 行留下一格空白，
+          那种"缺一块"的构图比窄一点的列更伤。
+        */}
         <div
-          className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5"
+          className="grid items-start gap-x-6 gap-y-9 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
           data-testid="task-board"
         >
           {TASK_COLUMNS.map((column) => (
@@ -166,20 +171,20 @@ function TaskColumn({
       aria-label={title}
       data-testid={`task-column-${id}`}
       className={cn(
-        "flex flex-col rounded-panel border border-border/60 bg-muted/25 transition-[background-color,border-color] duration-hover ease-standard",
-        isOver && "border-brand/40 bg-brand-soft/50"
+        "flex flex-col rounded-panel transition-[background-color] duration-hover ease-standard",
+        isOver && "bg-brand-soft/40"
       )}
     >
-      <header className="flex items-center gap-2 border-b border-border/60 px-3 py-2.5">
-        <CardTitle className="text-body">{title}</CardTitle>
-        <Badge variant="outline" className="numeric ml-auto h-5 px-1.5 font-normal">
-          {tasks.length}
-        </Badge>
+      <header className="flex flex-col gap-0.5 border-b border-hairline pb-2">
+        <span className="flex items-baseline gap-2">
+          <h3 className="text-body font-semibold">{title}</h3>
+          <span className="numeric text-label text-muted-foreground">{tasks.length}</span>
+        </span>
+        <span className="truncate text-label text-muted-foreground">{hint}</span>
       </header>
-      <p className="px-3 pt-2 text-label text-muted-foreground">{hint}</p>
 
       <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-        <ul className="flex min-h-24 flex-1 flex-col gap-2 p-2.5">
+        <ul className="flex min-h-24 flex-1 flex-col gap-2 pt-3">
           {tasks.map((task) => (
             <SortableTask key={task.id} task={task} />
           ))}
@@ -234,47 +239,49 @@ function TaskCardBody({
   return (
     <article
       className={cn(
-        "group/card flex cursor-grab flex-col gap-2.5 rounded-card border border-border/60 bg-surface p-3 shadow-subtle transition-[box-shadow,transform,border-color] duration-hover ease-standard active:cursor-grabbing",
-        "hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-card",
-        dragging && "-translate-y-0.5 rotate-[0.6deg] border-brand/40 shadow-floating ring-1 ring-brand/25"
+        "group/card flex cursor-grab flex-col gap-2 rounded-card bg-surface p-3 ring-1 ring-border/70 transition-[box-shadow,transform,ring-color] duration-hover ease-standard active:cursor-grabbing",
+        "hover:-translate-y-0.5 hover:shadow-card hover:ring-brand/25",
+        dragging && "-translate-y-0.5 rotate-[0.6deg] shadow-floating ring-brand/40"
       )}
     >
-      <div className="flex items-start gap-2">
-        <GripVerticalIcon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/60 transition-colors duration-hover group-hover/card:text-muted-foreground" />
+      <div className="flex items-start gap-1.5">
+        {/* 抓取手柄只在需要时出现——常驻的 ⠿ 会让一排卡片显得很吵。 */}
+        <GripVerticalIcon className="mt-0.5 -ml-0.5 size-3.5 shrink-0 text-muted-foreground/0 transition-colors duration-hover group-hover/card:text-muted-foreground/70" />
         <span className="min-w-0 flex-1 text-body-sm leading-snug font-medium">{task.title}</span>
       </div>
 
-      <span className="truncate text-label text-muted-foreground">{task.company}</span>
+      <div className="flex items-center gap-1.5">
+        <span className="min-w-0 flex-1 truncate text-label text-muted-foreground">
+          {task.company}
+        </span>
+        <span aria-hidden className="shrink-0 text-label text-muted-foreground/40">
+          ·
+        </span>
+        <span className="shrink-0 text-label text-muted-foreground">{task.owner}</span>
 
-      <div className="flex flex-col gap-1.5">
-        <div className="flex items-center justify-between text-label text-muted-foreground">
-          <span>{progressLabel}</span>
-          <span className="numeric">{task.progress}%</span>
-        </div>
-        <div className="h-1 overflow-hidden rounded-full bg-muted">
-          <div
-            className={cn(
-              "h-full rounded-full transition-[width] duration-slow ease-out-expo",
-              overdue ? "bg-warning" : "bg-brand"
-            )}
-            style={{ width: `${task.progress}%` }}
-          />
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 pt-0.5">
-        <Avatar size="sm" className="size-5">
-          <AvatarFallback className="text-[9px]">{personInitials(task.owner, 1)}</AvatarFallback>
-        </Avatar>
-        <span className="truncate text-label text-muted-foreground">{task.owner}</span>
         <span
           className={cn(
-            "numeric ml-auto inline-flex shrink-0 items-center gap-1 text-label",
+            "numeric inline-flex shrink-0 items-center gap-0.5 text-label",
             overdue ? "text-warning" : "text-muted-foreground"
           )}
         >
           <CalendarIcon className="size-3" />
           {formatDateShort(task.due)}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <span className="relative h-0.5 min-w-0 flex-1 overflow-hidden rounded-full bg-border/70">
+          <span
+            className={cn(
+              "absolute inset-y-0 left-0 rounded-full transition-[width] duration-slow ease-out-expo",
+              overdue ? "bg-warning" : "bg-brand"
+            )}
+            style={{ width: `${task.progress}%` }}
+          />
+        </span>
+        <span className="numeric shrink-0 text-label text-muted-foreground">
+          {progressLabel} {task.progress}%
         </span>
       </div>
     </article>

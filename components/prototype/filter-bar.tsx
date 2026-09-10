@@ -32,8 +32,10 @@ type FilterBarProps = {
  * result caption and a reset control that only appears when something is
  * actually filtered.
  *
- * Sits on its own elevated strip so the toolbar reads as a distinct layer
- * above the table rather than as its first row.
+ * V3: the toolbar is an **open row over a hairline**, not a floating panel.
+ * A filter strip is a layer above a table, not a card next to one — removing
+ * its container is what lets the table below keep the only surface in the
+ * region, and therefore the only thing the eye lands on.
  */
 export function FilterBar({
   searchValue,
@@ -57,7 +59,7 @@ export function FilterBar({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 rounded-panel bg-surface/70 p-2.5 shadow-card ring-1 ring-border/60 backdrop-blur-sm sm:flex-row sm:flex-wrap sm:items-center",
+        "flex flex-col gap-3 border-b border-hairline pb-3 sm:flex-row sm:flex-wrap sm:items-center",
         className
       )}
     >
