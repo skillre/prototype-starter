@@ -1,13 +1,18 @@
 /**
- * AI CRM 的真实感 mock 数据。
+ * 智销云 CRM 的真实感 mock 数据。
  *
  * 与 lib/mock-data.ts（Northwind 演示仪表盘）相互独立——CRM 原型拥有自己的
  * 客户、任务、活动与图表数据，但共用同一套 UI primitive、motion preset 与
- * design token。所有金额、时间戳、公司名都按真实 SaaS 销售场景构造。
+ * design token。
+ *
+ * 约定：**数据里只放内容，不放界面文案**。
+ *   • 本文件负责客户 / 任务 / 活动 / 通知等业务数据（中文业务语境）。
+ *   • 所有按钮、标题、标签、空状态等界面文案集中在 lib/i18n/zh-CN.ts。
+ * 因此状态、活动类型、任务列在这里只保留 id 与视觉色调，文案由 i18n 提供。
  */
 
 /* -------------------------------------------------------------------------- */
-/* Customers                                                                   */
+/* 客户                                                                        */
 /* -------------------------------------------------------------------------- */
 
 export type CustomerStatus = "lead" | "trial" | "active" | "churned" | "at-risk"
@@ -23,67 +28,71 @@ export interface CrmCustomer {
   title: string
   status: CustomerStatus
   owner: string
-  /** 合同金额（美元），未成交的为预估 pipeline 金额。 */
+  /** 合同金额（人民币元），未成交的为预估管道金额。 */
   value: number
   plan: CustomerPlan
   /** ISO 日期，用于排序与"本月新增"统计。 */
   createdAt: string
-  /** 距上次触达的小时数——排序用，不直接展示。 */
+  /** 距上次触达的小时数——排序用，展示时经 formatRelativeHours 本地化。 */
   lastTouchHours: number
   tags: string[]
   notes: string
 }
 
-export const CRM_OWNERS = [
-  "Maya Chen",
-  "Daniel Okafor",
-  "Sofia Ricci",
-  "Jonas Weber",
-  "Priya Nair",
-] as const
+export const CRM_OWNERS = ["陈美雅", "高子墨", "苏芮", "韦俊", "潘丽"] as const
 
 export type CrmOwner = (typeof CRM_OWNERS)[number]
 
-/** Owner 头像用的首字母。 */
-export const ownerInitials = (owner: string): string =>
-  owner
-    .split(" ")
-    .map((part) => part[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase()
+/**
+ * 头像文字。中文名取姓名末两字（名），西文名取首字母缩写——
+ * 全站头像都走这一个函数，避免每个视图各写一份。
+ *
+ * `max` 用于密集场景：24px 及以下的小头像放不下两个汉字，
+ * 传 1 只取一个姓氏字符，避免文字被裁切成不可读的碎片。
+ */
+export const personInitials = (name: string, max: 1 | 2 = 2): string => {
+  const trimmed = name.trim()
+  if (!trimmed) return "?"
+  const parts = trimmed.split(/\s+/)
+  if (parts.length > 1) {
+    return parts
+      .slice(0, max)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+  }
+  return trimmed.length > max ? trimmed.slice(-max) : trimmed
+}
 
+/**
+ * 状态视觉。文案在 i18n（`t.status[status]`），这里只保留色调：
+ * 语义色优先于图表色，保证徽章、指示灯与环形图三处颜色永远一致。
+ */
 export const STATUS_META: Record<
   CustomerStatus,
-  { label: string; dot: string; text: string; chip: string }
+  { dot: string; text: string; chip: string }
 > = {
   lead: {
-    label: "Lead",
-    dot: "bg-chart-2",
-    text: "text-chart-2",
-    chip: "border-transparent bg-chart-2/12 text-chart-2",
+    dot: "bg-brand",
+    text: "text-brand",
+    chip: "border-transparent bg-brand-soft text-brand",
   },
   trial: {
-    label: "Trial",
-    dot: "bg-chart-4",
-    text: "text-chart-4",
-    chip: "border-transparent bg-chart-4/12 text-chart-4",
+    dot: "bg-info",
+    text: "text-info",
+    chip: "border-transparent bg-info-soft text-info",
   },
   active: {
-    label: "Active",
-    dot: "bg-chart-3",
-    text: "text-chart-3",
-    chip: "border-transparent bg-chart-3/12 text-chart-3",
+    dot: "bg-success",
+    text: "text-success",
+    chip: "border-transparent bg-success-soft text-success",
   },
   "at-risk": {
-    label: "At risk",
-    dot: "bg-chart-5",
-    text: "text-chart-5",
-    chip: "border-transparent bg-chart-5/12 text-chart-5",
+    dot: "bg-warning",
+    text: "text-warning",
+    chip: "border-transparent bg-warning-soft text-warning",
   },
   churned: {
-    label: "Churned",
     dot: "bg-muted-foreground/50",
     text: "text-muted-foreground",
     chip: "border-transparent bg-muted text-muted-foreground",
@@ -95,382 +104,382 @@ export const STATUS_ORDER: CustomerStatus[] = ["lead", "trial", "active", "at-ri
 export const CRM_CUSTOMERS: CrmCustomer[] = [
   {
     id: "c-001",
-    name: "Amelia Hartley",
-    company: "Northwind Logistics",
-    email: "amelia.hartley@northwind-logistics.com",
-    phone: "+1 (415) 555-0142",
-    title: "VP Operations",
+    name: "陈晨",
+    company: "北辰物流",
+    email: "chenchen@beichen-logistics.cn",
+    phone: "+86 138 0013 8462",
+    title: "运营副总裁",
     status: "active",
-    owner: "Maya Chen",
-    value: 148000,
+    owner: "陈美雅",
+    value: 1_480_000,
     plan: "Enterprise",
     createdAt: "2026-08-19",
     lastTouchHours: 3,
-    tags: ["enterprise", "renewal-q4", "fleet-api"],
+    tags: ["旗舰客户", "Q4 续约", "车队接口"],
     notes:
-      "Renewal lands in November. Ops team is pushing for a fleet telemetry API before they sign — engineering scoping call booked for next Tuesday.",
+      "续约窗口在 11 月。运营团队希望在签约前拿到车队遥测接口——已约工程团队下周二做技术范围评估。",
   },
   {
     id: "c-002",
-    name: "Tobias Lindqvist",
-    company: "Helio Semiconductor",
-    email: "t.lindqvist@helio-semi.com",
-    phone: "+46 8 555 0117",
-    title: "Head of Procurement",
+    name: "李然",
+    company: "星河科技",
+    email: "liran@xinghe-tech.cn",
+    phone: "+86 139 2288 1043",
+    title: "采购总监",
     status: "trial",
-    owner: "Daniel Okafor",
-    value: 96000,
+    owner: "高子墨",
+    value: 960_000,
     plan: "Scale",
     createdAt: "2026-09-02",
     lastTouchHours: 20,
-    tags: ["trial-day-9", "security-review"],
+    tags: ["试用第 9 天", "安全评估"],
     notes:
-      "Nine days into the trial. Security questionnaire came back clean; legal is the remaining gate before a Q4 start.",
+      "试用进入第 9 天。安全问卷已回传且无风险项，目前只剩法务环节，通过后可 Q4 启动。",
   },
   {
     id: "c-003",
-    name: "Renata Alves",
-    company: "Verdant Agriculture",
-    email: "renata.alves@verdant-ag.com",
-    phone: "+55 11 5550 0193",
-    title: "Director of IT",
+    name: "王思远",
+    company: "远航制造",
+    email: "wangsiyuan@yuanhang-mfg.cn",
+    phone: "+86 136 7788 2251",
+    title: "信息技术总监",
     status: "at-risk",
-    owner: "Sofia Ricci",
-    value: 72000,
+    owner: "苏芮",
+    value: 720_000,
     plan: "Growth",
     createdAt: "2026-03-11",
     lastTouchHours: 288,
-    tags: ["champion-left", "renewal-q3"],
+    tags: ["关键人离职", "Q3 续约"],
     notes:
-      "Our champion moved to a competitor in July. New director has not joined a call in six weeks — needs an executive-level re-introduction.",
+      "原对接人 7 月跳槽到竞品公司。新任总监已六周未参加任何会议，需要一次高管级别的重新破冰。",
   },
   {
     id: "c-004",
-    name: "Marcus Bell",
-    company: "Beacon Health Group",
-    email: "marcus.bell@beaconhealth.org",
-    phone: "+1 (617) 555-0188",
-    title: "Chief Information Officer",
+    name: "周宁",
+    company: "云启医疗",
+    email: "zhouning@yunqi-med.cn",
+    phone: "+86 137 6699 3388",
+    title: "首席信息官",
     status: "active",
-    owner: "Maya Chen",
-    value: 210000,
+    owner: "陈美雅",
+    value: 2_100_000,
     plan: "Enterprise",
     createdAt: "2026-01-27",
     lastTouchHours: 8,
-    tags: ["enterprise", "hipaa", "expansion"],
+    tags: ["旗舰客户", "等保三级", "增购意向"],
     notes:
-      "Expansion conversation started for two additional clinics. HIPAA addendum is signed and on file; procurement wants a 3-year term.",
+      "两家新院区的增购已在讨论中。等保三级补充协议已签署归档，采购希望签三年期。",
   },
   {
     id: "c-005",
-    name: "Yuki Tanaka",
-    company: "Kite Robotics",
-    email: "yuki.tanaka@kite-robotics.jp",
-    phone: "+81 3 5550 0126",
-    title: "Engineering Manager",
+    name: "林浩",
+    company: "光谷机器人",
+    email: "linhao@guanggu-robot.cn",
+    phone: "+86 188 5566 7712",
+    title: "工程经理",
     status: "trial",
-    owner: "Jonas Weber",
-    value: 54000,
+    owner: "韦俊",
+    value: 540_000,
     plan: "Growth",
     createdAt: "2026-09-05",
     lastTouchHours: 44,
-    tags: ["trial-day-6", "self-serve"],
+    tags: ["试用第 6 天", "自助开通"],
     notes:
-      "Signed up self-serve and invited eleven engineers on day one. Usage is well above the trial median — good candidate for a fast close.",
+      "自助注册，首日即邀请十一名工程师加入。使用量明显高于试用中位数，是快速成单的优质候选。",
   },
   {
     id: "c-006",
-    name: "Priyanka Raman",
-    company: "Solstice Energy",
-    email: "priyanka.raman@solstice-energy.com",
-    phone: "+1 (713) 555-0164",
-    title: "VP Finance",
+    name: "赵敏",
+    company: "晨曦能源",
+    email: "zhaomin@chenxi-energy.cn",
+    phone: "+86 159 3344 9028",
+    title: "财务副总裁",
     status: "active",
-    owner: "Priya Nair",
-    value: 132000,
+    owner: "潘丽",
+    value: 1_320_000,
     plan: "Scale",
     createdAt: "2026-05-14",
     lastTouchHours: 30,
-    tags: ["finance-buyer", "usage-based"],
+    tags: ["财务决策人", "按量计费"],
     notes:
-      "Wants usage-based pricing instead of seat pricing before the next term. Finance is modelling overage scenarios internally.",
+      "希望下一期改为按量计费而非按席位。财务部正在内部测算超量场景的成本区间。",
   },
   {
     id: "c-007",
-    name: "Henrik Sorensen",
-    company: "Fjord Maritime",
-    email: "henrik.sorensen@fjord-maritime.no",
-    phone: "+47 22 555 0198",
-    title: "Fleet Director",
+    name: "孙宇",
+    company: "海通航运",
+    email: "sunyu@haitong-ship.cn",
+    phone: "+86 135 8899 4407",
+    title: "船队总监",
     status: "churned",
-    owner: "Daniel Okafor",
+    owner: "高子墨",
     value: 0,
     plan: "Starter",
     createdAt: "2025-11-08",
     lastTouchHours: 1440,
-    tags: ["churned", "budget-cut"],
+    tags: ["已流失", "预算削减"],
     notes:
-      "Cancelled in June after a budget freeze across the fleet division. Left the door open to revisit in FY27 — set a reminder for January.",
+      "6 月因船队事业部整体预算冻结而终止。对方保留 FY27 重启的可能——已在 1 月设置回访提醒。",
   },
   {
     id: "c-008",
-    name: "Clara Nguyen",
-    company: "Lumen Diagnostics",
-    email: "clara.nguyen@lumendx.com",
-    phone: "+1 (206) 555-0131",
-    title: "Lab Director",
+    name: "吴静",
+    company: "明澈诊断",
+    email: "wujing@mingche-dx.cn",
+    phone: "+86 186 2233 5561",
+    title: "实验室主任",
     status: "active",
-    owner: "Sofia Ricci",
-    value: 88000,
+    owner: "苏芮",
+    value: 880_000,
     plan: "Growth",
     createdAt: "2026-06-30",
     lastTouchHours: 52,
-    tags: ["integration", "lims"],
+    tags: ["系统集成", "实验室平台"],
     notes:
-      "LIMS integration went live last month. Lab throughput reporting is the feature they cite most in internal reviews.",
+      "实验室信息系统对接已于上个月上线。内部复盘中被提及最多的功能是通量报表。",
   },
   {
     id: "c-009",
-    name: "Diego Marquez",
-    company: "Cobalt Manufacturing",
-    email: "diego.marquez@cobalt-mfg.com",
-    phone: "+1 (312) 555-0175",
-    title: "Plant Manager",
+    name: "郑凯",
+    company: "恒锐精密",
+    email: "zhengkai@hengrui-precision.cn",
+    phone: "+86 133 6677 1194",
+    title: "厂长",
     status: "lead",
-    owner: "Jonas Weber",
-    value: 41000,
+    owner: "韦俊",
+    value: 410_000,
     plan: "Starter",
     createdAt: "2026-09-08",
     lastTouchHours: 12,
-    tags: ["inbound", "demo-booked"],
+    tags: ["主动咨询", "已约演示"],
     notes:
-      "Inbound from the manufacturing webinar. Demo booked for Thursday — main question is whether we support offline floor tablets.",
+      "来自制造业线上研讨会的主动咨询。演示定在周四，核心问题是能否支持车间平板离线使用。",
   },
   {
     id: "c-010",
-    name: "Ingrid Bauer",
-    company: "Aurora Insurance",
-    email: "ingrid.bauer@aurora-insure.de",
-    phone: "+49 30 5550 0154",
-    title: "Head of Claims",
+    name: "何雅",
+    company: "安泰保险",
+    email: "heya@antai-insure.cn",
+    phone: "+86 130 4455 8873",
+    title: "理赔负责人",
     status: "at-risk",
-    owner: "Priya Nair",
-    value: 115000,
+    owner: "潘丽",
+    value: 1_150_000,
     plan: "Scale",
     createdAt: "2026-02-20",
     lastTouchHours: 336,
-    tags: ["renewal-q3", "support-escalation"],
+    tags: ["Q3 续约", "工单升级"],
     notes:
-      "Escalated two P2 tickets in August. Both resolved, but sentiment dipped — schedule a health check with the claims leads.",
+      "8 月升级了两张 P2 工单。问题都已解决，但满意度有所下滑，需要安排一次理赔团队的客户健康检查。",
   },
   {
     id: "c-011",
-    name: "Samuel Adeyemi",
-    company: "Terraform Capital",
-    email: "samuel.adeyemi@terraformcap.com",
-    phone: "+44 20 5550 0102",
-    title: "Partner",
+    name: "冯磊",
+    company: "磐石资本",
+    email: "fenglei@panshi-capital.cn",
+    phone: "+86 139 1188 6032",
+    title: "合伙人",
     status: "active",
-    owner: "Maya Chen",
-    value: 175000,
+    owner: "陈美雅",
+    value: 1_750_000,
     plan: "Enterprise",
     createdAt: "2025-12-04",
     lastTouchHours: 15,
-    tags: ["enterprise", "advocacy", "case-study"],
+    tags: ["旗舰客户", "口碑推荐", "联合案例"],
     notes:
-      "Agreed to a joint case study for the Q4 launch. Legal is reviewing the quote; comms wants final sign-off by October.",
+      "已确认参与 Q4 发布的联合客户案例。法务正在审阅引用文案，品牌部希望在 10 月前完成终审。",
   },
   {
     id: "c-012",
-    name: "Lucia Ferraro",
-    company: "Meridian Retail",
-    email: "lucia.ferraro@meridian-retail.it",
-    phone: "+39 02 5550 0187",
-    title: "Digital Commerce Lead",
+    name: "许琳",
+    company: "万象零售",
+    email: "xulin@wanxiang-retail.cn",
+    phone: "+86 158 7766 2145",
+    title: "电商负责人",
     status: "trial",
-    owner: "Sofia Ricci",
-    value: 63000,
+    owner: "苏芮",
+    value: 630_000,
     plan: "Growth",
     createdAt: "2026-08-28",
     lastTouchHours: 68,
-    tags: ["trial-day-13", "peak-season"],
+    tags: ["试用第 13 天", "旺季前上线"],
     notes:
-      "Trial ends before peak season. Decision hinges on whether the rollout can finish before the November traffic spike.",
+      "试用期在旺季前结束。能否在 11 月流量高峰前完成上线，是他们决策的唯一变量。",
   },
   {
     id: "c-013",
-    name: "Nathan Cole",
-    company: "Ironclad Security",
-    email: "nathan.cole@ironclad-sec.com",
-    phone: "+1 (512) 555-0119",
-    title: "CISO",
+    name: "曹睿",
+    company: "铁壁安全",
+    email: "caorui@tiebi-sec.cn",
+    phone: "+86 187 9900 3318",
+    title: "首席安全官",
     status: "active",
-    owner: "Daniel Okafor",
-    value: 164000,
+    owner: "高子墨",
+    value: 1_640_000,
     plan: "Enterprise",
     createdAt: "2026-04-09",
     lastTouchHours: 22,
-    tags: ["enterprise", "soc2", "security"],
+    tags: ["旗舰客户", "等保测评", "安全合规"],
     notes:
-      "CISO personally ran the security review and signed off in four days. Strong internal advocate for the platform team rollout.",
+      "首席安全官亲自完成安全评估并在四天内签字通过，是推动平台团队全面铺开的强内部支持者。",
   },
   {
     id: "c-014",
-    name: "Fatima Al-Rashid",
-    company: "Dune Analytics Partners",
-    email: "fatima.alrashid@dune-partners.ae",
-    phone: "+971 4 555 0166",
-    title: "Managing Director",
+    name: "沈彤",
+    company: "沙丘数据",
+    email: "shentong@shaqiu-data.cn",
+    phone: "+86 131 2244 7790",
+    title: "董事总经理",
     status: "lead",
-    owner: "Priya Nair",
-    value: 58000,
+    owner: "潘丽",
+    value: 580_000,
     plan: "Scale",
     createdAt: "2026-09-06",
     lastTouchHours: 36,
-    tags: ["referral", "multi-region"],
+    tags: ["客户转介绍", "多地域部署"],
     notes:
-      "Referred by Terraform Capital. Needs multi-region data residency, which our EU and UAE regions already cover.",
+      "由磐石资本转介绍。需要多地数据驻留能力，我们的华东与新加坡节点已可满足。",
   },
   {
     id: "c-015",
-    name: "Oliver Grant",
-    company: "Pinnacle Aerospace",
-    email: "oliver.grant@pinnacle-aero.com",
-    phone: "+1 (303) 555-0148",
-    title: "Program Director",
+    name: "韩雪",
+    company: "云翼航空",
+    email: "hanxue@yunyi-aero.cn",
+    phone: "+86 189 5533 4426",
+    title: "项目总监",
     status: "at-risk",
-    owner: "Jonas Weber",
-    value: 98000,
+    owner: "韦俊",
+    value: 980_000,
     plan: "Scale",
     createdAt: "2026-01-15",
     lastTouchHours: 400,
-    tags: ["renewal-q4", "compliance"],
+    tags: ["Q4 续约", "合规审查"],
     notes:
-      "Programme paused pending an ITAR review. Not a product issue, but the renewal date will slip unless we re-engage this month.",
+      "项目因出口管制审查暂停。这不是产品问题，但若本月不重新接触，续约日期将顺延。",
   },
   {
     id: "c-016",
-    name: "Beatriz Santos",
-    company: "Horizon Telecom",
-    email: "beatriz.santos@horizon-telecom.br",
-    phone: "+55 21 5550 0173",
-    title: "Network Operations Manager",
+    name: "唐宁",
+    company: "环宇通信",
+    email: "tangning@huanyu-telecom.cn",
+    phone: "+86 177 8899 1260",
+    title: "网络运营经理",
     status: "active",
-    owner: "Sofia Ricci",
-    value: 121000,
+    owner: "苏芮",
+    value: 1_210_000,
     plan: "Scale",
     createdAt: "2026-07-22",
     lastTouchHours: 40,
-    tags: ["expansion", "api-heavy"],
+    tags: ["增购意向", "接口用量高"],
     notes:
-      "API volume grew 3× since onboarding. Ops wants a dedicated support tier before the next billing cycle.",
+      "上线后接口调用量增长到三倍。运营团队希望在下个账期前获得专属支持档位。",
   },
   {
     id: "c-017",
-    name: "Erik Lund",
-    company: "Nordic Fintech Labs",
-    email: "erik.lund@nordic-fintech.se",
-    phone: "+46 31 555 0121",
-    title: "Head of Platform",
+    name: "罗一鸣",
+    company: "北境金科",
+    email: "luoyiming@beijing-fintech.cn",
+    phone: "+86 132 4411 8805",
+    title: "平台负责人",
     status: "trial",
-    owner: "Maya Chen",
-    value: 79000,
+    owner: "陈美雅",
+    value: 790_000,
     plan: "Growth",
     createdAt: "2026-09-01",
     lastTouchHours: 26,
-    tags: ["trial-day-10", "psd2"],
+    tags: ["试用第 10 天", "金融合规"],
     notes:
-      "PSD2 compliance questions answered by our solutions engineer. Waiting on their architecture review board, which meets Fridays.",
+      "合规问题已由解决方案工程师答复完毕，目前在等对方架构评审委员会，该委员会每周五开会。",
   },
   {
     id: "c-018",
-    name: "Grace Whitfield",
-    company: "Sterling Legal",
-    email: "grace.whitfield@sterlinglegal.co.uk",
-    phone: "+44 161 555 0139",
-    title: "Operations Partner",
+    name: "蒋薇",
+    company: "尚衡律所",
+    email: "jiangwei@shangheng-law.cn",
+    phone: "+86 134 6622 9901",
+    title: "运营合伙人",
     status: "churned",
-    owner: "Priya Nair",
+    owner: "潘丽",
     value: 0,
     plan: "Starter",
     createdAt: "2025-09-30",
     lastTouchHours: 2160,
-    tags: ["churned", "competitor"],
+    tags: ["已流失", "转向竞品"],
     notes:
-      "Moved to a competitor in April on price. Worth a win-back attempt once our Starter tier pricing is revised.",
+      "4 月因价格原因转向竞品。等基础版定价调整落地后，值得启动一次赢回尝试。",
   },
   {
     id: "c-019",
-    name: "Andre Kowalski",
-    company: "Vistula Pharma",
-    email: "andre.kowalski@vistula-pharma.pl",
-    phone: "+48 22 555 0158",
-    title: "Quality Director",
+    name: "邓皓",
+    company: "维斯制药",
+    email: "denghao@weisi-pharma.cn",
+    phone: "+86 185 3377 6614",
+    title: "质量总监",
     status: "active",
-    owner: "Daniel Okafor",
-    value: 142000,
+    owner: "高子墨",
+    value: 1_420_000,
     plan: "Enterprise",
     createdAt: "2026-05-27",
     lastTouchHours: 47,
-    tags: ["gxp", "audit-trail"],
+    tags: ["GMP 认证", "审计追踪"],
     notes:
-      "Passed their GxP audit in July with no findings on our audit-trail module. Quality team is now a reference account.",
+      "7 月通过 GMP 审计，审计追踪模块零缺陷项。质量团队目前已可作为标杆参考客户。",
   },
   {
     id: "c-020",
-    name: "Mei Lin Chow",
-    company: "Pacific Rim Shipping",
-    email: "meilin.chow@pacificrim-ship.com",
-    phone: "+65 6555 0114",
-    title: "Regional Logistics Head",
+    name: "苏婉",
+    company: "泛洋船务",
+    email: "suwan@fanyang-ship.cn",
+    phone: "+86 176 5588 3327",
+    title: "区域物流负责人",
     status: "lead",
-    owner: "Sofia Ricci",
-    value: 47000,
+    owner: "苏芮",
+    value: 470_000,
     plan: "Growth",
     createdAt: "2026-09-09",
     lastTouchHours: 6,
-    tags: ["inbound", "pricing"],
+    tags: ["主动咨询", "报价中"],
     notes:
-      "Requested a pricing sheet for four APAC ports. Volume discount tiers are the deciding factor for them.",
+      "索要覆盖四个亚太港口的报价单。量级折扣档位是他们最关心的决策因素。",
   },
   {
     id: "c-021",
-    name: "Victor Osei",
-    company: "Accra Solar Ventures",
-    email: "victor.osei@accrasolar.gh",
-    phone: "+233 30 555 0191",
-    title: "Head of Field Operations",
+    name: "白泽",
+    company: "迦南新能源",
+    email: "baize@jianan-energy.cn",
+    phone: "+86 175 6622 4471",
+    title: "现场运营负责人",
     status: "trial",
-    owner: "Jonas Weber",
-    value: 36000,
+    owner: "韦俊",
+    value: 360_000,
     plan: "Starter",
     createdAt: "2026-09-07",
     lastTouchHours: 32,
-    tags: ["trial-day-4", "offline-first"],
+    tags: ["试用第 4 天", "离线优先"],
     notes:
-      "Field teams work with intermittent connectivity. Offline sync is the single feature that decides this trial.",
+      "现场团队长期在网络不稳定环境下作业。离线同步能力是这次试用能否转化的唯一决定因素。",
   },
   {
     id: "c-022",
-    name: "Elena Petrova",
-    company: "Baltic Freight Union",
-    email: "elena.petrova@balticfreight.lv",
-    phone: "+371 6 555 0128",
-    title: "Deputy Director",
+    name: "严青",
+    company: "波罗的海货运",
+    email: "yanqing@baltic-freight.cn",
+    phone: "+86 178 2255 7739",
+    title: "副主任",
     status: "active",
-    owner: "Maya Chen",
-    value: 67000,
+    owner: "陈美雅",
+    value: 670_000,
     plan: "Growth",
     createdAt: "2026-08-12",
     lastTouchHours: 58,
-    tags: ["seasonal", "expansion"],
+    tags: ["季节性业务", "增购意向"],
     notes:
-      "Seasonal volume spike handled cleanly this year. Discussing a second region for the spring contract.",
+      "今年的季节性高峰处理得很顺利。正在讨论在春季合同中增加第二个区域。",
   },
 ]
 
 /* -------------------------------------------------------------------------- */
-/* Tasks — 横向拖拽看板                                                        */
+/* 任务——横向拖拽看板                                                          */
 /* -------------------------------------------------------------------------- */
 
 export type TaskColumnId = "follow-up" | "call" | "proposal" | "demo" | "onboarding"
@@ -487,49 +496,44 @@ export interface CrmTask {
   progress: number
 }
 
-export interface TaskColumn {
-  id: TaskColumnId
-  title: string
-  hint: string
-}
-
-export const TASK_COLUMNS: TaskColumn[] = [
-  { id: "follow-up", title: "Follow up", hint: "Awaiting reply" },
-  { id: "call", title: "Call customer", hint: "Phone conversation" },
-  { id: "proposal", title: "Send proposal", hint: "Quote or contract" },
-  { id: "demo", title: "Product demo", hint: "Live walkthrough" },
-  { id: "onboarding", title: "Onboarding", hint: "Getting started" },
+/** 列定义只保留 id；标题与副标题来自 i18n（`t.tasks.columns`）。 */
+export const TASK_COLUMNS: { id: TaskColumnId }[] = [
+  { id: "follow-up" },
+  { id: "call" },
+  { id: "proposal" },
+  { id: "demo" },
+  { id: "onboarding" },
 ]
 
 export const CRM_TASKS: Record<TaskColumnId, CrmTask[]> = {
   "follow-up": [
-    { id: "t-101", title: "Re-introduce new IT director", company: "Verdant Agriculture", owner: "Sofia Ricci", due: "2026-09-11", progress: 20 },
-    { id: "t-102", title: "Send APAC pricing sheet", company: "Pacific Rim Shipping", owner: "Sofia Ricci", due: "2026-09-12", progress: 55 },
-    { id: "t-103", title: "Share case study draft", company: "Terraform Capital", owner: "Maya Chen", due: "2026-09-15", progress: 70 },
+    { id: "t-101", title: "重新破冰新任 IT 总监", company: "远航制造", owner: "苏芮", due: "2026-09-11", progress: 20 },
+    { id: "t-102", title: "发送亚太港口报价单", company: "泛洋船务", owner: "苏芮", due: "2026-09-12", progress: 55 },
+    { id: "t-103", title: "确认联合案例初稿", company: "磐石资本", owner: "陈美雅", due: "2026-09-15", progress: 70 },
   ],
   call: [
-    { id: "t-201", title: "Renewal scoping call", company: "Northwind Logistics", owner: "Maya Chen", due: "2026-09-11", progress: 40 },
-    { id: "t-202", title: "Claims team health check", company: "Aurora Insurance", owner: "Priya Nair", due: "2026-09-14", progress: 25 },
-    { id: "t-203", title: "ITAR review follow-up", company: "Pinnacle Aerospace", owner: "Jonas Weber", due: "2026-09-16", progress: 15 },
+    { id: "t-201", title: "续约范围沟通会", company: "北辰物流", owner: "陈美雅", due: "2026-09-11", progress: 40 },
+    { id: "t-202", title: "理赔团队健康检查", company: "安泰保险", owner: "潘丽", due: "2026-09-14", progress: 25 },
+    { id: "t-203", title: "合规审查回访", company: "云翼航空", owner: "韦俊", due: "2026-09-16", progress: 15 },
   ],
   proposal: [
-    { id: "t-301", title: "Draft 3-year enterprise term", company: "Beacon Health Group", owner: "Maya Chen", due: "2026-09-12", progress: 65 },
-    { id: "t-302", title: "Usage-based pricing model", company: "Solstice Energy", owner: "Priya Nair", due: "2026-09-18", progress: 35 },
+    { id: "t-301", title: "起草三年期合同条款", company: "云启医疗", owner: "陈美雅", due: "2026-09-12", progress: 65 },
+    { id: "t-302", title: "按量计费方案测算", company: "晨曦能源", owner: "潘丽", due: "2026-09-18", progress: 35 },
   ],
   demo: [
-    { id: "t-401", title: "Offline floor-tablet demo", company: "Cobalt Manufacturing", owner: "Jonas Weber", due: "2026-09-11", progress: 45 },
-    { id: "t-402", title: "Multi-region residency demo", company: "Dune Analytics Partners", owner: "Priya Nair", due: "2026-09-17", progress: 30 },
-    { id: "t-403", title: "Peak-season rollout plan", company: "Meridian Retail", owner: "Sofia Ricci", due: "2026-09-19", progress: 50 },
+    { id: "t-401", title: "车间平板离线演示", company: "恒锐精密", owner: "韦俊", due: "2026-09-11", progress: 45 },
+    { id: "t-402", title: "多地域部署演示", company: "沙丘数据", owner: "潘丽", due: "2026-09-17", progress: 30 },
+    { id: "t-403", title: "旺季上线排期评审", company: "万象零售", owner: "苏芮", due: "2026-09-19", progress: 50 },
   ],
   onboarding: [
-    { id: "t-501", title: "Fleet telemetry API scope", company: "Northwind Logistics", owner: "Maya Chen", due: "2026-09-13", progress: 60 },
-    { id: "t-502", title: "LIMS post-launch review", company: "Lumen Diagnostics", owner: "Sofia Ricci", due: "2026-09-20", progress: 80 },
-    { id: "t-503", title: "Dedicated support tier setup", company: "Horizon Telecom", owner: "Sofia Ricci", due: "2026-09-22", progress: 10 },
+    { id: "t-501", title: "车队遥测接口范围确认", company: "北辰物流", owner: "陈美雅", due: "2026-09-13", progress: 60 },
+    { id: "t-502", title: "实验室系统上线复盘", company: "明澈诊断", owner: "苏芮", due: "2026-09-20", progress: 80 },
+    { id: "t-503", title: "专属支持档位配置", company: "环宇通信", owner: "苏芮", due: "2026-09-22", progress: 10 },
   ],
 }
 
 /* -------------------------------------------------------------------------- */
-/* Activities — 客户时间线                                                     */
+/* 活动——客户时间线                                                            */
 /* -------------------------------------------------------------------------- */
 
 export type ActivityKind = "email" | "call" | "meeting" | "note" | "status"
@@ -547,42 +551,40 @@ export interface CrmActivity {
   at: string
 }
 
-export const ACTIVITY_META: Record<
-  ActivityKind,
-  { label: string; icon: "mail" | "phone" | "calendar" | "note" | "status" }
-> = {
-  email: { label: "Email", icon: "mail" },
-  call: { label: "Call", icon: "phone" },
-  meeting: { label: "Meeting", icon: "calendar" },
-  note: { label: "Note", icon: "note" },
-  status: { label: "Status change", icon: "status" },
+/** 活动类型只保留图标；文案来自 i18n（`t.activities.kinds`）。 */
+export const ACTIVITY_META: Record<ActivityKind, { icon: "mail" | "phone" | "calendar" | "note" | "status" }> = {
+  email: { icon: "mail" },
+  call: { icon: "phone" },
+  meeting: { icon: "calendar" },
+  note: { icon: "note" },
+  status: { icon: "status" },
 }
 
 export const CRM_ACTIVITIES: CrmActivity[] = [
-  { id: "a-001", customerId: "c-001", kind: "meeting", title: "Renewal scoping meeting", detail: "Walked through the fleet telemetry API requirements with ops and engineering.", actor: "Maya Chen", time: "3 hours ago", at: "2026-09-10T07:15:00Z" },
-  { id: "a-002", customerId: "c-004", kind: "email", title: "Sent 3-year term draft", detail: "Attached the enterprise agreement with the HIPAA addendum referenced in section 7.", actor: "Maya Chen", time: "8 hours ago", at: "2026-09-10T02:40:00Z" },
-  { id: "a-003", customerId: "c-002", kind: "status", title: "Moved to Trial", detail: "Security questionnaire returned clean; trial extended by seven days.", actor: "Daniel Okafor", time: "20 hours ago", at: "2026-09-09T14:20:00Z" },
-  { id: "a-004", customerId: "c-011", kind: "call", title: "Case study kickoff call", detail: "Agreed on the narrative arc and a two-week review window with their comms team.", actor: "Maya Chen", time: "15 hours ago", at: "2026-09-09T19:05:00Z" },
-  { id: "a-005", customerId: "c-016", kind: "note", title: "API volume up 3×", detail: "Flagged for a dedicated support tier conversation before the next billing cycle.", actor: "Sofia Ricci", time: "1 day ago", at: "2026-09-09T06:00:00Z" },
-  { id: "a-006", customerId: "c-010", kind: "status", title: "Marked At risk", detail: "Sentiment dipped after two P2 escalations in August; both since resolved.", actor: "Priya Nair", time: "2 days ago", at: "2026-09-08T09:30:00Z" },
-  { id: "a-007", customerId: "c-013", kind: "meeting", title: "Security review sign-off", detail: "CISO completed the review personally and approved the platform rollout.", actor: "Daniel Okafor", time: "2 days ago", at: "2026-09-08T05:45:00Z" },
-  { id: "a-008", customerId: "c-020", kind: "email", title: "Inbound pricing request", detail: "Asked for volume discount tiers across four APAC ports.", actor: "Sofia Ricci", time: "6 hours ago", at: "2026-09-10T04:10:00Z" },
-  { id: "a-009", customerId: "c-008", kind: "note", title: "Post-launch review notes", detail: "LIMS integration stable for four weeks; throughput reporting is the most-cited feature.", actor: "Sofia Ricci", time: "3 days ago", at: "2026-09-07T08:00:00Z" },
-  { id: "a-010", customerId: "c-019", kind: "status", title: "GxP audit passed", detail: "No findings on the audit-trail module. Quality team offered to act as a reference.", actor: "Daniel Okafor", time: "4 days ago", at: "2026-09-06T11:25:00Z" },
-  { id: "a-011", customerId: "c-005", kind: "email", title: "Trial check-in", detail: "Eleven engineers invited on day one; usage is well above the trial median.", actor: "Jonas Weber", time: "1 day ago", at: "2026-09-09T03:20:00Z" },
-  { id: "a-012", customerId: "c-012", kind: "call", title: "Peak-season feasibility call", detail: "Discussed whether rollout can complete before the November traffic spike.", actor: "Sofia Ricci", time: "2 days ago", at: "2026-09-08T13:50:00Z" },
-  { id: "a-013", customerId: "c-022", kind: "note", title: "Seasonal spike handled", detail: "Volume peak processed without incidents; spring contract expansion under discussion.", actor: "Maya Chen", time: "5 days ago", at: "2026-09-05T07:40:00Z" },
-  { id: "a-014", customerId: "c-007", kind: "status", title: "Churned", detail: "Cancelled after a fleet-division budget freeze. Revisit scheduled for January.", actor: "Daniel Okafor", time: "1 week ago", at: "2026-09-03T10:15:00Z" },
-  { id: "a-015", customerId: "c-009", kind: "call", title: "Inbound demo booked", detail: "Main question is offline support for floor tablets; demo set for Thursday.", actor: "Jonas Weber", time: "12 hours ago", at: "2026-09-09T22:05:00Z" },
-  { id: "a-016", customerId: "c-017", kind: "email", title: "PSD2 answers sent", detail: "Solutions engineer answered the compliance questions; awaiting architecture review.", actor: "Maya Chen", time: "1 day ago", at: "2026-09-09T01:30:00Z" },
-  { id: "a-017", customerId: "c-021", kind: "note", title: "Offline sync requirement", detail: "Field teams work with intermittent connectivity — offline sync decides this trial.", actor: "Jonas Weber", time: "2 days ago", at: "2026-09-08T04:55:00Z" },
-  { id: "a-018", customerId: "c-015", kind: "status", title: "Flagged At risk", detail: "Programme paused pending an ITAR review; renewal date will slip without re-engagement.", actor: "Jonas Weber", time: "6 days ago", at: "2026-09-04T09:05:00Z" },
-  { id: "a-019", customerId: "c-003", kind: "note", title: "Champion departure noted", detail: "Primary champion moved to a competitor in July; new director unresponsive.", actor: "Sofia Ricci", time: "1 week ago", at: "2026-09-02T15:30:00Z" },
-  { id: "a-020", customerId: "c-006", kind: "meeting", title: "Pricing model workshop", detail: "Finance is modelling overage scenarios for a usage-based structure.", actor: "Priya Nair", time: "4 days ago", at: "2026-09-06T06:20:00Z" },
+  { id: "a-001", customerId: "c-001", kind: "meeting", title: "完成续约方案评审", detail: "与运营及工程团队一起过完了车队遥测接口的功能范围。", actor: "陈美雅", time: "3 小时前", at: "2026-09-10T07:15:00Z" },
+  { id: "a-002", customerId: "c-004", kind: "email", title: "发送三年期合同草案", detail: "附上企业版协议全文，并在第 7 条标注了等保三级补充条款。", actor: "陈美雅", time: "8 小时前", at: "2026-09-10T02:40:00Z" },
+  { id: "a-003", customerId: "c-002", kind: "status", title: "进入试用阶段", detail: "安全问卷无风险项通过，试用期延长七天。", actor: "高子墨", time: "20 小时前", at: "2026-09-09T14:20:00Z" },
+  { id: "a-004", customerId: "c-011", kind: "call", title: "联合案例启动沟通", detail: "与对方品牌团队确认了叙事主线与两周的审阅窗口。", actor: "陈美雅", time: "15 小时前", at: "2026-09-09T19:05:00Z" },
+  { id: "a-005", customerId: "c-016", kind: "note", title: "接口调用量增长三倍", detail: "已标记为下个账期前需要推进专属支持档位的客户。", actor: "苏芮", time: "1 天前", at: "2026-09-09T06:00:00Z" },
+  { id: "a-006", customerId: "c-010", kind: "status", title: "标记为流失风险", detail: "8 月两次 P2 工单升级后满意度下滑，问题均已解决。", actor: "潘丽", time: "2 天前", at: "2026-09-08T09:30:00Z" },
+  { id: "a-007", customerId: "c-013", kind: "meeting", title: "安全评估签字通过", detail: "首席安全官亲自完成评估，并批准了平台团队的全面铺开计划。", actor: "高子墨", time: "2 天前", at: "2026-09-08T05:45:00Z" },
+  { id: "a-008", customerId: "c-020", kind: "email", title: "跟进报价请求", detail: "对方索要覆盖四个亚太港口的量级折扣档位。", actor: "苏芮", time: "6 小时前", at: "2026-09-10T04:10:00Z" },
+  { id: "a-009", customerId: "c-008", kind: "note", title: "上线复盘记录", detail: "实验室系统对接已稳定运行四周，通量报表是被提及最多的功能。", actor: "苏芮", time: "3 天前", at: "2026-09-07T08:00:00Z" },
+  { id: "a-010", customerId: "c-019", kind: "status", title: "GMP 审计通过", detail: "审计追踪模块零缺陷项通过，质量团队愿意作为参考客户。", actor: "高子墨", time: "4 天前", at: "2026-09-06T11:25:00Z" },
+  { id: "a-011", customerId: "c-005", kind: "email", title: "试用进度回访", detail: "首日即有十一名工程师加入，使用量远高于试用中位数。", actor: "韦俊", time: "1 天前", at: "2026-09-09T03:20:00Z" },
+  { id: "a-012", customerId: "c-012", kind: "call", title: "旺季上线可行性沟通", detail: "讨论了能否在 11 月流量高峰前完成整体上线。", actor: "苏芮", time: "2 天前", at: "2026-09-08T13:50:00Z" },
+  { id: "a-013", customerId: "c-022", kind: "note", title: "季节性高峰平稳度过", detail: "峰值流量零故障处理完成，正在讨论春季合同增加第二个区域。", actor: "陈美雅", time: "5 天前", at: "2026-09-05T07:40:00Z" },
+  { id: "a-014", customerId: "c-007", kind: "status", title: "客户已流失", detail: "船队事业部预算冻结后终止合作，已安排在 1 月重启回访。", actor: "高子墨", time: "1 周前", at: "2026-09-03T10:15:00Z" },
+  { id: "a-015", customerId: "c-009", kind: "call", title: "主动咨询并预约演示", detail: "核心问题是车间平板能否离线使用，演示定在周四。", actor: "韦俊", time: "12 小时前", at: "2026-09-09T22:05:00Z" },
+  { id: "a-016", customerId: "c-017", kind: "email", title: "合规问题答复已发送", detail: "解决方案工程师完成答复，目前在等对方架构评审委员会。", actor: "陈美雅", time: "1 天前", at: "2026-09-09T01:30:00Z" },
+  { id: "a-017", customerId: "c-021", kind: "note", title: "离线同步需求记录", detail: "现场团队长期处于弱网环境，离线同步能力直接决定这次试用结果。", actor: "韦俊", time: "2 天前", at: "2026-09-08T04:55:00Z" },
+  { id: "a-018", customerId: "c-015", kind: "status", title: "标记为流失风险", detail: "项目因出口管制审查暂停，若不重新接触续约日期将顺延。", actor: "韦俊", time: "6 天前", at: "2026-09-04T09:05:00Z" },
+  { id: "a-019", customerId: "c-003", kind: "note", title: "关键对接人离职记录", detail: "原对接人 7 月加入竞品公司，新任总监暂未响应。", actor: "苏芮", time: "1 周前", at: "2026-09-02T15:30:00Z" },
+  { id: "a-020", customerId: "c-006", kind: "meeting", title: "计费模式工作坊", detail: "财务部正在按量计费结构下测算超量场景的成本。", actor: "潘丽", time: "4 天前", at: "2026-09-06T06:20:00Z" },
 ]
 
 /* -------------------------------------------------------------------------- */
-/* Dashboard series                                                            */
+/* 图表数据                                                                     */
 /* -------------------------------------------------------------------------- */
 
 export interface PipelinePoint {
@@ -592,18 +594,18 @@ export interface PipelinePoint {
 }
 
 export const PIPELINE_SERIES: PipelinePoint[] = [
-  { month: "Oct", won: 118000, pipeline: 265000 },
-  { month: "Nov", won: 132000, pipeline: 288000 },
-  { month: "Dec", won: 156000, pipeline: 271000 },
-  { month: "Jan", won: 141000, pipeline: 312000 },
-  { month: "Feb", won: 168000, pipeline: 334000 },
-  { month: "Mar", won: 159000, pipeline: 305000 },
-  { month: "Apr", won: 184000, pipeline: 348000 },
-  { month: "May", won: 197000, pipeline: 366000 },
-  { month: "Jun", won: 212000, pipeline: 352000 },
-  { month: "Jul", won: 226000, pipeline: 391000 },
-  { month: "Aug", won: 244000, pipeline: 412000 },
-  { month: "Sep", won: 268000, pipeline: 438000 },
+  { month: "10月", won: 1_180_000, pipeline: 2_650_000 },
+  { month: "11月", won: 1_320_000, pipeline: 2_880_000 },
+  { month: "12月", won: 1_560_000, pipeline: 2_710_000 },
+  { month: "1月", won: 1_410_000, pipeline: 3_120_000 },
+  { month: "2月", won: 1_680_000, pipeline: 3_340_000 },
+  { month: "3月", won: 1_590_000, pipeline: 3_050_000 },
+  { month: "4月", won: 1_840_000, pipeline: 3_480_000 },
+  { month: "5月", won: 1_970_000, pipeline: 3_660_000 },
+  { month: "6月", won: 2_120_000, pipeline: 3_520_000 },
+  { month: "7月", won: 2_260_000, pipeline: 3_910_000 },
+  { month: "8月", won: 2_440_000, pipeline: 4_120_000 },
+  { month: "9月", won: 2_680_000, pipeline: 4_380_000 },
 ]
 
 export interface StageSlice {
@@ -612,17 +614,17 @@ export interface StageSlice {
   color: string
 }
 
-/** 按当前客户状态实时计算的 pipeline 分布（在视图中由 store 数据派生）。 */
+/** 按当前客户状态实时计算的管道分布（在视图中由 store 数据派生）。 */
 export const STAGE_COLORS: Record<CustomerStatus, string> = {
-  lead: "var(--chart-2)",
-  trial: "var(--chart-4)",
+  lead: "var(--chart-1)",
+  trial: "var(--chart-2)",
   active: "var(--chart-3)",
-  "at-risk": "var(--chart-5)",
-  churned: "var(--chart-1)",
+  "at-risk": "var(--chart-4)",
+  churned: "var(--muted-foreground)",
 }
 
 /* -------------------------------------------------------------------------- */
-/* Notifications                                                               */
+/* 通知                                                                        */
 /* -------------------------------------------------------------------------- */
 
 export interface CrmNotification {
@@ -640,36 +642,36 @@ export const CRM_NOTIFICATIONS: CrmNotification[] = [
   {
     id: "cn1",
     kind: "trial",
-    title: "Trial ending soon",
-    description: "Helio Semiconductor's trial closes in 5 days",
-    time: "2h ago",
+    title: "试用即将到期",
+    description: "星河科技的试用将在 5 天后结束",
+    time: "2 小时前",
     unread: true,
     customerId: "c-002",
   },
   {
     id: "cn2",
     kind: "payment",
-    title: "Contract signed",
-    description: "Beacon Health Group returned the 3-year term",
-    time: "5h ago",
+    title: "合同已签署",
+    description: "云启医疗已回签三年期合同",
+    time: "5 小时前",
     unread: true,
     customerId: "c-004",
   },
   {
     id: "cn3",
     kind: "usage",
-    title: "Account at risk",
-    description: "Verdant Agriculture has gone 12 days without contact",
-    time: "1d ago",
+    title: "客户存在流失风险",
+    description: "远航制造已 12 天没有新的联系记录",
+    time: "1 天前",
     unread: true,
     customerId: "c-003",
   },
   {
     id: "cn4",
     kind: "report",
-    title: "Weekly pipeline report",
-    description: "Aug 31 – Sep 6 summary is ready",
-    time: "3d ago",
+    title: "每周管道报告",
+    description: "8 月 31 日 – 9 月 6 日的汇总已生成",
+    time: "3 天前",
     unread: false,
   },
 ]

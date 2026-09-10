@@ -1,5 +1,5 @@
 /**
- * 确定性的 mock "AI Summary" 生成器。
+ * 确定性的 mock「AI 智能摘要」生成器。
  *
  * 刻意不调用任何真实 AI API：相同输入永远得到相同输出，便于演示与 Playwright
  * 断言。文案由客户自身的真实字段（status / value / tags / lastTouchHours /
@@ -7,7 +7,8 @@
  */
 
 import type { CrmCustomer } from "@/lib/crm-data"
-import { STATUS_META } from "@/lib/crm-data"
+import { formatCurrency, formatRelativeHours } from "@/lib/format"
+import { messages as t } from "@/lib/i18n"
 
 export interface AiSummary {
   /** 一句话结论。 */
@@ -18,19 +19,14 @@ export interface AiSummary {
   nextStep: string
   /** 0–100 的确定性置信度评分。 */
   confidence: number
-  /** 展示用的生成时间（由 createdAt 派生，保证确定性）。 */
+  /** 展示用的模型标识（技术标识，不翻译）。 */
   model: string
 }
 
 /** 模拟推理耗时（毫秒）——store 用它驱动 loading 状态。 */
 export const AI_SUMMARY_LATENCY = 1400
 
-const currency = (value: number): string =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value)
+const MODEL_ID = "zhixiao-copilot-v2"
 
 /** 确定性哈希——同样的 id 永远得到同样的"置信度"。 */
 function hash(input: string): number {
@@ -47,50 +43,64 @@ function ageInDays(createdAt: string): number {
   return Math.max(0, Math.round((now - created) / 86_400_000))
 }
 
-/** 自然语言化"多久以前"，避免出现 "0 days ago" 这类生硬文案。 */
+/** 自然语言化"多久以前"，避免出现"0 天前"这类生硬文案。 */
 function relativeAge(createdAt: string): string {
+  const g = t.aiSummary.generated
   const days = ageInDays(createdAt)
-  if (days === 0) return "today"
-  if (days === 1) return "yesterday"
-  if (days < 7) return `${days} days ago`
-  if (days < 14) return "last week"
-  if (days < 60) return `${Math.round(days / 7)} weeks ago`
-  return `${Math.round(days / 30)} months ago`
+  if (days === 0) return g.ageToday
+  if (days === 1) return g.ageYesterday
+  if (days < 7) return g.ageDays(days)
+  if (days < 14) return g.ageLastWeek
+  if (days < 60) return g.ageWeeks(Math.round(days / 7))
+  return g.ageMonths(Math.round(days / 30))
 }
 
-/** 触达间隔的自然语言化（当天创建的新客户不应显示 "0 days"）。 */
+/** 触达间隔的自然语言化（当天创建的新客户不应显示"0 天"）。 */
 function relativeTouch(hours: number): { phrase: string; days: number } {
+  const g = t.aiSummary.generated
   const days = Math.round(hours / 24)
-  if (hours < 1) return { phrase: "in the last hour", days: 0 }
-  if (hours < 24) return { phrase: "today", days: 0 }
-  if (days === 1) return { phrase: "yesterday", days: 1 }
-  return { phrase: `${days} days ago`, days }
+  if (hours < 1) return { phrase: g.touchJustNow, days: 0 }
+  if (hours < 24) return { phrase: g.touchToday, days: 0 }
+  if (days === 1) return { phrase: g.touchYesterday, days: 1 }
+  return { phrase: formatRelativeHours(hours), days }
 }
 
 const HEADLINES: Record<CrmCustomer["status"], (c: CrmCustomer) => string> = {
   lead: (c) =>
-    `Qualified inbound lead at ${c.company}, sourced ${relativeAge(c.createdAt)} and last touched ${relativeTouch(c.lastTouchHours).phrase}.`,
+    t.aiSummary.generated.headlineLead(
+      c.company,
+      relativeAge(c.createdAt),
+      relativeTouch(c.lastTouchHours).phrase
+    ),
   trial: (c) =>
-    `Active trial at ${c.company} on the ${c.plan} plan — started ${relativeAge(c.createdAt)} with an estimated ${currency(c.value)} annual value.`,
+    t.aiSummary.generated.headlineTrial(
+      c.company,
+      t.plan[c.plan],
+      relativeAge(c.createdAt),
+      formatCurrency(c.value)
+    ),
   active: (c) =>
-    `Healthy ${c.plan} account at ${c.company}, worth ${currency(c.value)} annually and last touched ${relativeTouch(c.lastTouchHours).phrase}.`,
+    t.aiSummary.generated.headlineActive(
+      c.company,
+      t.plan[c.plan],
+      formatCurrency(c.value),
+      relativeTouch(c.lastTouchHours).phrase
+    ),
   "at-risk": (c) =>
-    `Retention risk at ${c.company}: ${currency(c.value)} of annual value has gone quiet since the last touch ${relativeTouch(c.lastTouchHours).phrase}.`,
-  churned: (c) =>
-    `Churned account — ${c.company} left the ${c.plan} plan and currently contributes no recurring revenue.`,
+    t.aiSummary.generated.headlineAtRisk(
+      c.company,
+      formatCurrency(c.value),
+      relativeTouch(c.lastTouchHours).phrase
+    ),
+  churned: (c) => t.aiSummary.generated.headlineChurned(c.company, t.plan[c.plan]),
 }
 
 const NEXT_STEPS: Record<CrmCustomer["status"], (c: CrmCustomer) => string> = {
-  lead: (c) =>
-    `Book a 30-minute discovery call with ${c.name} within 48 hours and confirm budget ownership before the lead cools further.`,
-  trial: (c) =>
-    `Schedule a technical validation session with ${c.name}'s team before the trial window closes, and attach a ${c.plan} pricing sheet.`,
-  active: (c) =>
-    `Open an expansion conversation with ${c.name} — the account is well positioned for an upsell into the next tier.`,
-  "at-risk": (c) =>
-    `Escalate to an executive sponsor and request a 20-minute health check with ${c.name} this week.`,
-  churned: (c) =>
-    `Add ${c.company} to the FY27 win-back sequence and re-qualify once the Starter tier pricing revision ships.`,
+  lead: (c) => t.aiSummary.generated.nextStepLead(c.name),
+  trial: (c) => t.aiSummary.generated.nextStepTrial(c.name, t.plan[c.plan]),
+  active: (c) => t.aiSummary.generated.nextStepActive(c.name),
+  "at-risk": (c) => t.aiSummary.generated.nextStepAtRisk(c.name),
+  churned: (c) => t.aiSummary.generated.nextStepChurned(c.company),
 }
 
 /**
@@ -99,37 +109,35 @@ const NEXT_STEPS: Record<CrmCustomer["status"], (c: CrmCustomer) => string> = {
 export function buildAiSummary(customer: CrmCustomer): AiSummary {
   const signals: string[] = []
 
+  const g = t.aiSummary.generated
+
   // 状态本身
-  signals.push(
-    `Lifecycle stage is ${STATUS_META[customer.status].label}, on the ${customer.plan} plan.`
-  )
+  signals.push(g.signalStage(t.status[customer.status], t.plan[customer.plan]))
 
   // 金额
   signals.push(
     customer.value > 0
-      ? `Estimated annual value is ${currency(customer.value)}, ranked against the team's open book.`
-      : "No recurring revenue attached to this record yet."
+      ? g.signalValue(formatCurrency(customer.value))
+      : g.signalNoValue
   )
 
   // 触达间隔
   const touch = relativeTouch(customer.lastTouchHours)
   signals.push(
     touch.days === 0
-      ? "Touched within the last 24 hours — momentum is intact."
-      : `${touch.days} days since the last recorded touch, which is ${
-          touch.days > 30 ? "well beyond" : "approaching"
-        } the 30-day follow-up threshold.`
+      ? g.signalTouchFresh
+      : g.signalTouchStale(touch.days, touch.days > 30)
   )
 
-  // tags
+  // 标签
   if (customer.tags.length > 0) {
-    signals.push(`Signals on file: ${customer.tags.slice(0, 3).join(", ")}.`)
+    signals.push(g.signalTags(customer.tags.slice(0, 3).join("、")))
   }
 
-  // 备注里的一句话
-  const firstSentence = customer.notes.split(/(?<=\.)\s+/)[0]
+  // 备注里的第一句
+  const firstSentence = customer.notes.split(/(?<=[。！？])/)[0]
   if (firstSentence) {
-    signals.push(`Latest note: ${firstSentence}`)
+    signals.push(g.signalNote(firstSentence))
   }
 
   const statusWeight: Record<CrmCustomer["status"], number> = {
@@ -150,6 +158,6 @@ export function buildAiSummary(customer: CrmCustomer): AiSummary {
     signals: signals.slice(0, 4),
     nextStep: NEXT_STEPS[customer.status](customer),
     confidence,
-    model: "sales-copilot · deterministic mock",
+    model: MODEL_ID,
   }
 }

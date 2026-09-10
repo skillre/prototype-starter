@@ -17,42 +17,98 @@ First e2e run needs browsers once: `pnpm exec playwright install chromium`.
 
 ## Why this starter
 
-- **Real interactions, no mockups.** Every visible control in `/demo` works against local
-  state: filters, drag-and-drop ordering, add-customer dialog, detail drawer, command
-  palette (⌘K), onboarding wizard, theme toggle, loading/empty/error states.
-- **Design tokens.** Typography, spacing, radius semantics, motion durations/easings and
-  content widths live in one layer (`app/globals.css`) with a JS mirror
-  (`lib/motion-presets.ts`) — no magic numbers.
+- **Real interactions, no mockups.** Every visible control works against local state:
+  filters, drag-and-drop ordering, add-customer dialog, detail drawer, command palette
+  (⌘K), sign-out, theme toggle, loading/empty/error states.
+- **Design System V2.** A complete token hierarchy in one layer (`app/globals.css`) with a
+  JS mirror (`lib/motion-presets.ts`) — Light and Dark, semantic colour roles, type scale,
+  radius & elevation semantics, and intent-named motion. See below.
+- **Chinese-first localization.** Every user-visible string in `components/**` and
+  `app/crm/**` resolves through `lib/i18n` — no scattered copy. Adding a locale is one file.
 - **Reusable component library.** Generic building blocks you copy into new prototypes:
   `components/prototype/*` (StatsCard, ChartCard, DataTable, FilterBar, DetailDrawer,
-  CommandPalette, EmptyState, LoadingState, ErrorState, OnboardingWizard),
+  CommandPalette, EmptyState, LoadingState, ErrorState, OnboardingWizard, AmbientBackdrop),
   `components/motion/*` (FadeIn, SlideIn, ScaleIn, PageTransition, StaggerContainer,
   AnimatedNumber), `components/layout/*` (Sidebar, TopNav, MobileNav, PageContainer).
 - **Agent-first.** `AGENTS.md` pins development rules (inspect first, reuse components,
   real interactions only, browser QA, quality gates, git safety & branch strategy).
   `skills/interactive-prototype/SKILL.md` defines the full build workflow
-  (Understand → Inspect → Plan → Build → Run → Browser Validate → Fix → Polish → Test)
-  and `skills/git-delivery/SKILL.md` defines the delivery workflow
-  (Inspect → Branch Check → Diff Review → Quality Gates → Commit → Push → Preview).
-- **Verified.** 10 Playwright e2e flows cover page load, dialog, drawer, tabs, filtering,
-  command palette, add-customer, detail drawer, drag-and-drop and a mobile smoke test.
+  and `skills/git-delivery/SKILL.md` defines the delivery workflow.
+- **Verified.** 53 Playwright e2e flows cover routing integrity, navigation, forms,
+  drawers, drag-and-drop, the command palette, localization coverage, theme tokens and
+  mobile viewports.
+
+## Design System V2
+
+Premium interactive SaaS: depth through layering, not effects.
+
+### Tokens (`app/globals.css`)
+
+| Group | Tokens |
+| --- | --- |
+| Colour roles | `background` · `surface` · `elevated` · `interactive` · `foreground` · `muted` · `border` · `accent` · `accent-soft` · `brand` · `success` · `warning` · `danger` · `info` (each with a `-soft` where it matters) |
+| Typography | `text-display` · `text-title` · `text-heading` · `text-subtitle` · `text-body` · `text-body-sm` · `text-caption` · `text-label` · `text-numeric` + the `.numeric` utility (tabular figures) |
+| Radius | `rounded-field` (controls) · `rounded-card` · `rounded-panel` · `rounded-floating` |
+| Elevation | `shadow-subtle` · `shadow-card` · `shadow-elevated` · `shadow-floating` — Light and Dark differ |
+| Motion | `duration-instant/fast/normal/slow/glacial` + `duration-press/hover/enter/exit/modal/drawer/list/page`; `ease-standard/out-expo/out-back/spring/emphasized` |
+| Ambient | `ambient-grid` · `ambient-wash` · `surface-sheen` · `kbd-chip` utilities |
+
+Rules: never hardcode a colour, duration or easing outside the token layer; pick motion by
+**intent** (`motion.enter`, `motion.press`) rather than by feel.
+
+### Themes
+
+- **Light** — premium clean SaaS: cool near-white canvas, white surfaces, soft elevations.
+- **Dark** — premium immersive SaaS: layered charcoal (never pure black), inset hairlines,
+  brand-tinted accents and a controlled ambient wash in the brand-blue family.
+- The brand is deep azure — deliberately not the "AI purple" template look.
+
+### Ambient layer
+
+`components/prototype/ambient-backdrop.tsx` is the only place that adds decoration. It is
+used on the page background, the dashboard hero, chart surfaces and the command palette —
+always `pointer-events-none` and always behind content.
+
+### i18n (`lib/i18n/`)
+
+```ts
+// lib/i18n/zh-CN.ts   — the reference dictionary (source of truth for the shape)
+// lib/i18n/index.ts   — locale registry, `getMessages`, `messages` (non-hook accessor)
+// components/i18n/    — <LocaleProvider>, useMessages(), useLocale()
+```
+
+```tsx
+const t = useMessages()
+return <h1>{t.page.dashboard.title}</h1>
+```
+
+Adding `en-US`: create `lib/i18n/en-US.ts` typed as `Messages`, append `"en-US"` to
+`LOCALES` and the dictionary map. No component changes.
+
+**Dictionary = interface copy.** Record content (customer names, notes, amounts) lives in
+`lib/crm-data.ts` and is intentionally *not* translated. Route slugs stay English.
 
 ## Structure
 
 ```
-app/                     # routes: / (landing), /demo (SaaS dashboard demo)
+app/                     # routes: / (landing), /demo (demo dashboard), /crm (AI CRM)
+  crm/                   #   /crm · /crm/customers · /crm/customers/[id] · /crm/tasks · /crm/activities
 components/
   ui/                    # shadcn/ui primitives (Base UI "base-nova" style)
   prototype/             # reusable product components
   motion/                # Motion-based animation components
   layout/                # Sidebar, TopNav, MobileNav, PageContainer
+  i18n/                  # LocaleProvider, useMessages()
 hooks/                   # useMediaQuery, useDebouncedValue, useHotkey
-lib/                     # utils, mock data, formatters, motion presets
-stores/                  # Zustand store (dashboard demo)
+lib/
+  i18n/                  # dictionaries (zh-CN) + locale registry
+  crm-data.ts            # AI CRM mock records (Chinese business data)
+  mock-data.ts           # demo dashboard mock data
+  format.ts              # money / number / date formatting
+  motion-presets.ts      # JS mirror of the motion tokens
+stores/                  # Zustand stores (dashboard demo + CRM)
 tests/                   # Playwright e2e specs
-skills/
-  interactive-prototype/ # agent skill: build + browser QA workflow
-  git-delivery/          # agent skill: git delivery workflow
+skills/                  # agent skills (interactive-prototype, git-delivery)
 ```
 
 ## Stack notes

@@ -38,6 +38,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useMessages } from "@/components/i18n/locale-provider"
 import { useDashboardStore } from "@/stores/dashboard-store"
 import type { NavId } from "@/components/layout/sidebar"
 import type { AppNotification } from "@/lib/mock-data"
@@ -75,7 +76,7 @@ export interface TopNavDataSource {
   /** 账户菜单里第一项的文案（默认「快速上手」）。 */
   primaryNavLabel?: string
   account: { name: string; email: string; initials: string }
-  /** 文案可覆盖，未传时沿用 Starter 中文默认值。 */
+  /** 文案可覆盖；未传时取当前语言词典。 */
   labels?: {
     simulateSlowLoad?: string
     simulateFailure?: string
@@ -87,6 +88,7 @@ export interface TopNavDataSource {
     signOutToastTitle?: string
     signOutToastDescription?: string
     notificationsEmpty?: string
+    notifications?: string
     prototypeState?: string
     prototypeStateDescription?: string
     accountMenu?: string
@@ -110,6 +112,8 @@ export function TopNav({
   onNavigate,
   dataSource,
 }: TopNavProps) {
+  const t = useMessages()
+
   // Hooks 必须无条件调用；未注入时读到的 store 值仅用于兜底默认行为。
   const storeNotifications = useDashboardStore((state) => state.notifications)
   const storeMarkAll = useDashboardStore((state) => state.markAllNotificationsRead)
@@ -124,25 +128,32 @@ export function TopNav({
   const simulateApiFailure = dataSource?.onSimulateFailure ?? storeSimulateFailure
   const resetDemo = dataSource?.onReset ?? storeReset
   const status = dataSource?.status ?? storeStatus
-  const account = dataSource?.account ?? { name: "Taylor Wu", email: "taylor@northwind.dev", initials: "TW" }
+  const account = dataSource?.account ?? {
+    name: t.account.name,
+    email: t.account.email,
+    initials: t.account.initials,
+  }
   const primaryNavId = dataSource?.primaryNavId ?? "settings"
-  const primaryNavLabel = dataSource?.primaryNavLabel ?? "快速上手"
+  const primaryNavLabel = dataSource?.primaryNavLabel ?? t.demo.quickStart
   const notificationHref = dataSource?.notificationHref
   const onSignOut = dataSource?.onSignOut
+
+  // Defaults come from the dictionary; a prototype only overrides what differs.
   const labels = {
-    simulateSlowLoad: "模拟慢加载",
-    simulateFailure: "模拟接口失败",
-    resetData: "重置演示数据",
-    resetToastTitle: "演示数据已重置",
-    resetToastDescription: "所有筛选、编辑与状态改动都已恢复。",
-    markAllRead: "全部标为已读",
-    signOut: "退出登录",
-    signOutToastTitle: "已退出登录",
-    signOutToastDescription: "已回到演示初始状态。",
-    notificationsEmpty: "没有新通知了。",
-    prototypeState: "原型状态",
-    prototypeStateDescription: "强制触发加载、错误与重置流程，预览所有状态。",
-    accountMenu: "账户菜单",
+    simulateSlowLoad: t.prototype.simulateSlowLoad,
+    simulateFailure: t.prototype.simulateFailure,
+    resetData: t.prototype.resetData,
+    resetToastTitle: t.prototype.resetToastTitle,
+    resetToastDescription: t.prototype.resetToastDescription,
+    markAllRead: t.notifications.markAllRead,
+    signOut: t.dialogs.signOut.confirm,
+    signOutToastTitle: t.toast.signedOut,
+    signOutToastDescription: t.toast.signedOutDescription,
+    notificationsEmpty: t.notifications.empty,
+    notifications: t.notifications.title,
+    prototypeState: t.prototype.title,
+    prototypeStateDescription: t.prototype.description,
+    accountMenu: t.a11y.accountMenu,
     ...dataSource?.labels,
   }
 
@@ -159,38 +170,43 @@ export function TopNav({
     })
   }
 
-  const openNotification = (title: string) => {
+  const openNotification = (notificationTitle: string) => {
     // 通知条目在有 href 时会自行导航；这里只负责「无链接」时的兜底反馈。
     if (notificationHref) return
     onNavigate("activity")
-    toast.info(title)
+    toast.info(notificationTitle)
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/85 px-4 backdrop-blur-md sm:px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/70 bg-background/70 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/55 sm:px-6">
       <div className="flex min-w-0 flex-col leading-tight">
-        <span className="truncate text-sm font-semibold">{title}</span>
-        <span className="truncate text-xs text-muted-foreground">{subtitle}</span>
+        <span className="truncate text-body-sm font-semibold">{title}</span>
+        <span className="truncate text-label text-muted-foreground">{subtitle}</span>
       </div>
 
       <div className="ml-auto flex items-center gap-1">
+        {/* 命令面板的可发现入口——比一个孤零零的图标更能说明「这里能搜」。 */}
         <Tooltip>
           <TooltipTrigger
             render={
               <Button
                 type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label="打开命令面板"
+                variant="outline"
+                size="sm"
+                aria-label={t.a11y.openCommand}
                 onClick={onOpenCommand}
                 data-testid="open-command"
+                className="gap-2 text-muted-foreground hover:text-foreground"
               />
             }
           >
             <SearchIcon />
-            <kbd className="hidden text-xs font-normal text-muted-foreground lg:inline">⌘K</kbd>
+            <span className="hidden text-body-sm font-normal xl:inline">
+              {t.common.search}
+            </span>
+            <kbd className="kbd-chip hidden xl:inline-flex">⌘K</kbd>
           </TooltipTrigger>
-          <TooltipContent side="bottom">搜索或运行命令</TooltipContent>
+          <TooltipContent side="bottom">{t.a11y.commandHint}</TooltipContent>
         </Tooltip>
 
         <Tooltip>
@@ -200,15 +216,16 @@ export function TopNav({
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                aria-label="刷新数据"
+                aria-label={t.a11y.refreshData}
                 onClick={refresh}
                 data-testid="refresh-data"
+                className="text-muted-foreground hover:text-foreground"
               />
             }
           >
             <RotateCwIcon className={cn(status === "loading" && "animate-spin")} />
           </TooltipTrigger>
-          <TooltipContent side="bottom">刷新数据</TooltipContent>
+          <TooltipContent side="bottom">{t.a11y.refreshData}</TooltipContent>
         </Tooltip>
 
         <Tooltip>
@@ -218,15 +235,16 @@ export function TopNav({
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                aria-label="切换主题"
+                aria-label={t.a11y.toggleTheme}
                 onClick={toggleTheme}
                 data-testid="toggle-theme"
+                className="text-muted-foreground hover:text-foreground"
               />
             }
           >
             {resolvedTheme === "dark" ? <SunIcon /> : <MoonIcon />}
           </TooltipTrigger>
-          <TooltipContent side="bottom">切换主题</TooltipContent>
+          <TooltipContent side="bottom">{t.a11y.toggleTheme}</TooltipContent>
         </Tooltip>
 
         {/* 通知 */}
@@ -240,9 +258,9 @@ export function TopNav({
                       type="button"
                       variant="ghost"
                       size="icon-sm"
-                      aria-label="Notifications"
+                      aria-label={t.a11y.notifications}
                       data-testid="notifications"
-                      className="relative"
+                      className="relative text-muted-foreground hover:text-foreground"
                     />
                   }
                 />
@@ -250,17 +268,27 @@ export function TopNav({
             >
               <BellIcon />
               {unreadCount > 0 ? (
-                <span className="absolute top-0.5 right-0.5 flex size-3.5 items-center justify-center rounded-full bg-chart-5 text-[9px] font-semibold text-white">
+                <span className="absolute top-0.5 right-0.5 flex size-3.5 items-center justify-center rounded-full bg-danger text-[9px] font-semibold text-white shadow-subtle">
                   {unreadCount}
                 </span>
               ) : null}
             </TooltipTrigger>
-            <TooltipContent side="bottom">Notifications</TooltipContent>
+            <TooltipContent side="bottom">{t.a11y.notifications}</TooltipContent>
           </Tooltip>
-          <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+          <DropdownMenuContent
+            align="end"
+            className="w-80 rounded-panel border-border/70 p-1.5 shadow-floating"
+          >
+            <DropdownMenuLabel className="flex items-center justify-between">
+              <span>{labels.notifications}</span>
+              {unreadCount > 0 ? (
+                <span className="numeric text-label font-normal text-brand">
+                  {t.notifications.unreadCount(unreadCount)}
+                </span>
+              ) : null}
+            </DropdownMenuLabel>
             {notifications.length === 0 ? (
-              <p className="px-2 py-4 text-center text-xs text-muted-foreground">
+              <p className="px-2 py-4 text-center text-label text-muted-foreground">
                 {labels.notificationsEmpty}
               </p>
             ) : (
@@ -268,20 +296,29 @@ export function TopNav({
                 const Icon = KIND_ICON[notification.kind]
                 const rowContent = (
                   <>
-                    <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                    <span
+                      className={cn(
+                        "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-field transition-colors duration-hover",
+                        notification.unread
+                          ? "bg-brand-soft text-brand"
+                          : "bg-muted text-muted-foreground"
+                      )}
+                    >
                       <Icon className="size-3.5" />
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="flex items-center gap-1.5 text-xs font-medium">
+                      <span className="flex items-center gap-1.5 text-label font-medium">
                         {notification.title}
                         {notification.unread ? (
-                          <span className="size-1.5 rounded-full bg-chart-1" />
+                          <span className="size-1.5 rounded-full bg-brand" />
                         ) : null}
                       </span>
-                      <span className="truncate text-xs text-muted-foreground">
+                      <span className="truncate text-label text-muted-foreground">
                         {notification.description}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">{notification.time}</span>
+                      <span className="numeric text-[10px] text-muted-foreground">
+                        {notification.time}
+                      </span>
                     </span>
                   </>
                 )
@@ -294,7 +331,7 @@ export function TopNav({
                       key={notification.id}
                       render={<Link href={href} />}
                       onSelect={() => openNotification(notification.title)}
-                      className="items-start gap-2.5 py-2"
+                      className="items-start gap-2.5 rounded-field py-2"
                     >
                       {rowContent}
                     </DropdownMenuItem>
@@ -305,7 +342,7 @@ export function TopNav({
                   <DropdownMenuItem
                     key={notification.id}
                     onSelect={() => openNotification(notification.title)}
-                    className="items-start gap-2.5 py-2"
+                    className="items-start gap-2.5 rounded-field py-2"
                   >
                     {rowContent}
                   </DropdownMenuItem>
@@ -315,7 +352,10 @@ export function TopNav({
             {unreadCount > 0 ? (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={markAllNotificationsRead} className="justify-center">
+                <DropdownMenuItem
+                  onSelect={markAllNotificationsRead}
+                  className="justify-center text-label text-brand"
+                >
                   {labels.markAllRead}
                 </DropdownMenuItem>
               </>
@@ -334,8 +374,9 @@ export function TopNav({
                       type="button"
                       variant="ghost"
                       size="icon-sm"
-                      aria-label="演示控制"
+                      aria-label={t.a11y.prototypeControls}
                       data-testid="demo-controls"
+                      className="text-muted-foreground hover:text-foreground"
                     />
                   }
                 />
@@ -343,12 +384,14 @@ export function TopNav({
             >
               <FlaskConicalIcon />
             </TooltipTrigger>
-            <TooltipContent side="bottom">演示控制</TooltipContent>
+            <TooltipContent side="bottom">{t.a11y.prototypeControls}</TooltipContent>
           </Tooltip>
-          <PopoverContent align="end" className="w-64">
+          <PopoverContent align="end" className="w-72 rounded-panel shadow-floating">
             <PopoverHeader>
               <PopoverTitle>{labels.prototypeState}</PopoverTitle>
-              <PopoverDescription>{labels.prototypeStateDescription}</PopoverDescription>
+              <PopoverDescription className="text-label">
+                {labels.prototypeStateDescription}
+              </PopoverDescription>
             </PopoverHeader>
             <div className="flex flex-col gap-1">
               <Button variant="ghost" type="button" className="justify-start" onClick={refresh}>
@@ -357,11 +400,11 @@ export function TopNav({
               <Button
                 variant="ghost"
                 type="button"
-                className="justify-start text-destructive hover:text-destructive"
+                className="justify-start text-danger hover:bg-danger-soft hover:text-danger"
                 onClick={() => {
                   simulateApiFailure()
-                  toast.error("Request failed", {
-                    description: "The dashboard switched to its error state.",
+                  toast.error(t.toast.refreshFailed, {
+                    description: t.toast.refreshFailedDescription,
                   })
                 }}
               >
@@ -375,6 +418,8 @@ export function TopNav({
           </PopoverContent>
         </Popover>
 
+        <Separator orientation="vertical" className="mx-1 h-6" />
+
         {/* 账户 */}
         <DropdownMenu>
           <DropdownMenuTrigger
@@ -385,30 +430,36 @@ export function TopNav({
                 size="sm"
                 aria-label={labels.accountMenu}
                 data-testid="account-menu"
-                className="gap-2 pl-1.5"
+                className="gap-2 pl-1"
               />
             }
           >
             <Avatar size="sm">
-              <AvatarFallback>{account.initials}</AvatarFallback>
+              <AvatarFallback className="bg-brand-soft text-brand">
+                {account.initials}
+              </AvatarFallback>
             </Avatar>
-            <span className="hidden text-xs font-medium lg:inline">{account.name}</span>
+            <span className="hidden text-label font-medium lg:inline">{account.name}</span>
             <ChevronDownIcon className="hidden size-3 text-muted-foreground lg:inline" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="flex flex-col">
-              {account.name}
-              <span className="text-[10px] font-normal text-muted-foreground">
+          <DropdownMenuContent
+            align="end"
+            className="w-60 rounded-panel border-border/70 p-1.5 shadow-floating"
+          >
+            <DropdownMenuLabel className="flex flex-col gap-0.5">
+              <span className="text-xs font-medium text-foreground">{account.name}</span>
+              <span className="truncate text-[10px] font-normal text-muted-foreground">
                 {account.email}
               </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => onNavigate(primaryNavId)}>
+            <DropdownMenuItem onSelect={() => onNavigate(primaryNavId)} className="rounded-field">
               <SettingsIcon /> {primaryNavLabel}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
+              className="rounded-field"
               onSelect={() => {
                 if (onSignOut) {
                   onSignOut()

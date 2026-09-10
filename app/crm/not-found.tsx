@@ -1,7 +1,10 @@
 import type { Metadata } from "next"
 import { NotFoundState } from "@/components/prototype/not-found-state"
+import { messages } from "@/lib/i18n"
 
-export const metadata: Metadata = { title: "Not found" }
+export const metadata: Metadata = { title: messages.notFound.crm.metaTitle }
+
+const t = messages.notFound.crm
 
 /**
  * /crm 段内的 404 —— 例如访问不存在的 /crm/reports。
@@ -13,13 +16,13 @@ export default function CrmNotFound() {
       <NotFoundState
         code="404"
         testId="crm-not-found"
-        title="That CRM page doesn't exist"
-        description="The page you're looking for isn't part of this prototype. Pick a destination below to keep going."
-        action={{ label: "Back to dashboard", href: "/crm" }}
+        title={t.title}
+        description={t.description}
+        action={{ label: t.action, href: "/crm" }}
         suggestions={[
-          { label: "Customers", href: "/crm/customers" },
-          { label: "Tasks", href: "/crm/tasks" },
-          { label: "Activities", href: "/crm/activities" },
+          { label: messages.nav.customers, href: "/crm/customers" },
+          { label: messages.nav.tasks, href: "/crm/tasks" },
+          { label: messages.nav.activities, href: "/crm/activities" },
         ]}
       />
     </div>

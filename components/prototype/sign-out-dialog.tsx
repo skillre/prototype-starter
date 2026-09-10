@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { useMessages } from "@/components/i18n/locale-provider"
 
 type SignOutDialogProps = {
   open: boolean
@@ -34,6 +34,7 @@ export function SignOutDialog({
   accountEmail,
   testId,
 }: SignOutDialogProps) {
+  const t = useMessages()
   const [pending, setPending] = useState(false)
 
   const confirm = () => {
@@ -45,28 +46,30 @@ export function SignOutDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-testid={testId} className="sm:max-w-md">
+      <DialogContent
+        data-testid={testId}
+        className="rounded-panel border-border/70 shadow-floating sm:max-w-md"
+      >
         <DialogHeader>
-          <DialogTitle>Sign out of the prototype?</DialogTitle>
-          <DialogDescription>
-            This is a frontend-only prototype with no authentication. Continuing resets the
-            local session{accountEmail ? ` for ${accountEmail}` : ""} back to its initial
-            state — every customer, task and filter returns to how it started.
+          <DialogTitle>{t.dialogs.signOut.title}</DialogTitle>
+          <DialogDescription className="text-pretty">
+            {t.dialogs.signOut.description(accountEmail)}
           </DialogDescription>
         </DialogHeader>
 
         <DialogFooter showCloseButton={false}>
-          <DialogClose render={<Button type="button" variant="outline" />}>Cancel</DialogClose>
+          <DialogClose render={<Button type="button" variant="outline" />}>
+            {t.common.cancel}
+          </DialogClose>
           <Button
             type="button"
             variant="destructive"
             onClick={confirm}
             disabled={pending}
             data-testid={testId ? `${testId}-confirm` : undefined}
-            className={cn("gap-1.5")}
           >
             <LogOutIcon />
-            Sign out
+            {t.dialogs.signOut.confirm}
           </Button>
         </DialogFooter>
       </DialogContent>

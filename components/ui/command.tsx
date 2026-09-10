@@ -16,6 +16,7 @@ import {
   InputGroupAddon,
 } from "@/components/ui/input-group"
 import { SearchIcon, CheckIcon } from "lucide-react"
+import { useMessages } from "@/components/i18n/locale-provider"
 
 function Command({
   className,
@@ -34,8 +35,8 @@ function Command({
 }
 
 function CommandDialog({
-  title = "命令面板",
-  description = "输入命令或搜索…",
+  title,
+  description,
   children,
   className,
   showCloseButton = false,
@@ -47,11 +48,13 @@ function CommandDialog({
   showCloseButton?: boolean
   children: React.ReactNode
 }) {
+  const t = useMessages()
+
   return (
     <Dialog {...props}>
       <DialogHeader className="sr-only">
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
+        <DialogTitle>{title ?? t.palette.title}</DialogTitle>
+        <DialogDescription>{description ?? t.palette.placeholder}</DialogDescription>
       </DialogHeader>
       <DialogContent
         className={cn(

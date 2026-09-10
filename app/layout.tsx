@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { LocaleProvider } from "@/components/i18n/locale-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
+import { DEFAULT_LOCALE } from "@/lib/i18n";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,15 +30,27 @@ const themeScript = `(function(){try{var t=localStorage.getItem("theme");var d=t
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="zh-CN"
+      lang={DEFAULT_LOCALE}
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: themeScript }} />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <TooltipProvider delay={300}>{children}</TooltipProvider>
-          <Toaster richColors position="top-right" />
+          {/* 语言环境：默认 zh-CN。所有界面文案经 useMessages() 读取，见 lib/i18n。 */}
+          <LocaleProvider locale={DEFAULT_LOCALE}>
+            <TooltipProvider delay={300}>{children}</TooltipProvider>
+            {/*
+              通知固定在右下角：顶栏右上是账户菜单、通知铃铛与演示控制，
+              top-right 的 toast 会直接盖住这些全局控件并拦截点击。
+            */}
+            <Toaster
+              richColors
+              position="bottom-right"
+              closeButton
+              toastOptions={{ className: "font-sans" }}
+            />
+          </LocaleProvider>
         </ThemeProvider>
       </body>
     </html>

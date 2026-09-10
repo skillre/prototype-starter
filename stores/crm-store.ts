@@ -18,6 +18,7 @@ import {
   type TaskColumnId,
 } from "@/lib/crm-data"
 import { buildAiSummary, type AiSummary } from "@/lib/ai-summary"
+import { messages as t } from "@/lib/i18n"
 
 export type CrmDataStatus = "loading" | "ready" | "error"
 export type CrmStatusFilter = CustomerStatus | "all"
@@ -38,6 +39,9 @@ export interface NewCrmCustomerInput {
 }
 
 export const PAGE_SIZE = 8
+
+/** mock 数据的"当前月"，用于月度派生（与 lib/crm-data.ts 的时间戳一致）。 */
+export const REFERENCE_MONTH = "2026-09"
 
 interface CrmState {
   status: CrmDataStatus
@@ -136,7 +140,7 @@ export const useCrmStore = create<CrmState>((set, get) => ({
   simulateError: () =>
     set({
       status: "error",
-      errorMessage: "GET https://api.salescopilot.dev/v1/customers — request timed out after 10s.",
+      errorMessage: "GET https://api.zhixiao.cn/v1/customers — 请求在 10 秒后超时。",
     }),
 
   reset: () =>
@@ -184,15 +188,15 @@ export const useCrmStore = create<CrmState>((set, get) => ({
       company: input.company.trim(),
       email: input.email.trim(),
       phone: input.phone.trim(),
-      title: "Primary contact",
+      title: t.customer.fields.contact,
       status: input.status,
       owner: input.owner,
       value: input.value,
       plan: input.status === "lead" ? "Starter" : input.status === "trial" ? "Growth" : "Scale",
       createdAt: now.toISOString().slice(0, 10),
       lastTouchHours: 0,
-      tags: input.status === "lead" ? ["inbound"] : ["new"],
-      notes: input.notes.trim() || "Created from the Add Customer dialog.",
+      tags: input.status === "lead" ? [t.data.tagInbound] : [t.data.tagNew],
+      notes: input.notes.trim() || t.data.placeholderNote,
     }
 
     // 新客户同时写入活动流，时间线保持真实。
@@ -207,10 +211,10 @@ export const useCrmStore = create<CrmState>((set, get) => ({
       id: `a-${now.getTime()}`,
       customerId: customer.id,
       kind: "status",
-      title: "Customer created",
-      detail: `${customer.company} was added to the pipeline by ${customer.owner}.`,
+      title: t.data.createdActivityTitle,
+      detail: t.data.createdActivityDetail(customer.owner, customer.company),
       actor: customer.owner,
-      time: "Just now",
+      time: t.data.justNow,
       at: nextAt,
     }
 
@@ -366,7 +370,7 @@ export interface CrmKpis {
 /** 全部 KPI 都由当前 customers 派生——新增客户后数字会真实变化。 */
 export function selectKpis(customers: CrmCustomer[]): CrmKpis {
   const totalCustomers = customers.length
-  const newThisMonth = customers.filter((c) => c.createdAt.startsWith("2026-09")).length
+  const newThisMonth = customers.filter((c) => c.createdAt.startsWith(REFERENCE_MONTH)).length
   const activeDeals = customers.filter(
     (c) => c.status === "lead" || c.status === "trial"
   ).length
@@ -384,6 +388,57 @@ export function selectStageBreakdown(customers: CrmCustomer[]) {
     count: customers.filter((c) => c.status === status).length,
   }))
 }
+
+export interface CrmMonthlyPoint {
+  /** "2026-08" */
+  key: string
+  /** 该月新增客户数。 */
+  added: number
+  /** 截至该月月底的客户总数。 */
+  cumulative: number
+  /** 截至该月月底在谈/已签约的年度合同额。 */
+  value: number
+  /** 截至该月月底仍未转化的商机数（线索 + 试用）。 */
+  openDeals: number
+  /** 截至该月月底合作中客户占比（0–100）。 */
+  conversion: number
+}
+
+/**
+ * KPI 迷你走势用的逐月序列——完全由真实 customers 派生，不是装饰数据。
+ * 以 mock 数据的"当前时间"为锚点向前回溯 `months` 个月。
+ */
+export function selectMonthlySeries(customers: CrmCustomer[], months = 12): CrmMonthlyPoint[] {
+  const [anchorYear, anchorMonth] = REFERENCE_MONTH.split("-").map(Number)
+
+  const keys: string[] = []
+  for (let offset = months - 1; offset >= 0; offset -= 1) {
+    const total = anchorYear * 12 + (anchorMonth - 1) - offset
+    const year = Math.floor(total / 12)
+    const month = (total % 12) + 1
+    keys.push(`${year}-${String(month).padStart(2, "0")}`)
+  }
+
+  return keys.map((key, index) => {
+    // 截至本月月底：按 "YYYY-MM" 前缀比较即可，ISO 日期字典序与时间序一致。
+    const upTo = `${key}-32`
+    const soFar = customers.filter((c) => c.createdAt <= upTo)
+    const active = soFar.filter((c) => c.status === "active").length
+    const openDeals = soFar.filter((c) => c.status === "lead" || c.status === "trial").length
+
+    return {
+      key,
+      added: customers.filter((c) => c.createdAt.startsWith(key)).length,
+      cumulative: soFar.length,
+      value: soFar.reduce((sum, c) => sum + (c.status === "churned" ? 0 : c.value), 0),
+      openDeals,
+      conversion:
+        index === 0 || soFar.length === 0 ? 0 : Math.round((active / soFar.length) * 1000) / 10,
+    }
+  })
+}
+
+/** mock 数据的"当前月"，用于月度派生（与 lib/crm-data.ts 的时间戳一致）。 */
 
 export function paginate<T>(rows: T[], page: number, pageSize = PAGE_SIZE) {
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))

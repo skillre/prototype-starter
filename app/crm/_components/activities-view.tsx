@@ -23,14 +23,15 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  ACTIVITY_META,
   CRM_OWNERS,
+  personInitials,
   type ActivityKind,
   type CrmActivity,
   type CrmOwner,
 } from "@/lib/crm-data"
 import { selectActivities, useCrmStore } from "@/stores/crm-store"
 import { durations, easings } from "@/lib/motion-presets"
+import { useMessages } from "@/components/i18n/locale-provider"
 import { cn } from "@/lib/utils"
 
 const KIND_ICON: Record<ActivityKind, typeof MailIcon> = {
@@ -43,21 +44,13 @@ const KIND_ICON: Record<ActivityKind, typeof MailIcon> = {
 
 const KIND_ORDER: ActivityKind[] = ["email", "call", "meeting", "note", "status"]
 
-const initials = (name: string) =>
-  name
-    .split(" ")
-    .map((part) => part[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase()
-
 type ActivitiesViewProps = {
   /** 点击企业名进入该客户详情页。 */
   onOpenCustomer: (customerId: string) => void
 }
 
 export function ActivitiesView({ onOpenCustomer }: ActivitiesViewProps) {
+  const t = useMessages()
   const activities = useCrmStore((s) => s.activities)
   const customers = useCrmStore((s) => s.customers)
   const kindFilter = useCrmStore((s) => s.activityKindFilter)
@@ -90,27 +83,27 @@ export function ActivitiesView({ onOpenCustomer }: ActivitiesViewProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 rounded-panel bg-surface/70 p-2.5 shadow-card ring-1 ring-border/60">
         <Select
           value={kindFilter}
           onValueChange={(value) => setKindFilter(value as ActivityKind | "all")}
         >
-          <SelectTrigger size="sm" className="w-40" data-testid="activity-filter-kind">
+          <SelectTrigger size="sm" className="w-32" data-testid="activity-filter-kind">
             <SelectValue>
               {(value) => (
                 <span className="truncate">
                   {value && value !== "all"
-                    ? ACTIVITY_META[value as ActivityKind].label
-                    : "All types"}
+                    ? t.activities.kinds[value as ActivityKind]
+                    : t.activities.allTypes}
                 </span>
               )}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All types</SelectItem>
+            <SelectItem value="all">{t.activities.allTypes}</SelectItem>
             {KIND_ORDER.map((kind) => (
               <SelectItem key={kind} value={kind}>
-                {ACTIVITY_META[kind].label}
+                {t.activities.kinds[kind]}
               </SelectItem>
             ))}
           </SelectContent>
@@ -120,17 +113,17 @@ export function ActivitiesView({ onOpenCustomer }: ActivitiesViewProps) {
           value={ownerFilter}
           onValueChange={(value) => setOwnerFilter(value as CrmOwner | "all")}
         >
-          <SelectTrigger size="sm" className="w-40" data-testid="activity-filter-owner">
+          <SelectTrigger size="sm" className="w-32" data-testid="activity-filter-owner">
             <SelectValue>
               {(value) => (
                 <span className="truncate">
-                  {value && value !== "all" ? String(value) : "All owners"}
+                  {value && value !== "all" ? String(value) : t.activities.allOwners}
                 </span>
               )}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All owners</SelectItem>
+            <SelectItem value="all">{t.activities.allOwners}</SelectItem>
             {CRM_OWNERS.map((owner) => (
               <SelectItem key={owner} value={owner}>
                 {owner}
@@ -139,8 +132,8 @@ export function ActivitiesView({ onOpenCustomer }: ActivitiesViewProps) {
           </SelectContent>
         </Select>
 
-        <span className="text-caption text-muted-foreground">
-          {visible.length} of {activities.length} events
+        <span className="numeric text-caption text-muted-foreground">
+          {t.activities.resultCaption(visible.length, activities.length)}
         </span>
 
         {hasFilters ? (
@@ -148,14 +141,14 @@ export function ActivitiesView({ onOpenCustomer }: ActivitiesViewProps) {
             type="button"
             variant="ghost"
             size="sm"
-            className="ml-auto"
+            className="ml-auto text-muted-foreground hover:text-foreground"
             onClick={() => {
               setKindFilter("all")
               setOwnerFilter("all")
             }}
           >
             <RotateCcwIcon />
-            Reset filters
+            {t.activities.resetFilters}
           </Button>
         ) : null}
       </div>
@@ -164,31 +157,41 @@ export function ActivitiesView({ onOpenCustomer }: ActivitiesViewProps) {
       <div className="flex flex-wrap gap-2">
         {KIND_ORDER.map((kind) => {
           const Icon = KIND_ICON[kind]
+          const active = kindFilter === kind
           return (
-            <Badge key={kind} variant="outline" className="gap-1.5 font-normal">
+            <button
+              key={kind}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setKindFilter(active ? "all" : kind)}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-4xl border px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,background-color,border-color] duration-hover ease-standard outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                active
+                  ? "border-transparent bg-brand-soft text-brand"
+                  : "border-border/70 bg-surface/60 text-muted-foreground hover:bg-interactive hover:text-foreground"
+              )}
+            >
               <Icon className="size-3" />
-              {ACTIVITY_META[kind].label}
-              <span className="tabular-nums text-muted-foreground">{counts[kind]}</span>
-            </Badge>
+              {t.activities.kinds[kind]}
+              <span className="numeric opacity-70">{counts[kind]}</span>
+            </button>
           )
         })}
       </div>
 
       <Card size="sm">
-        <CardHeader className="border-b pb-3">
+        <CardHeader className="border-b border-border/60 pb-3">
           <div>
-            <CardTitle>Activity timeline</CardTitle>
-            <CardDescription>
-              Emails, calls, meetings, notes and status changes across every account.
-            </CardDescription>
+            <CardTitle>{t.activities.timelineTitle}</CardTitle>
+            <CardDescription>{t.activities.timelineDescription}</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           {visible.length === 0 ? (
             <EmptyState
               icon={CalendarIcon}
-              title="No activity matches"
-              description="No events for this type and owner combination. Reset the filters to see the full timeline."
+              title={t.activities.empty.title}
+              description={t.activities.empty.description}
               action={
                 <Button
                   variant="outline"
@@ -199,7 +202,7 @@ export function ActivitiesView({ onOpenCustomer }: ActivitiesViewProps) {
                   }}
                 >
                   <RotateCcwIcon />
-                  Clear filters
+                  {t.common.clearFilters}
                 </Button>
               }
             />
@@ -209,7 +212,8 @@ export function ActivitiesView({ onOpenCustomer }: ActivitiesViewProps) {
                 <TimelineItem
                   key={event.id}
                   event={event}
-                  company={companyOf.get(event.customerId)?.company ?? "—"}
+                  kindLabel={t.activities.kinds[event.kind]}
+                  company={companyOf.get(event.customerId)?.company ?? t.common.notAvailable}
                   isLast={index === visible.length - 1}
                   onOpen={() => onOpenCustomer(event.customerId)}
                 />
@@ -224,11 +228,13 @@ export function ActivitiesView({ onOpenCustomer }: ActivitiesViewProps) {
 
 function TimelineItem({
   event,
+  kindLabel,
   company,
   isLast,
   onOpen,
 }: {
   event: CrmActivity
+  kindLabel: string
   company: string
   isLast: boolean
   onOpen: () => void
@@ -239,17 +245,22 @@ function TimelineItem({
     <motion.li
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: durations.fast, ease: easings.outExpo }}
-      className="relative flex gap-3 pb-5 last:pb-0"
+      transition={{ duration: durations.list, ease: easings.outExpo }}
+      className="group/item relative flex gap-3 pb-5 last:pb-0"
     >
       {!isLast ? (
-        <span aria-hidden className="absolute top-9 left-[15px] h-[calc(100%-2.25rem)] w-px bg-border" />
+        <span
+          aria-hidden
+          className="absolute top-9 left-[15px] h-[calc(100%-2.25rem)] w-px bg-border transition-colors duration-hover group-hover/item:bg-brand/30"
+        />
       ) : null}
 
       <span
         className={cn(
-          "relative z-10 mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border bg-card",
-          event.kind === "status" ? "text-chart-2" : "text-muted-foreground"
+          "relative z-10 mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border transition-colors duration-hover",
+          event.kind === "status"
+            ? "border-brand/30 bg-brand-soft text-brand"
+            : "border-border/70 bg-surface text-muted-foreground group-hover/item:text-foreground"
         )}
       >
         <Icon className="size-3.5" />
@@ -257,18 +268,22 @@ function TimelineItem({
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="text-sm font-medium">{event.title}</span>
+          <span className="text-body-sm font-medium">{event.title}</span>
           <Badge variant="outline" className="h-5 px-1.5 text-label font-normal">
-            {ACTIVITY_META[event.kind].label}
+            {kindLabel}
           </Badge>
-          <span className="ml-auto shrink-0 text-label text-muted-foreground">{event.time}</span>
+          <span className="numeric ml-auto shrink-0 text-label text-muted-foreground">
+            {event.time}
+          </span>
         </div>
 
-        <p className="text-caption leading-relaxed text-muted-foreground">{event.detail}</p>
+        <p className="text-caption leading-relaxed text-pretty text-muted-foreground">
+          {event.detail}
+        </p>
 
         <div className="flex items-center gap-2">
           <Avatar size="sm" className="size-5">
-            <AvatarFallback className="text-[9px]">{initials(event.actor)}</AvatarFallback>
+            <AvatarFallback className="text-[9px]">{personInitials(event.actor, 1)}</AvatarFallback>
           </Avatar>
           <span className="text-label text-muted-foreground">{event.actor}</span>
           <span aria-hidden className="text-label text-muted-foreground">
@@ -277,7 +292,7 @@ function TimelineItem({
           <button
             type="button"
             onClick={onOpen}
-            className="rounded-sm text-label text-muted-foreground underline-offset-4 outline-none transition-colors hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring/60"
+            className="rounded-sm text-label text-muted-foreground underline-offset-4 outline-none transition-colors duration-hover hover:text-brand hover:underline focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             {company}
           </button>

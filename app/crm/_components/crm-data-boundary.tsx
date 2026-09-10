@@ -5,13 +5,15 @@ import { PageTransition } from "@/components/motion/page-transition"
 import { LoadingState } from "@/components/prototype/loading-state"
 import { ErrorState } from "@/components/prototype/error-state"
 import { useCrmStore } from "@/stores/crm-store"
-import { CRM_PAGE_META, type CrmRouteKey } from "./crm-shell"
+import { useCrmPageMeta, type CrmRouteKey } from "./crm-shell"
 
 type CrmDataBoundaryProps = {
   route: CrmRouteKey
   /** 覆盖页面标题（详情页等需要动态标题的场景）。 */
   title?: string
   description?: string
+  /** 标题上方的小字（面包屑 / 分组）。 */
+  eyebrow?: string
   actions?: React.ReactNode
   /** 加载骨架的形态。 */
   loadingVariant?: "cards" | "section" | "rows"
@@ -26,6 +28,7 @@ export function CrmDataBoundary({
   route,
   title,
   description,
+  eyebrow,
   actions,
   loadingVariant = "cards",
   children,
@@ -34,12 +37,13 @@ export function CrmDataBoundary({
   const errorMessage = useCrmStore((s) => s.errorMessage)
   const refresh = useCrmStore((s) => s.refresh)
 
-  const meta = CRM_PAGE_META[route]
+  const meta = useCrmPageMeta()[route]
 
   return (
     <PageContainer
+      eyebrow={eyebrow ?? meta.eyebrow}
       title={title ?? meta.title}
-      description={description ?? meta.subtitle}
+      description={description ?? meta.description}
       actions={actions}
     >
       {status === "error" ? (

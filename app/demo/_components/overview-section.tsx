@@ -51,7 +51,7 @@ const TOOLTIP_STYLE: React.CSSProperties = {
   border: "1px solid var(--border)",
   borderRadius: "var(--radius-md)",
   fontSize: 12,
-  boxShadow: "0 10px 28px rgb(0 0 0 / 0.1)",
+  boxShadow: "var(--elevation-floating)",
 }
 
 const TONE_CLASS: Record<Priority["tagTone"], string> = {
@@ -201,12 +201,12 @@ export function OverviewSection() {
                 tickLine={false}
                 axisLine={false}
                 tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                tickFormatter={(value: number) => formatCurrencyCompact(value)}
+                tickFormatter={(value: number) => formatCurrencyCompact(value, "USD")}
                 width={48}
               />
               <Tooltip
                 formatter={(value, name) => [
-                  formatCurrency(Number(value)),
+                  formatCurrency(Number(value), "USD"),
                   String(name) === "revenue" ? "收入" : "支出",
                 ]}
                 contentStyle={TOOLTIP_STYLE}

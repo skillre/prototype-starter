@@ -10,6 +10,8 @@ import {
   CommandList,
   CommandShortcut,
 } from "@/components/ui/command"
+import { useMessages } from "@/components/i18n/locale-provider"
+import { AmbientBackdrop } from "@/components/prototype/ambient-backdrop"
 import type { LucideIcon } from "lucide-react"
 
 export interface PaletteItem {
@@ -40,26 +42,33 @@ type CommandPaletteProps = {
 /**
  * ⌘K command palette built on the shadcn CommandDialog. Every item runs a
  * real action — navigation, dialogs, data operations.
+ *
+ * This is one of the few places that gets the full ambient treatment: it is a
+ * deliberate, temporary focus surface, so a soft brand wash plus a hairline
+ * grid inside a floating panel reads as "premium" rather than as decoration.
  */
 export function CommandPalette({
   open,
   onOpenChange,
   groups,
-  placeholder = "输入命令或搜索…",
+  placeholder,
   testId,
 }: CommandPaletteProps) {
+  const t = useMessages()
+
   return (
     <CommandDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="命令面板"
-      description="输入命令或搜索…"
+      title={t.palette.placeholder}
+      description={t.a11y.commandHint}
     >
-      <div data-testid={testId}>
-        <Command loop>
-          <CommandInput placeholder={placeholder} />
-          <CommandList>
-            <CommandEmpty>没有匹配的命令。</CommandEmpty>
+      <div data-testid={testId} className="relative isolate overflow-hidden rounded-panel">
+        <AmbientBackdrop variant="panel" grid />
+        <Command loop className="relative bg-transparent">
+          <CommandInput placeholder={placeholder ?? t.palette.placeholder} />
+          <CommandList className="max-h-80">
+            <CommandEmpty>{t.palette.empty}</CommandEmpty>
             {groups.map((group, index) => (
               <CommandGroup key={group.heading ?? index} heading={group.heading}>
                 {group.items.map((item) => {
@@ -72,10 +81,17 @@ export function CommandPalette({
                         item.onSelect()
                         onOpenChange(false)
                       }}
+                      className="group/item gap-2.5 rounded-field py-2 transition-colors duration-hover data-selected:bg-brand-soft data-selected:text-brand"
                     >
-                      {Icon ? <Icon className="text-muted-foreground" /> : null}
-                      {item.label}
-                      {item.shortcut ? <CommandShortcut>{item.shortcut}</CommandShortcut> : null}
+                      {Icon ? (
+                        <Icon className="text-muted-foreground transition-colors duration-hover group-data-selected/item:text-brand" />
+                      ) : null}
+                      <span className="truncate">{item.label}</span>
+                      {item.shortcut ? (
+                        <CommandShortcut className="kbd-chip ml-auto tracking-normal">
+                          {item.shortcut}
+                        </CommandShortcut>
+                      ) : null}
                     </CommandItem>
                   )
                 })}

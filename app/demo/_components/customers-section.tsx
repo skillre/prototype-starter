@@ -160,7 +160,7 @@ export function CustomersSection({
       className: "text-right",
       cell: (row) => (
         <span className={cn("text-sm tabular-nums", row.mrr === 0 && "text-muted-foreground")}>
-          {row.mrr > 0 ? formatCurrency(row.mrr) : "—"}
+          {row.mrr > 0 ? formatCurrency(row.mrr, "USD") : "—"}
         </span>
       ),
     },
@@ -306,7 +306,7 @@ export function CustomersSection({
                   onClick={() => {
                     reopenCustomerAccount(selected.id)
                     toast.success("账户已重新启用", {
-                      description: `${selected.name} 已恢复为活跃状态，月经常性收入 ${formatCurrency(selected.mrr)}。`,
+                      description: `${selected.name} 已恢复为活跃状态，月经常性收入 ${formatCurrency(selected.mrr, "USD")}。`,
                     })
                   }}
                 >
@@ -338,7 +338,7 @@ export function CustomersSection({
             <InfoRow label="状态" value={selected.status} />
             <InfoRow
               label="月经常性收入"
-              value={selected.mrr > 0 ? formatCurrency(selected.mrr) : "—"}
+              value={selected.mrr > 0 ? formatCurrency(selected.mrr, "USD") : "—"}
             />
             <InfoRow label="席位" value={selected.seats > 0 ? String(selected.seats) : "—"} />
             <InfoRow label="地区" value={selected.region} />
@@ -418,7 +418,7 @@ function AddCustomerDialog({
     })
     setSearch("")
     toast.success(`已添加 ${name.trim()}`, {
-      description: `套餐 ${plan}，月经常性收入 ${formatCurrency(Number(mrr))}。表格中已实时生效。`,
+      description: `套餐 ${plan}，月经常性收入 ${formatCurrency(Number(mrr), "USD")}。表格中已实时生效。`,
     })
     onOpenChange(false)
   }

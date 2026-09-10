@@ -14,6 +14,9 @@ type LoadingStateProps = {
 /**
  * Layout-preserving loading placeholders. `cards` mirrors a KPI grid,
  * `rows` mirrors a table, `section` is a single content block.
+ *
+ * The shapes mirror the real components closely enough that the swap on load
+ * does not move the page — which is the whole point of a skeleton.
  */
 export function LoadingState({
   variant = "cards",
@@ -26,11 +29,11 @@ export function LoadingState({
         {Array.from({ length: count }).map((_, index) => (
           <Card key={index} size="sm">
             <CardHeader>
-              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-3.5 w-24" />
             </CardHeader>
-            <CardContent className="gap-2.5">
-              <Skeleton className="h-8 w-24" />
-              <Skeleton className="h-4 w-36" />
+            <CardContent className="gap-3">
+              <Skeleton className="h-7 w-28" />
+              <Skeleton className="h-3.5 w-36" />
             </CardContent>
           </Card>
         ))}
@@ -60,7 +63,7 @@ export function LoadingState({
     <div className={cn("flex flex-col gap-3", className)}>
       <Skeleton className="h-5 w-48" />
       <Skeleton className="h-4 w-full max-w-md" />
-      <Skeleton className="mt-3 h-40 w-full rounded-xl" />
+      <Skeleton className="mt-3 h-40 w-full rounded-card" />
     </div>
   )
 }

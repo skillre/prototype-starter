@@ -1,10 +1,11 @@
 "use client"
 
-import Link from "next/link"
 import { ArrowLeftIcon, CompassIcon } from "lucide-react"
+import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
 import { FadeIn } from "@/components/motion/fade-in"
 import { cn } from "@/lib/utils"
+import { durations } from "@/lib/motion-presets"
 
 type NotFoundStateProps = {
   /** 例如 "404"。 */
@@ -20,6 +21,8 @@ type NotFoundStateProps = {
   suggestions?: { label: string; href: string }[]
   className?: string
   testId?: string
+  /** 点击主行动时的回调（用于关闭抽屉/清理状态）。 */
+  onAction?: () => void
 }
 
 /**
@@ -34,31 +37,32 @@ export function NotFoundState({
   suggestions,
   className,
   testId,
+  onAction,
 }: NotFoundStateProps) {
   return (
     <FadeIn
-      duration={0.25}
+      duration={durations.normal}
       className={cn(
-        "flex flex-col items-center justify-center gap-3 rounded-card border border-dashed px-6 py-16 text-center",
+        "relative flex flex-col items-center justify-center gap-3 overflow-hidden rounded-panel border border-dashed border-border bg-surface/50 px-6 py-16 text-center",
         className
       )}
     >
-      <span className="flex size-11 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+      <span className="relative flex size-12 items-center justify-center rounded-panel bg-muted/70 text-muted-foreground ring-1 ring-border/60">
         <CompassIcon className="size-5" />
       </span>
 
-      <span className="font-mono text-label tracking-widest text-muted-foreground">{code}</span>
-      <span className="text-base font-medium" data-testid={testId}>
+      <span className="font-mono text-label tracking-[0.3em] text-muted-foreground/70">{code}</span>
+      <span className="text-heading" data-testid={testId}>
         {title}
       </span>
 
       {description ? (
-        <span className="max-w-md text-caption text-muted-foreground">{description}</span>
+        <span className="max-w-md text-pretty text-caption text-muted-foreground">{description}</span>
       ) : null}
 
       <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
         {action ? (
-          <Link href={action.href} className={buttonVariants()}>
+          <Link href={action.href} className={buttonVariants()} onClick={onAction}>
             <ArrowLeftIcon />
             {action.label}
           </Link>

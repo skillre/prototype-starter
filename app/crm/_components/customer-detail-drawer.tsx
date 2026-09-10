@@ -21,14 +21,14 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import {
-  ACTIVITY_META,
   STATUS_META,
   type ActivityKind,
   type CrmActivity,
 } from "@/lib/crm-data"
 import { selectActivities, useCrmStore } from "@/stores/crm-store"
-import { formatCurrency } from "@/lib/format"
+import { formatCurrency, formatDate, formatRelativeHours } from "@/lib/format"
 import { durations, easings } from "@/lib/motion-presets"
+import { useMessages } from "@/components/i18n/locale-provider"
 import { cn } from "@/lib/utils"
 
 const KIND_ICON: Record<ActivityKind, typeof MailIcon> = {
@@ -42,7 +42,7 @@ const KIND_ICON: Record<ActivityKind, typeof MailIcon> = {
 /**
  * 客户详情抽屉：资料、标签、备注、AI 摘要与活动时间线。
  *
- * `onViewAccount` 由 shell 注入：抽屉底部的「Open account」会导航到真实的
+ * `onViewAccount` 由 shell 注入：抽屉底部的「查看客户档案」会导航到真实的
  * /crm/customers/[id] 页面，而不是停留在提示性的 toast。
  */
 export function CustomerDetailDrawer({
@@ -50,6 +50,7 @@ export function CustomerDetailDrawer({
 }: {
   onViewAccount: (customerId: string) => void
 }) {
+  const t = useMessages()
   const selectedCustomerId = useCrmStore((s) => s.selectedCustomerId)
   const customers = useCrmStore((s) => s.customers)
   const activities = useCrmStore((s) => s.activities)
@@ -82,16 +83,18 @@ export function CustomerDetailDrawer({
     if (!customer) return
     try {
       await navigator.clipboard.writeText(customer.email)
-      toast.success("Email copied", { description: customer.email })
+      toast.success(t.toast.emailCopied, { description: customer.email })
     } catch {
-      toast.error("Clipboard unavailable", { description: "Grant clipboard access and retry." })
+      toast.error(t.toast.clipboardUnavailable, {
+        description: t.toast.clipboardUnavailableDescription,
+      })
     }
   }
 
   return (
     <DetailDrawer
       testId="customer-drawer"
-      closeLabel="Close"
+      closeLabel={t.common.close}
       open={open}
       onOpenChange={(next) => {
         if (!next) selectCustomer(null)
@@ -104,7 +107,7 @@ export function CustomerDetailDrawer({
           <>
             <Button type="button" variant="outline" className="flex-1" onClick={copyEmail}>
               <CopyIcon />
-              Copy email
+              {t.customer.actions.copyEmail}
             </Button>
             <Button
               type="button"
@@ -112,7 +115,7 @@ export function CustomerDetailDrawer({
               onClick={() => onViewAccount(customer.id)}
               data-testid="open-account"
             >
-              Open account
+              {t.customer.actions.openAccount}
               <ArrowRightIcon />
             </Button>
           </>
@@ -130,36 +133,36 @@ export function CustomerDetailDrawer({
               )}
             >
               <span className={cn("size-1.5 rounded-full", STATUS_META[customer.status].dot)} />
-              {STATUS_META[customer.status].label}
+              {t.status[customer.status]}
             </span>
-            <Badge variant="outline">{customer.plan}</Badge>
-            <span className="ml-auto text-sm font-semibold tabular-nums">
-              {customer.value > 0 ? formatCurrency(customer.value) : "—"}
+            <Badge variant="outline">{t.plan[customer.plan]}</Badge>
+            <span className="numeric ml-auto text-body font-semibold">
+              {customer.value > 0 ? formatCurrency(customer.value) : t.common.notAvailable}
             </span>
           </div>
 
           {/* 资料 */}
           <dl className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
-            <InfoRow icon={UserIcon} label="Owner" value={customer.owner} />
-            <InfoRow icon={Building2Icon} label="Title" value={customer.title} />
-            <InfoRow icon={MailIcon} label="Email" value={customer.email} />
-            <InfoRow icon={PhoneIcon} label="Phone" value={customer.phone} />
-            <InfoRow icon={CalendarIcon} label="Created" value={customer.createdAt} />
+            <InfoRow icon={UserIcon} label={t.customer.fields.owner} value={customer.owner} />
+            <InfoRow icon={Building2Icon} label={t.customer.fields.title} value={customer.title} />
+            <InfoRow icon={MailIcon} label={t.customer.fields.email} value={customer.email} />
+            <InfoRow icon={PhoneIcon} label={t.customer.fields.phone} value={customer.phone} />
+            <InfoRow
+              icon={CalendarIcon}
+              label={t.customer.fields.created}
+              value={formatDate(customer.createdAt)}
+            />
             <InfoRow
               icon={StickyNoteIcon}
-              label="Last touch"
-              value={
-                customer.lastTouchHours < 24
-                  ? `${Math.max(1, Math.round(customer.lastTouchHours))}h ago`
-                  : `${Math.round(customer.lastTouchHours / 24)}d ago`
-              }
+              label={t.customer.fields.lastTouch}
+              value={formatRelativeHours(customer.lastTouchHours)}
             />
           </dl>
 
           {/* 标签 */}
           {customer.tags.length > 0 ? (
             <div className="flex flex-col gap-1.5">
-              <span className="text-label text-muted-foreground">Tags</span>
+              <span className="text-label text-muted-foreground">{t.customer.fields.tags}</span>
               <div className="flex flex-wrap gap-1.5">
                 {customer.tags.map((tag) => (
                   <Badge key={tag} variant="secondary" className="font-normal">
@@ -172,8 +175,10 @@ export function CustomerDetailDrawer({
 
           {/* 备注 */}
           <div className="flex flex-col gap-1.5">
-            <span className="text-label text-muted-foreground">Notes</span>
-            <p className="text-sm leading-relaxed text-muted-foreground">{customer.notes}</p>
+            <span className="text-label text-muted-foreground">{t.customer.fields.notes}</span>
+            <p className="text-body-sm leading-relaxed text-pretty text-muted-foreground">
+              {customer.notes}
+            </p>
           </div>
 
           <AiSummaryPanel
@@ -188,15 +193,19 @@ export function CustomerDetailDrawer({
           {/* 活动时间线 */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <span className="text-label text-muted-foreground">Activity timeline</span>
-              <span className="text-label text-muted-foreground">{timeline.length} events</span>
+              <span className="text-label text-muted-foreground">
+                {t.customer.sections.activities}
+              </span>
+              <span className="numeric text-label text-muted-foreground">
+                {timeline.length} {t.common.unit.event}
+              </span>
             </div>
 
             {timeline.length === 0 ? (
               <EmptyState
                 icon={CalendarIcon}
-                title="No activity yet"
-                description="Emails, calls and meetings logged against this customer will appear here."
+                title={t.customer.empty.activities}
+                description={t.customer.empty.activitiesDescription}
               />
             ) : (
               <ol className="flex flex-col">
@@ -204,6 +213,7 @@ export function CustomerDetailDrawer({
                   <TimelineRow
                     key={event.id}
                     event={event}
+                    kindLabel={t.activities.kinds[event.kind]}
                     isLast={index === timeline.length - 1}
                   />
                 ))}
@@ -216,13 +226,21 @@ export function CustomerDetailDrawer({
   )
 }
 
-function TimelineRow({ event, isLast }: { event: CrmActivity; isLast: boolean }) {
+function TimelineRow({
+  event,
+  kindLabel,
+  isLast,
+}: {
+  event: CrmActivity
+  kindLabel: string
+  isLast: boolean
+}) {
   const Icon = KIND_ICON[event.kind]
   return (
     <motion.li
       initial={{ opacity: 0, x: 8 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: durations.fast, ease: easings.outExpo }}
+      transition={{ duration: durations.list, ease: easings.outExpo }}
       className="relative flex gap-3 pb-4 last:pb-0"
     >
       {/* 竖线 */}
@@ -230,18 +248,23 @@ function TimelineRow({ event, isLast }: { event: CrmActivity; isLast: boolean })
         <span aria-hidden className="absolute top-8 left-[13px] h-[calc(100%-2rem)] w-px bg-border" />
       ) : null}
 
-      <span className="relative z-10 mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border bg-card text-muted-foreground">
+      <span
+        className={cn(
+          "relative z-10 mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border border-border/70 bg-surface",
+          event.kind === "status" ? "text-brand" : "text-muted-foreground"
+        )}
+      >
         <Icon className="size-3.5" />
       </span>
 
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex items-start justify-between gap-2">
-          <span className="text-sm font-medium">{event.title}</span>
-          <span className="shrink-0 text-label text-muted-foreground">{event.time}</span>
+          <span className="text-body-sm font-medium">{event.title}</span>
+          <span className="numeric shrink-0 text-label text-muted-foreground">{event.time}</span>
         </div>
-        <span className="text-caption text-muted-foreground">{event.detail}</span>
+        <span className="text-caption text-pretty text-muted-foreground">{event.detail}</span>
         <span className="text-label text-muted-foreground">
-          {ACTIVITY_META[event.kind].label} · {event.actor}
+          {kindLabel} · {event.actor}
         </span>
       </div>
     </motion.li>
@@ -262,7 +285,7 @@ function InfoRow({
       <Icon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
       <div className="flex min-w-0 flex-col gap-0.5">
         <dt className="text-label text-muted-foreground">{label}</dt>
-        <dd className="truncate text-sm font-medium">{value}</dd>
+        <dd className="truncate text-body-sm font-medium">{value}</dd>
       </div>
     </div>
   )

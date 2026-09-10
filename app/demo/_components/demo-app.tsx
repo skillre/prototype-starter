@@ -12,7 +12,7 @@ import {
   SunMoonIcon,
   UsersIcon,
 } from "lucide-react"
-import { Sidebar, NAV_ITEMS, type NavId } from "@/components/layout/sidebar"
+import { Sidebar, defaultNavItems, type NavId } from "@/components/layout/sidebar"
 import { TopNav } from "@/components/layout/top-nav"
 import { MobileNav } from "@/components/layout/mobile-nav"
 import { PageContainer } from "@/components/layout/page-container"
@@ -24,6 +24,7 @@ import { OnboardingWizard } from "@/components/prototype/onboarding-wizard"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useHotkey } from "@/hooks/use-hotkey"
+import { useMessages } from "@/components/i18n/locale-provider"
 import { useDashboardStore } from "@/stores/dashboard-store"
 import { OverviewSection } from "./overview-section"
 import { CustomersSection } from "./customers-section"
@@ -36,6 +37,7 @@ const TAB_META: Record<Exclude<NavId, "settings">, { title: string; subtitle: st
 }
 
 export function DemoApp() {
+  const t = useMessages()
   const [activeTab, setActiveTab] = useState<Exclude<NavId, "settings">>("overview")
   const [commandOpen, setCommandOpen] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
@@ -71,12 +73,12 @@ export function DemoApp() {
   // 未读徽标由调用方派生（SidebarNav 本身不再读取 store，以便被其他原型复用）。
   const navItems = useMemo(
     () =>
-      NAV_ITEMS.map((item) =>
+      defaultNavItems(t).map((item) =>
         item.id === "activity"
           ? { ...item, badge: notifications.filter((n) => n.unread).length }
           : item
       ),
-    [notifications]
+    [notifications, t]
   )
 
   const meta = TAB_META[activeTab]

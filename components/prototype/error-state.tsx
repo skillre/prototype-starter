@@ -3,6 +3,7 @@
 import { TriangleAlertIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScaleIn } from "@/components/motion/scale-in"
+import { useMessages } from "@/components/i18n/locale-provider"
 import { cn } from "@/lib/utils"
 
 type ErrorStateProps = {
@@ -15,31 +16,35 @@ type ErrorStateProps = {
 
 /** Full-surface error state. `onRetry` must actually recover (demo re-runs its loader). */
 export function ErrorState({
-  title = "数据加载失败",
+  title,
   description,
   onRetry,
-  retryLabel = "重试",
+  retryLabel,
   className,
 }: ErrorStateProps) {
+  const t = useMessages()
+
   return (
     <ScaleIn
-      from={0.97}
+      from={0.98}
       duration={0.25}
       className={cn(
-        "flex flex-col items-center justify-center gap-3 rounded-card border border-dashed border-destructive/40 bg-destructive/5 px-6 py-16 text-center",
+        "relative flex flex-col items-center justify-center gap-3 overflow-hidden rounded-panel border border-dashed border-danger/35 bg-danger-soft px-6 py-14 text-center",
         className
       )}
     >
-      <span className="flex size-11 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+      <span className="flex size-12 items-center justify-center rounded-panel bg-danger/12 text-danger ring-1 ring-danger/20">
         <TriangleAlertIcon className="size-5" />
       </span>
-      <span className="text-base font-medium">{title}</span>
+      <span className="text-heading">{title ?? t.common.loadFailed}</span>
       {description ? (
-        <span className="max-w-md font-mono text-xs text-muted-foreground">{description}</span>
+        <span className="max-w-md font-mono text-label break-all text-muted-foreground">
+          {description}
+        </span>
       ) : null}
       {onRetry ? (
         <Button onClick={onRetry} className="mt-2">
-          {retryLabel}
+          {retryLabel ?? t.common.retry}
         </Button>
       ) : null}
     </ScaleIn>

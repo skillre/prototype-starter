@@ -64,7 +64,8 @@ export function AnimatedNumber({
 }
 
 function formatNumber(value: number, options?: Intl.NumberFormatOptions) {
-  return new Intl.NumberFormat("en-US", options).format(value)
+  // 默认跟随产品语言（zh-CN）：金额、千分位与小数点都与其余文案一致。
+  return new Intl.NumberFormat("zh-CN", options).format(value)
 }
 
 /** 秒数转中文时长：278 → "4分38秒"。 */

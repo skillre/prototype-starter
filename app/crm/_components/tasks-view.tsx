@@ -25,25 +25,15 @@ import { CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { TASK_COLUMNS, type CrmTask, type TaskColumnId } from "@/lib/crm-data"
+import { TASK_COLUMNS, personInitials, type CrmTask, type TaskColumnId } from "@/lib/crm-data"
 import { useCrmStore } from "@/stores/crm-store"
+import { formatDateShort } from "@/lib/format"
+import { useMessages } from "@/components/i18n/locale-provider"
+import { cssEasings, durations, ms } from "@/lib/motion-presets"
 import { cn } from "@/lib/utils"
 
-const initials = (name: string) =>
-  name
-    .split(" ")
-    .map((part) => part[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase()
-
-const dueLabel = (due: string) => {
-  const date = new Date(`${due}T00:00:00Z`)
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
-}
-
 export function TasksView() {
+  const t = useMessages()
   const tasks = useCrmStore((s) => s.tasks)
   const moveTask = useCrmStore((s) => s.moveTask)
   const resetBoard = useCrmStore((s) => s.resetBoard)
@@ -64,7 +54,10 @@ export function TasksView() {
   }, [tasks])
 
   const activeTask = useMemo(
-    () => (activeId ? TASK_COLUMNS.flatMap((c) => tasks[c.id] ?? []).find((t) => t.id === activeId) ?? null : null),
+    () =>
+      activeId
+        ? TASK_COLUMNS.flatMap((c) => tasks[c.id] ?? []).find((task) => task.id === activeId) ?? null
+        : null,
     [activeId, tasks]
   )
 
@@ -104,10 +97,8 @@ export function TasksView() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-caption text-muted-foreground">
-          Drag a card to another column — the order is written straight into the store.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-panel bg-surface/70 px-3 py-2.5 shadow-card ring-1 ring-border/60">
+        <p className="text-caption text-muted-foreground">{t.tasks.hint}</p>
         <Button
           type="button"
           variant="outline"
@@ -116,7 +107,7 @@ export function TasksView() {
           data-testid="reset-board"
         >
           <RotateCcwIcon />
-          Reset board
+          {t.tasks.resetBoard}
         </Button>
       </div>
 
@@ -135,15 +126,19 @@ export function TasksView() {
             <TaskColumn
               key={column.id}
               id={column.id}
-              title={column.title}
-              hint={column.hint}
+              title={t.tasks.columns[column.id].title}
+              hint={t.tasks.columns[column.id].hint}
               tasks={tasks[column.id] ?? []}
+              dropHint={t.tasks.dropHere}
             />
           ))}
         </div>
 
-        <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }}>
-          {activeTask ? <TaskCardBody task={activeTask} dragging /> : null}
+        {/* dnd-kit 只接受数字与 CSS 字符串——从 motion token 派生，避免硬编码。 */}
+        <DragOverlay
+          dropAnimation={{ duration: ms(durations.modal), easing: cssEasings.outExpo }}
+        >
+          {activeTask ? <TaskCardBody task={activeTask} progressLabel={t.tasks.progress} dragging /> : null}
         </DragOverlay>
       </DndContext>
     </div>
@@ -155,11 +150,13 @@ function TaskColumn({
   title,
   hint,
   tasks,
+  dropHint,
 }: {
   id: TaskColumnId
   title: string
   hint: string
   tasks: CrmTask[]
+  dropHint: string
 }) {
   const { setNodeRef, isOver } = useDroppable({ id })
 
@@ -169,13 +166,13 @@ function TaskColumn({
       aria-label={title}
       data-testid={`task-column-${id}`}
       className={cn(
-        "flex flex-col rounded-card border bg-muted/30 transition-colors",
-        isOver && "border-ring/50 bg-accent/40"
+        "flex flex-col rounded-panel border border-border/60 bg-muted/25 transition-[background-color,border-color] duration-hover ease-standard",
+        isOver && "border-brand/40 bg-brand-soft/50"
       )}
     >
-      <header className="flex items-center gap-2 border-b px-3 py-2.5">
-        <CardTitle className="text-sm font-semibold">{title}</CardTitle>
-        <Badge variant="outline" className="ml-auto h-5 px-1.5 font-normal tabular-nums">
+      <header className="flex items-center gap-2 border-b border-border/60 px-3 py-2.5">
+        <CardTitle className="text-body">{title}</CardTitle>
+        <Badge variant="outline" className="numeric ml-auto h-5 px-1.5 font-normal">
           {tasks.length}
         </Badge>
       </header>
@@ -187,8 +184,8 @@ function TaskColumn({
             <SortableTask key={task.id} task={task} />
           ))}
           {tasks.length === 0 ? (
-            <li className="flex flex-1 items-center justify-center rounded-field border border-dashed px-3 py-6 text-center text-label text-muted-foreground">
-              Drop a task here
+            <li className="flex flex-1 items-center justify-center rounded-card border border-dashed border-border px-3 py-6 text-center text-label text-muted-foreground">
+              {dropHint}
             </li>
           ) : null}
         </ul>
@@ -198,6 +195,7 @@ function TaskColumn({
 }
 
 function SortableTask({ task }: { task: CrmTask }) {
+  const t = useMessages()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
   })
@@ -218,36 +216,47 @@ function SortableTask({ task }: { task: CrmTask }) {
       {...attributes}
       {...listeners}
     >
-      <TaskCardBody task={task} />
+      <TaskCardBody task={task} progressLabel={t.tasks.progress} />
     </li>
   )
 }
 
-function TaskCardBody({ task, dragging = false }: { task: CrmTask; dragging?: boolean }) {
+function TaskCardBody({
+  task,
+  dragging = false,
+  progressLabel,
+}: {
+  task: CrmTask
+  dragging?: boolean
+  progressLabel: string
+}) {
   const overdue = task.progress < 30
   return (
     <article
       className={cn(
-        "flex cursor-grab flex-col gap-2 rounded-field border bg-card p-3 transition-colors active:cursor-grabbing",
-        "hover:border-foreground/20",
-        dragging && "shadow-lg ring-1 ring-ring/30"
+        "group/card flex cursor-grab flex-col gap-2.5 rounded-card border border-border/60 bg-surface p-3 shadow-subtle transition-[box-shadow,transform,border-color] duration-hover ease-standard active:cursor-grabbing",
+        "hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-card",
+        dragging && "-translate-y-0.5 rotate-[0.6deg] border-brand/40 shadow-floating ring-1 ring-brand/25"
       )}
     >
       <div className="flex items-start gap-2">
-        <GripVerticalIcon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-        <span className="min-w-0 flex-1 text-sm leading-snug font-medium">{task.title}</span>
+        <GripVerticalIcon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/60 transition-colors duration-hover group-hover/card:text-muted-foreground" />
+        <span className="min-w-0 flex-1 text-body-sm leading-snug font-medium">{task.title}</span>
       </div>
 
-      <span className="truncate text-caption text-muted-foreground">{task.company}</span>
+      <span className="truncate text-label text-muted-foreground">{task.company}</span>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between text-label text-muted-foreground">
-          <span>Progress</span>
-          <span className="tabular-nums">{task.progress}%</span>
+          <span>{progressLabel}</span>
+          <span className="numeric">{task.progress}%</span>
         </div>
         <div className="h-1 overflow-hidden rounded-full bg-muted">
           <div
-            className={cn("h-full rounded-full", overdue ? "bg-chart-5" : "bg-chart-1")}
+            className={cn(
+              "h-full rounded-full transition-[width] duration-slow ease-out-expo",
+              overdue ? "bg-warning" : "bg-brand"
+            )}
             style={{ width: `${task.progress}%` }}
           />
         </div>
@@ -255,12 +264,17 @@ function TaskCardBody({ task, dragging = false }: { task: CrmTask; dragging?: bo
 
       <div className="flex items-center gap-2 pt-0.5">
         <Avatar size="sm" className="size-5">
-          <AvatarFallback className="text-[9px]">{initials(task.owner)}</AvatarFallback>
+          <AvatarFallback className="text-[9px]">{personInitials(task.owner, 1)}</AvatarFallback>
         </Avatar>
         <span className="truncate text-label text-muted-foreground">{task.owner}</span>
-        <span className="ml-auto inline-flex shrink-0 items-center gap-1 text-label text-muted-foreground">
+        <span
+          className={cn(
+            "numeric ml-auto inline-flex shrink-0 items-center gap-1 text-label",
+            overdue ? "text-warning" : "text-muted-foreground"
+          )}
+        >
           <CalendarIcon className="size-3" />
-          {dueLabel(task.due)}
+          {formatDateShort(task.due)}
         </span>
       </div>
     </article>

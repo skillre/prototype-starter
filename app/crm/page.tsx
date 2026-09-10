@@ -3,16 +3,18 @@
 import { useRouter } from "next/navigation"
 import { PlusIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useMessages } from "@/components/i18n/locale-provider"
 import { CrmDataBoundary } from "./_components/crm-data-boundary"
 import { useCrmShell } from "./_components/crm-shell"
 import { DashboardView } from "./_components/dashboard-view"
 
-/** /crm —— Dashboard 路由。 */
+/** /crm —— 总览路由。 */
 export default function CrmDashboardPage() {
   const router = useRouter()
+  const t = useMessages()
   const openAddCustomer = useCrmShell().openAddCustomer
 
-  // 仪表盘是跨场景跳转：直接进入客户记录页，而不是在仪表盘上盖一层抽屉。
+  // 总览是跨场景跳转：直接进入客户记录页，而不是在总览上盖一层抽屉。
   const openCustomer = (customerId: string) => {
     router.push(`/crm/customers/${customerId}`)
   }
@@ -23,7 +25,7 @@ export default function CrmDashboardPage() {
       actions={
         <Button type="button" size="sm" onClick={openAddCustomer} data-testid="dashboard-add-customer">
           <PlusIcon />
-          Add Customer
+          {t.nav.addCustomer}
         </Button>
       }
     >

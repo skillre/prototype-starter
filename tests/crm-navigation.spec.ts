@@ -97,7 +97,7 @@ test.describe("clickable entries never lead to a dead end", () => {
 
     await page.getByTestId("nav-dashboard").click()
     await page.waitForURL(/\/crm$/)
-    await expect(page.getByText("Pipeline performance")).toBeVisible()
+    await expect(page.getByText("管道表现")).toBeVisible()
 
     expect(badResponses).toEqual([])
   })
@@ -116,13 +116,13 @@ test.describe("clickable entries never lead to a dead end", () => {
     // 深链接筛选必须生效。
     await page.goto("/crm/customers?status=active")
     await waitForCrm(page)
-    await expect(page.getByTestId("crm-filter-status")).toContainText("Active")
+    await expect(page.getByTestId("crm-filter-status")).toContainText("合作中")
 
     // Recent activity 整行可点 —— 进入该客户记录页。
     await page.goto("/crm")
     await waitForCrm(page)
     await page.waitForTimeout(600)
-    await page.getByRole("button", { name: /^Open .+ — / }).first().click()
+    await page.getByRole("button", { name: /^打开「/ }).first().click()
     await page.waitForURL(/\/crm\/customers\/c-/)
     await expect(page.getByTestId("detail-timeline")).toBeVisible()
 
@@ -130,7 +130,7 @@ test.describe("clickable entries never lead to a dead end", () => {
     await page.goto("/crm")
     await waitForCrm(page)
     await page.waitForTimeout(600)
-    await page.getByRole("button", { name: /on the task board$/ }).first().click()
+    await page.getByRole("button", { name: /^在看板中打开/ }).first().click()
     await page.waitForURL("**/crm/tasks")
     await expect(page.getByTestId("task-board")).toBeVisible()
 
@@ -139,7 +139,7 @@ test.describe("clickable entries never lead to a dead end", () => {
     await waitForCrm(page)
     await page.waitForTimeout(600)
     await page
-      .getByRole("button", { name: /Northwind Logistics/ })
+      .getByRole("button", { name: /云启医疗/ })
       .first()
       .click()
     await page.waitForURL(/\/crm\/customers\/c-/)
@@ -175,10 +175,10 @@ test.describe("clickable entries never lead to a dead end", () => {
     await waitForCrm(page)
 
     const navigations: [string, RegExp, string][] = [
-      ["Go to Customers", /\/crm\/customers$/, "crm-table"],
-      ["Open Tasks", /\/crm\/tasks$/, "task-board"],
-      ["Go to Activities", /\/crm\/activities$/, "activity-timeline"],
-      ["Go to Dashboard", /\/crm$/, "kpi-total-customers"],
+      ["前往客户", /\/crm\/customers$/, "crm-table"],
+      ["前往任务", /\/crm\/tasks$/, "task-board"],
+      ["前往活动", /\/crm\/activities$/, "activity-timeline"],
+      ["前往总览", /\/crm$/, "kpi-total-customers"],
     ]
 
     for (const [label, urlPattern, marker] of navigations) {
@@ -191,15 +191,15 @@ test.describe("clickable entries never lead to a dead end", () => {
 
     // Add Customer —— 打开真实对话框。
     await page.keyboard.press("ControlOrMeta+k")
-    await page.getByRole("option", { name: "Add Customer" }).click()
+    await page.getByRole("option", { name: "添加客户" }).click()
     await expect(page.getByTestId("add-customer-dialog")).toBeVisible()
-    await page.getByRole("button", { name: "Cancel" }).click()
+    await page.getByRole("button", { name: "取消" }).click()
 
     // Toggle theme —— 真实切换 dark class。
     const html = page.locator("html")
     const before = await html.evaluate((el) => el.classList.contains("dark"))
     await page.keyboard.press("ControlOrMeta+k")
-    await page.getByRole("option", { name: "Toggle theme" }).click()
+    await page.getByRole("option", { name: "切换主题" }).click()
     await expect(html).toHaveClass(before ? /^(?!.*dark).*$/ : /dark/)
 
     expect(badResponses).toEqual([])
@@ -212,24 +212,27 @@ test.describe("clickable entries never lead to a dead end", () => {
 
     // 通知条目 -> 对应客户记录页。
     await page.getByTestId("notifications").click()
-    await page.getByRole("menuitem").filter({ hasText: "Trial ending soon" }).click()
+    await page.getByRole("menuitem").filter({ hasText: "试用即将到期" }).click()
     await page.waitForURL(/\/crm\/customers\/c-002/)
     await expect(page.getByTestId("detail-timeline")).toBeVisible()
 
     // 全部标为已读 —— 真实清空未读徽标。
     await page.getByTestId("notifications").click()
-    await page.getByRole("menuitem", { name: "Mark all as read" }).click()
+    await page.getByRole("menuitem", { name: "全部标为已读" }).click()
     await expect(page.getByTestId("notifications").locator("span").first()).toBeHidden()
 
     // Profile —— 打开真实资料对话框。
     await page.getByTestId("account-menu").click()
-    await page.getByRole("menuitem", { name: "Profile" }).click()
-    await expect(page.getByTestId("profile-dialog")).toBeVisible()
-    await page.getByRole("button", { name: "Close" }).click()
+    await page.getByRole("menuitem", { name: "个人资料" }).click()
+    const profile = page.getByTestId("profile-dialog")
+    await expect(profile).toBeVisible()
+    // 对话框同时有右上角关闭与底部关闭，这里点底部那个（DOM 顺序在前）。
+    await profile.getByRole("button", { name: "关闭" }).first().click()
+    await expect(profile).not.toBeVisible()
 
     // Sign out —— 打开确认对话框，确认后回到初始状态。
     await page.getByTestId("account-menu").click()
-    await page.getByRole("menuitem", { name: "Sign out" }).click()
+    await page.getByRole("menuitem", { name: "退出登录" }).click()
     const signOut = page.getByTestId("sign-out-dialog")
     await expect(signOut).toBeVisible()
     await signOut.getByTestId("sign-out-dialog-confirm").click()
@@ -251,7 +254,7 @@ test.describe("404 safety", () => {
 
     await expect(page.getByTestId("app-not-found")).toBeVisible()
     // 恢复链接必须真实可用。
-    await page.getByRole("link", { name: "Customers" }).click()
+    await page.getByRole("link", { name: "客户", exact: true }).click()
     await page.waitForURL("**/crm/customers")
     await waitForCrm(page)
     await expect(page.getByTestId("crm-table")).toBeVisible()
@@ -261,7 +264,7 @@ test.describe("404 safety", () => {
     const response = await page.goto("/totally-unknown")
     expect(response?.status()).toBe(404)
     await expect(page.getByTestId("app-not-found")).toBeVisible()
-    await page.getByRole("link", { name: "AI CRM dashboard" }).click()
+    await page.getByRole("link", { name: "AI CRM 总览" }).click()
     await page.waitForURL("**/crm")
     await waitForCrm(page)
   })
@@ -274,7 +277,7 @@ test.describe("404 safety", () => {
     await expect(page.getByTestId("customer-not-found")).toBeVisible({
       timeout: 20_000,
     })
-    await page.getByRole("link", { name: "Back to customers" }).click()
+    await page.getByRole("link", { name: "返回客户列表" }).click()
     await page.waitForURL("**/crm/customers")
     await expect(page.getByTestId("crm-table")).toBeVisible()
   })
@@ -308,8 +311,8 @@ test.describe("mobile navigation integrity (390×844)", () => {
     await page.getByTestId("mobile-nav").click()
     await page.getByRole("dialog").getByTestId("nav-customers").click()
     await expect(page.getByTestId("crm-table")).toBeVisible()
-    await page.getByTestId("crm-search").fill("Beacon")
-    await expect(page.getByTestId("crm-pagination")).toContainText("of 1")
+    await page.getByTestId("crm-search").fill("云启")
+    await expect(page.getByTestId("crm-pagination")).toContainText("共 1 条")
     await page.getByTestId("crm-table").locator("tbody tr").click()
     await page.getByTestId("open-account").click()
     await page.waitForURL(/\/crm\/customers\/c-/)
@@ -323,14 +326,14 @@ test.describe("mobile navigation integrity (390×844)", () => {
     await waitForCrm(page)
 
     await page.getByTestId("add-customer").click()
-    await page.getByTestId("add-customer-name").fill("Mobile Route Tester")
-    await page.getByTestId("add-customer-company").fill("Compass Mobile")
-    await page.getByTestId("add-customer-email").fill("routes@compassmobile.io")
-    await page.getByTestId("add-customer-phone").fill("+1 (555) 010-0199")
+    await page.getByTestId("add-customer-name").fill("移动端测试")
+    await page.getByTestId("add-customer-company").fill("指南针移动")
+    await page.getByTestId("add-customer-email").fill("tester@compassmobile.cn")
+    await page.getByTestId("add-customer-phone").fill("+86 136 0000 0000")
     await page.getByTestId("add-customer-submit").click()
 
     // 回到列表 + 打开抽屉，新记录可见。
-    await expect(page.getByTestId("crm-table")).toContainText("Compass Mobile")
+    await expect(page.getByTestId("crm-table")).toContainText("指南针移动")
     await expect(page.getByTestId("customer-drawer")).toBeVisible()
 
     await page.getByTestId("open-account").click()

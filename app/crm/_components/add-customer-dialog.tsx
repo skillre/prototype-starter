@@ -24,16 +24,17 @@ import {
 } from "@/components/ui/select"
 import {
   CRM_OWNERS,
-  STATUS_META,
   STATUS_ORDER,
   type CrmOwner,
   type CustomerStatus,
 } from "@/lib/crm-data"
 import { useCrmStore } from "@/stores/crm-store"
 import { formatCurrency } from "@/lib/format"
+import { useMessages } from "@/components/i18n/locale-provider"
 import { cn } from "@/lib/utils"
 
 const EMAIL_RE = /^\S+@\S+\.\S+$/
+const DEFAULT_VALUE = "480000"
 
 type AddCustomerDialogProps = {
   open: boolean
@@ -42,12 +43,13 @@ type AddCustomerDialogProps = {
   onCreated?: (customerId: string) => void
 }
 
-/** 真实写入 store 的 Add Customer 表单——校验、toast、KPI 联动都是真的。 */
+/** 真实写入 store 的「添加客户」表单——校验、toast、KPI 联动都是真的。 */
 export function AddCustomerDialog({
   open,
   onOpenChange,
   onCreated,
 }: AddCustomerDialogProps) {
+  const t = useMessages()
   const addCustomer = useCrmStore((s) => s.addCustomer)
 
   const [name, setName] = useState("")
@@ -56,7 +58,7 @@ export function AddCustomerDialog({
   const [phone, setPhone] = useState("")
   const [owner, setOwner] = useState<CrmOwner>(CRM_OWNERS[0])
   const [status, setStatus] = useState<CustomerStatus>("lead")
-  const [value, setValue] = useState("48000")
+  const [value, setValue] = useState(DEFAULT_VALUE)
   const [notes, setNotes] = useState("")
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -67,19 +69,19 @@ export function AddCustomerDialog({
     setPhone("")
     setOwner(CRM_OWNERS[0])
     setStatus("lead")
-    setValue("48000")
+    setValue(DEFAULT_VALUE)
     setNotes("")
     setErrors({})
   }
 
   const validate = () => {
+    const v = t.dialogs.addCustomer.validation
     const next: Record<string, string> = {}
-    if (!name.trim()) next.name = "Contact name is required."
-    if (!company.trim()) next.company = "Company is required."
-    if (!EMAIL_RE.test(email.trim())) next.email = "Enter a valid email address."
-    if (!phone.trim()) next.phone = "Phone number is required."
-    if (Number.isNaN(Number(value)) || Number(value) < 0)
-      next.value = "Deal value must be a non-negative number."
+    if (!name.trim()) next.name = v.name
+    if (!company.trim()) next.company = v.company
+    if (!EMAIL_RE.test(email.trim())) next.email = v.email
+    if (!phone.trim()) next.phone = v.phone
+    if (Number.isNaN(Number(value)) || Number(value) < 0) next.value = v.value
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -97,8 +99,8 @@ export function AddCustomerDialog({
       notes,
     })
 
-    toast.success(`${created.company} added`, {
-      description: `${created.name} · ${STATUS_META[created.status].label} · ${formatCurrency(created.value)}`,
+    toast.success(t.dialogs.addCustomer.created(created.company), {
+      description: `${created.name} · ${t.status[created.status]} · ${formatCurrency(created.value)}`,
     })
 
     onOpenChange(false)
@@ -114,58 +116,60 @@ export function AddCustomerDialog({
         onOpenChange(next)
       }}
     >
-      <DialogContent data-testid="add-customer-dialog" className="sm:max-w-lg">
+      <DialogContent
+        data-testid="add-customer-dialog"
+        className="sm:max-w-lg"
+      >
         <DialogHeader>
-          <DialogTitle>Add Customer</DialogTitle>
-          <DialogDescription>
-            Creates a real record in the local store — the table, KPIs and activity feed
-            update immediately.
+          <DialogTitle>{t.dialogs.addCustomer.title}</DialogTitle>
+          <DialogDescription className="text-pretty">
+            {t.dialogs.addCustomer.description}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Name" error={errors.name}>
+          <Field label={t.dialogs.addCustomer.name} error={errors.name}>
             <Input
               data-testid="add-customer-name"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Amelia Hartley"
+              placeholder={t.dialogs.addCustomer.placeholderName}
               aria-invalid={Boolean(errors.name)}
             />
           </Field>
 
-          <Field label="Company" error={errors.company}>
+          <Field label={t.dialogs.addCustomer.company} error={errors.company}>
             <Input
               data-testid="add-customer-company"
               value={company}
               onChange={(event) => setCompany(event.target.value)}
-              placeholder="Northwind Logistics"
+              placeholder={t.dialogs.addCustomer.placeholderCompany}
               aria-invalid={Boolean(errors.company)}
             />
           </Field>
 
-          <Field label="Email" error={errors.email}>
+          <Field label={t.dialogs.addCustomer.email} error={errors.email}>
             <Input
               data-testid="add-customer-email"
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="amelia@northwind-logistics.com"
+              placeholder={t.dialogs.addCustomer.placeholderEmail}
               aria-invalid={Boolean(errors.email)}
             />
           </Field>
 
-          <Field label="Phone" error={errors.phone}>
+          <Field label={t.dialogs.addCustomer.phone} error={errors.phone}>
             <Input
               data-testid="add-customer-phone"
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
-              placeholder="+1 (415) 555-0142"
+              placeholder={t.dialogs.addCustomer.placeholderPhone}
               aria-invalid={Boolean(errors.phone)}
             />
           </Field>
 
-          <Field label="Owner">
+          <Field label={t.dialogs.addCustomer.owner}>
             <Select value={owner} onValueChange={(next) => setOwner(next as CrmOwner)}>
               <SelectTrigger className="w-full" data-testid="add-customer-owner">
                 <SelectValue />
@@ -180,7 +184,7 @@ export function AddCustomerDialog({
             </Select>
           </Field>
 
-          <Field label="Status">
+          <Field label={t.dialogs.addCustomer.status}>
             <Select
               value={status}
               onValueChange={(next) => setStatus(next as CustomerStatus)}
@@ -191,14 +195,18 @@ export function AddCustomerDialog({
               <SelectContent>
                 {STATUS_ORDER.map((option) => (
                   <SelectItem key={option} value={option}>
-                    {STATUS_META[option].label}
+                    {t.status[option]}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </Field>
 
-          <Field label="Deal value (USD)" error={errors.value} className="sm:col-span-2">
+          <Field
+            label={t.dialogs.addCustomer.value}
+            error={errors.value}
+            className="sm:col-span-2"
+          >
             <Input
               data-testid="add-customer-value"
               type="number"
@@ -206,25 +214,28 @@ export function AddCustomerDialog({
               value={value}
               onChange={(event) => setValue(event.target.value)}
               aria-invalid={Boolean(errors.value)}
+              className="numeric"
             />
           </Field>
 
-          <Field label="Notes" className="sm:col-span-2">
+          <Field label={t.dialogs.addCustomer.notes} className="sm:col-span-2">
             <Textarea
               data-testid="add-customer-notes"
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
-              placeholder="Context, next steps, procurement constraints…"
+              placeholder={t.dialogs.addCustomer.notesPlaceholder}
               rows={3}
             />
           </Field>
         </div>
 
         <DialogFooter showCloseButton={false}>
-          <DialogClose render={<Button type="button" variant="outline" />}>Cancel</DialogClose>
+          <DialogClose render={<Button type="button" variant="outline" />}>
+            {t.common.cancel}
+          </DialogClose>
           <Button type="button" onClick={submit} data-testid="add-customer-submit">
             <PlusIcon />
-            Add Customer
+            {t.dialogs.addCustomer.submit}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -248,7 +259,7 @@ function Field({
       <label className="text-label font-medium text-muted-foreground">{label}</label>
       {children}
       {error ? (
-        <span role="alert" className="text-xs text-destructive">
+        <span role="alert" className="text-label text-danger">
           {error}
         </span>
       ) : null}

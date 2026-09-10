@@ -2,10 +2,11 @@
 
 import { useState } from "react"
 import { useTheme } from "@/components/theme-provider"
-import { MoonIcon, PanelLeftIcon, SearchIcon, SunIcon } from "lucide-react"
+import { MenuIcon, MoonIcon, SearchIcon, SunIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Drawer, DrawerContent } from "@/components/ui/drawer"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useMessages } from "@/components/i18n/locale-provider"
 import {
   SidebarNav,
   type NavBrandDef,
@@ -25,6 +26,7 @@ type MobileNavProps = {
   items?: NavItemDef[]
   user?: NavUserDef
   usage?: NavUsageDef | null
+  sectionLabel?: string
 }
 
 /** Sticky mobile header with a slide-in navigation drawer. `lg` and up uses TopNav instead. */
@@ -37,9 +39,11 @@ export function MobileNav({
   items,
   user,
   usage,
+  sectionLabel,
 }: MobileNavProps) {
   const [open, setOpen] = useState(false)
   const { resolvedTheme, setTheme } = useTheme()
+  const t = useMessages()
 
   const navigate = (id: NavId) => {
     setOpen(false)
@@ -48,7 +52,7 @@ export function MobileNav({
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-1 border-b bg-background/85 px-3 backdrop-blur-md lg:hidden">
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-1 border-b border-border/70 bg-background/75 px-3 backdrop-blur-xl lg:hidden">
         <Tooltip>
           <TooltipTrigger
             render={
@@ -56,18 +60,19 @@ export function MobileNav({
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                aria-label="打开导航"
+                aria-label={t.a11y.openNav}
                 onClick={() => setOpen(true)}
                 data-testid="mobile-nav"
+                className="text-muted-foreground hover:text-foreground"
               />
             }
           >
-            <PanelLeftIcon />
+            <MenuIcon />
           </TooltipTrigger>
-          <TooltipContent side="bottom">菜单</TooltipContent>
+          <TooltipContent side="bottom">{t.a11y.openNav}</TooltipContent>
         </Tooltip>
 
-        <span className="min-w-0 flex-1 truncate text-sm font-semibold">{title}</span>
+        <span className="min-w-0 flex-1 truncate text-body-sm font-semibold">{title}</span>
 
         <Tooltip>
           <TooltipTrigger
@@ -76,29 +81,31 @@ export function MobileNav({
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                aria-label="打开命令面板"
+                aria-label={t.a11y.openCommand}
                 onClick={onOpenCommand}
+                className="text-muted-foreground hover:text-foreground"
               />
             }
           >
             <SearchIcon />
           </TooltipTrigger>
-          <TooltipContent side="bottom">搜索</TooltipContent>
+          <TooltipContent side="bottom">{t.a11y.commandHint}</TooltipContent>
         </Tooltip>
 
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
-          aria-label="切换主题"
+          aria-label={t.a11y.toggleTheme}
           onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+          className="text-muted-foreground hover:text-foreground"
         >
           {resolvedTheme === "dark" ? <SunIcon /> : <MoonIcon />}
         </Button>
       </header>
 
       <Drawer open={open} onOpenChange={setOpen} modal swipeDirection="left">
-        <DrawerContent className="w-[78%] max-w-72 bg-sidebar text-sidebar-foreground">
+        <DrawerContent className="w-[78%] max-w-72 rounded-r-panel bg-sidebar text-sidebar-foreground shadow-floating">
           <SidebarNav
             active={active}
             onNavigate={navigate}
@@ -106,6 +113,7 @@ export function MobileNav({
             items={items}
             user={user}
             usage={usage}
+            sectionLabel={sectionLabel}
           />
         </DrawerContent>
       </Drawer>

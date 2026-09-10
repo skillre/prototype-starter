@@ -4,41 +4,77 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* =============================================================================
+ * Design System V2 — Tailwind theme bridge
+ *
+ * Everything in this block turns a CSS variable into a Tailwind utility
+ * (`--color-x` → `bg-x`, `--shadow-x` → `shadow-x`, `--text-x` → `text-x`).
+ * `inline` keeps the value symbolic, so anything read here resolves against the
+ * active theme (:root / .dark) at the point of use instead of at build time.
+ * ========================================================================== */
 @theme inline {
+  /* ---- Color: surfaces & text ------------------------------------------- */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-elevated: var(--elevated);
+  --color-elevated-foreground: var(--elevated-foreground);
+  --color-interactive: var(--interactive);
   --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* ---- Color: brand & accents ------------------------------------------- */
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-soft: var(--brand-soft);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+
+  /* ---- Color: semantic status ------------------------------------------- */
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  /* ---- Color: shadcn primitives (kept for component compatibility) ------- */
   --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive: var(--destructive);
   --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* ---- Typography ------------------------------------------------------- */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-geist-sans);
+
+  /* ---- Radius ----------------------------------------------------------- */
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -46,131 +82,295 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  /* Radius semantics derive from the single `--radius` base — defined here
+     (not in :root) so no token can ever reference itself. */
+  --radius-field: var(--radius);
+  --radius-card: calc(var(--radius) + 0.25rem);
+  --radius-panel: calc(var(--radius) + 0.5rem);
+  --radius-floating: calc(var(--radius) + 0.625rem);
+
+  /* ---- Elevation -------------------------------------------------------- */
+  --shadow-subtle: var(--elevation-subtle);
+  --shadow-card: var(--elevation-card);
+  --shadow-elevated: var(--elevation-elevated);
+  --shadow-floating: var(--elevation-floating);
+
+  /* ---- Motion ----------------------------------------------------------- */
+  --ease-standard: var(--motion-ease-standard);
+  --ease-out-expo: var(--motion-ease-out-expo);
+  --ease-out-back: var(--motion-ease-out-back);
+  --ease-spring: var(--motion-ease-spring);
+  --ease-emphasized: var(--motion-ease-emphasized);
+
+  /* ---- Layout ----------------------------------------------------------- */
   --container-dashboard: 90rem;
   --container-content: 75rem;
   --container-text: 42rem;
 }
 
-/* -------------------------------------------------------------------------
- * Design tokens
- * Single source of truth for typography, spacing, radius semantics, motion
- * durations/easings and content widths. Prefer these utilities over ad-hoc
- * values anywhere in the app:
+/* =============================================================================
+ * Design tokens — the single source of truth.
  *
- *   text      text-display | text-title | text-subtitle | text-base | text-caption | text-label
- *   spacing   p-gutter | gap-stack | gap-card | mt-section  (semantic)
- *   radius    rounded-field (inputs/controls) | rounded-card (cards/panels)
- *   motion    duration-instant/fast/normal/slow/glacial + ease-standard/out-expo/out-back
+ *   color     background | surface | elevated | interactive | foreground
+ *             muted | border | accent | accent-soft | success | warning
+ *             danger | info                      (all Light + Dark)
+ *   type      text-display | text-title | text-heading | text-body
+ *             text-body-sm | text-caption | text-label    + .numeric utility
+ *   space     p-gutter | gap-stack | gap-section | gap-card        (semantic)
+ *   radius    rounded-field | rounded-card | rounded-panel | rounded-floating
+ *   shadow    shadow-subtle | shadow-card | shadow-elevated | shadow-floating
+ *   motion    duration-instant/fast/normal/slow/glacial
+ *             duration-press/hover/enter/exit/modal/drawer/list/page
+ *             ease-standard/out-expo/out-back/spring/emphasized
  *   width     max-w-dashboard | max-w-content | max-w-text
  *
- * JS motion values mirror these in lib/motion-presets.ts — keep in sync.
- * ------------------------------------------------------------------------- */
+ * lib/motion-presets.ts mirrors the motion layer — keep the two in sync.
+ * Never hardcode a color, duration or easing outside this file.
+ * ========================================================================== */
 @theme {
-  /* Typography scale */
+  /* ---- Typography scale ------------------------------------------------- */
   --text-display: clamp(2.25rem, 1.5rem + 2.5vw, 3rem);
   --text-display--line-height: 1.05;
   --text-display--letter-spacing: -0.03em;
   --text-title: 1.75rem;
   --text-title--line-height: 1.15;
-  --text-title--letter-spacing: -0.02em;
+  --text-title--letter-spacing: -0.022em;
+  --text-title--font-weight: 600;
+  --text-heading: 1.125rem;
+  --text-heading--line-height: 1.35;
+  --text-heading--letter-spacing: -0.014em;
+  --text-heading--font-weight: 600;
   --text-subtitle: 1.25rem;
   --text-subtitle--line-height: 1.3;
   --text-subtitle--letter-spacing: -0.01em;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.6;
+  --text-body-sm: 0.8125rem;
+  --text-body-sm--line-height: 1.55;
   --text-caption: 0.8125rem;
   --text-caption--line-height: 1.5;
   --text-label: 0.75rem;
+  --text-label--line-height: 1.4;
   --text-label--letter-spacing: 0.06em;
+  --text-numeric: 1.5rem;
+  --text-numeric--line-height: 1.1;
+  --text-numeric--letter-spacing: -0.03em;
+  --text-numeric--font-weight: 600;
 
-  /* Spacing (semantic aliases on the default 4px scale) */
+  /* ---- Spacing (semantic aliases on the default 4px scale) -------------- */
   --spacing-gutter: 1rem;
   --spacing-stack: 2.5rem;
   --spacing-section: 3.5rem;
   --spacing-card: 1.25rem;
 
-  /* Radius semantics */
-  --radius-field: var(--radius);
-  --radius-card: calc(var(--radius) * 1.4);
-
-  /* Motion durations */
+  /* ---- Motion durations ------------------------------------------------- */
+  /* `--duration-*` are the canonical, documented tokens (usable from JS via
+     `var(--duration-fast)`); the `--transition-duration-*` aliases below give
+     them real Tailwind utilities (`duration-fast`, `duration-enter`, …). */
   --duration-instant: 100ms;
   --duration-fast: 180ms;
   --duration-normal: 280ms;
   --duration-slow: 500ms;
   --duration-glacial: 900ms;
 
-  /* Motion easings */
-  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Semantic durations — pick by intent, not by feel. */
+  --duration-press: 90ms;
+  --duration-hover: 150ms;
+  --duration-enter: 280ms;
+  --duration-exit: 160ms;
+  --duration-modal: 200ms;
+  --duration-drawer: 340ms;
+  --duration-list: 260ms;
+  --duration-page: 320ms;
+}
+
+/* Tailwind namespace bridge: `--transition-duration-x` → `duration-x`. */
+@theme inline {
+  --transition-duration-instant: var(--duration-instant);
+  --transition-duration-fast: var(--duration-fast);
+  --transition-duration-normal: var(--duration-normal);
+  --transition-duration-slow: var(--duration-slow);
+  --transition-duration-glacial: var(--duration-glacial);
+  --transition-duration-press: var(--duration-press);
+  --transition-duration-hover: var(--duration-hover);
+  --transition-duration-enter: var(--duration-enter);
+  --transition-duration-exit: var(--duration-exit);
+  --transition-duration-modal: var(--duration-modal);
+  --transition-duration-drawer: var(--duration-drawer);
+  --transition-duration-list: var(--duration-list);
+  --transition-duration-page: var(--duration-page);
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.585 0.2 262);
-  --chart-2: oklch(0.66 0.2 300);
-  --chart-3: oklch(0.7 0.16 160);
-  --chart-4: oklch(0.72 0.17 75);
-  --chart-5: oklch(0.62 0.2 20);
+  /* ---- Brand ------------------------------------------------------------ */
+  /* Deep azure — calm, enterprise, deliberately not "AI purple". */
+  --brand: oklch(0.52 0.155 254);
+  --brand-foreground: oklch(0.99 0 0);
+  --brand-soft: oklch(0.955 0.022 254);
+
+  /* ---- Surfaces --------------------------------------------------------- */
+  --background: oklch(0.988 0.003 254);
+  --foreground: oklch(0.19 0.014 260);
+  --surface: oklch(1 0 0);
+  --surface-foreground: oklch(0.19 0.014 260);
+  --elevated: oklch(1 0 0);
+  --elevated-foreground: oklch(0.19 0.014 260);
+  --interactive: oklch(0.968 0.005 254);
+  --muted: oklch(0.968 0.005 254);
+  --muted-foreground: oklch(0.522 0.016 260);
+  --border: oklch(0.916 0.007 260);
+  --input: oklch(0.916 0.007 260);
+  --ring: oklch(0.62 0.13 254);
+
+  /* ---- Accents ---------------------------------------------------------- */
+  --accent: oklch(0.962 0.008 254);
+  --accent-foreground: oklch(0.26 0.02 260);
+  --accent-soft: oklch(0.955 0.02 254);
+
+  /* ---- Status ----------------------------------------------------------- */
+  --success: oklch(0.55 0.13 158);
+  --success-soft: oklch(0.96 0.03 158);
+  --warning: oklch(0.63 0.135 76);
+  --warning-soft: oklch(0.965 0.04 82);
+  --danger: oklch(0.575 0.19 22);
+  --danger-soft: oklch(0.962 0.03 22);
+  --info: oklch(0.56 0.12 236);
+  --info-soft: oklch(0.958 0.028 236);
+
+  /* ---- shadcn primitive bridge ------------------------------------------ */
+  --card: var(--surface);
+  --card-foreground: var(--surface-foreground);
+  --popover: var(--elevated);
+  --popover-foreground: var(--elevated-foreground);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: oklch(0.962 0.008 254);
+  --secondary-foreground: oklch(0.26 0.02 260);
+  --destructive: var(--danger);
+
+  /* ---- Charts — azure → teal → amber → rose → violet -------------------- */
+  --chart-1: oklch(0.56 0.16 254);
+  --chart-2: oklch(0.62 0.12 196);
+  --chart-3: oklch(0.64 0.135 158);
+  --chart-4: oklch(0.72 0.145 76);
+  --chart-5: oklch(0.6 0.17 15);
+
+  /* ---- Radius ----------------------------------------------------------- */
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+
+  /* ---- Elevation -------------------------------------------------------- */
+  --elevation-subtle: 0 1px 2px 0 oklch(0.19 0.014 260 / 0.05);
+  --elevation-card:
+    0 1px 2px -1px oklch(0.19 0.014 260 / 0.06),
+    0 4px 14px -6px oklch(0.19 0.014 260 / 0.08);
+  --elevation-elevated:
+    0 2px 4px -2px oklch(0.19 0.014 260 / 0.07),
+    0 14px 34px -10px oklch(0.19 0.014 260 / 0.14);
+  --elevation-floating:
+    0 4px 10px -4px oklch(0.19 0.014 260 / 0.1),
+    0 28px 64px -16px oklch(0.19 0.014 260 / 0.22);
+
+  /* ---- Ambient lighting ------------------------------------------------- */
+  --ambient-brand: oklch(0.52 0.155 254 / 0.14);
+  --ambient-warm: oklch(0.72 0.145 76 / 0.1);
+  --ambient-grid: oklch(0.19 0.014 260 / 0.045);
+  --ambient-ring: oklch(0.52 0.155 254 / 0.28);
+
+  /* ---- Motion easings --------------------------------------------------- */
+  --motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --motion-ease-spring: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --motion-ease-emphasized: cubic-bezier(0.2, 0.9, 0.25, 1);
+
+  /* ---- Sidebar surfaces ------------------------------------------------- */
+  --sidebar: oklch(0.973 0.006 254);
+  --sidebar-foreground: oklch(0.24 0.016 260);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--brand-foreground);
+  --sidebar-accent: oklch(0.94 0.012 254);
+  --sidebar-accent-foreground: oklch(0.24 0.016 260);
+  --sidebar-border: oklch(0.908 0.008 260);
+  --sidebar-ring: var(--ring);
+
+  color-scheme: light;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.65 0.18 262);
-  --chart-2: oklch(0.7 0.18 300);
-  --chart-3: oklch(0.75 0.15 160);
-  --chart-4: oklch(0.77 0.16 75);
-  --chart-5: oklch(0.68 0.18 20);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* ---- Brand ------------------------------------------------------------ */
+  --brand: oklch(0.7 0.145 250);
+  --brand-foreground: oklch(0.16 0.014 260);
+  --brand-soft: oklch(0.32 0.06 254);
+
+  /* ---- Surfaces — layered charcoal, not pure black ---------------------- */
+  --background: oklch(0.176 0.012 262);
+  --foreground: oklch(0.965 0.004 260);
+  --surface: oklch(0.216 0.013 262);
+  --surface-foreground: oklch(0.965 0.004 260);
+  --elevated: oklch(0.245 0.014 262);
+  --elevated-foreground: oklch(0.965 0.004 260);
+  --interactive: oklch(0.272 0.015 262);
+  --muted: oklch(0.262 0.014 262);
+  --muted-foreground: oklch(0.712 0.014 260);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.62 0.13 250);
+
+  /* ---- Accents ---------------------------------------------------------- */
+  --accent: oklch(0.288 0.016 262);
+  --accent-foreground: oklch(0.965 0.004 260);
+  --accent-soft: oklch(0.33 0.05 254);
+
+  /* ---- Status ----------------------------------------------------------- */
+  --success: oklch(0.74 0.135 162);
+  --success-soft: oklch(0.32 0.055 162);
+  --warning: oklch(0.8 0.13 82);
+  --warning-soft: oklch(0.34 0.055 82);
+  --danger: oklch(0.71 0.16 20);
+  --danger-soft: oklch(0.33 0.07 20);
+  --info: oklch(0.74 0.11 236);
+  --info-soft: oklch(0.32 0.05 236);
+
+  /* ---- shadcn primitive bridge ------------------------------------------ */
+  --secondary: oklch(0.272 0.015 262);
+  --secondary-foreground: oklch(0.965 0.004 260);
+
+  /* ---- Charts — brighter so they read on charcoal ----------------------- */
+  --chart-1: oklch(0.72 0.15 250);
+  --chart-2: oklch(0.75 0.115 196);
+  --chart-3: oklch(0.76 0.13 162);
+  --chart-4: oklch(0.82 0.135 82);
+  --chart-5: oklch(0.72 0.155 15);
+
+  /* ---- Elevation — inset hairline + deep soft shadow -------------------- */
+  --elevation-subtle: 0 1px 2px 0 oklch(0 0 0 / 0.4);
+  --elevation-card:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.045),
+    0 10px 28px -14px oklch(0 0 0 / 0.7);
+  --elevation-elevated:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.055),
+    0 18px 44px -18px oklch(0 0 0 / 0.78);
+  --elevation-floating:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.07),
+    0 34px 72px -22px oklch(0 0 0 / 0.86);
+
+  /* ---- Ambient lighting — controlled, never a purple haze --------------- */
+  --ambient-brand: oklch(0.7 0.145 250 / 0.16);
+  --ambient-warm: oklch(0.8 0.13 82 / 0.07);
+  --ambient-grid: oklch(1 0 0 / 0.045);
+  --ambient-ring: oklch(0.7 0.145 250 / 0.32);
+
+  /* ---- Sidebar surfaces ------------------------------------------------- */
+  --sidebar: oklch(0.198 0.013 262);
+  --sidebar-foreground: oklch(0.945 0.005 260);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--brand-foreground);
+  --sidebar-accent: oklch(0.262 0.015 262);
+  --sidebar-accent-foreground: oklch(0.975 0.004 260);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: var(--ring);
+
+  color-scheme: dark;
 }
 
 @layer base {
@@ -181,6 +381,98 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    @apply font-sans antialiased;
+  }
+  /* Optical niceties for Chinese copy: slightly looser leading, no fake italic. */
+  body {
+    font-feature-settings: "cv11", "ss01";
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--brand-soft);
+    color: var(--brand);
+  }
+}
+
+/* =============================================================================
+ * Utilities
+ * ========================================================================== */
+
+/** Tabular, tightly-tracked numerals — every metric, amount and date. */
+@utility numeric {
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.01em;
+}
+
+/** A very light grid, used behind hero / chart / palette surfaces. */
+@utility ambient-grid {
+  background-image:
+    linear-gradient(to right, var(--ambient-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--ambient-grid) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/** Radial brand wash. Pair with `ambient-grid` for the layered look. */
+@utility ambient-wash {
+  background-image:
+    radial-gradient(60% 55% at 50% 0%, var(--ambient-brand), transparent 72%),
+    radial-gradient(38% 42% at 88% 8%, var(--ambient-warm), transparent 70%);
+}
+
+/** Faint top highlight used on premium cards and panels. */
+@utility surface-sheen {
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--foreground) 4%, transparent),
+    transparent 42%
+  );
+}
+
+/** Keyboard shortcut chip. */
+@utility kbd-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding-inline: 0.25rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--elevated);
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Skeleton shimmer — defined here so `animate-[skeleton-sheen_…]` has a target. */
+@keyframes skeleton-sheen {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Slow ambient drift for the brand wash. Long, low-amplitude, never distracting. */
+@keyframes ambient-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -1.5%, 0) scale(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

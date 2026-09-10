@@ -2,17 +2,18 @@
 
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useMessages } from "@/components/i18n/locale-provider"
 import { cn } from "@/lib/utils"
 
 type PaginationProps = {
   page: number
   totalPages: number
-  /** 当前页显示区间，例如 "1–8 / 22"。 */
+  /** 当前页显示区间，例如 "第 1–8 条，共 22 条"。 */
   caption?: string
   onPageChange: (page: number) => void
   className?: string
   testId?: string
-  /** 无障碍文案可覆盖，默认英文。 */
+  /** 无障碍文案可覆盖，默认取当前语言词典（`t.pagination`）。 */
   labels?: {
     nav?: string
     previous?: string
@@ -34,11 +35,12 @@ export function Pagination({
   testId,
   labels,
 }: PaginationProps) {
+  const t = useMessages()
   const pages = buildPageList(page, totalPages)
-  const navLabel = labels?.nav ?? "Pagination"
-  const previousLabel = labels?.previous ?? "Previous page"
-  const nextLabel = labels?.next ?? "Next page"
-  const pageLabel = labels?.page ?? ((value: number) => `Page ${value}`)
+  const navLabel = labels?.nav ?? t.pagination.nav
+  const previousLabel = labels?.previous ?? t.pagination.previous
+  const nextLabel = labels?.next ?? t.pagination.next
+  const pageLabel = labels?.page ?? t.pagination.page
 
   return (
     <nav
@@ -46,16 +48,17 @@ export function Pagination({
       data-testid={testId}
       className={cn("flex flex-wrap items-center justify-between gap-3", className)}
     >
-      <span className="text-caption text-muted-foreground">{caption}</span>
+      <span className="numeric text-caption text-muted-foreground">{caption}</span>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 rounded-field bg-surface/70 p-0.5 ring-1 ring-border/60 shadow-subtle">
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="icon-sm"
           aria-label={previousLabel}
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
+          className="text-muted-foreground hover:text-foreground"
         >
           <ChevronLeftIcon />
         </Button>
@@ -73,12 +76,15 @@ export function Pagination({
             <Button
               key={entry}
               type="button"
-              variant={entry === page ? "default" : "outline"}
+              variant={entry === page ? "default" : "ghost"}
               size="icon-sm"
               aria-label={pageLabel(entry)}
               aria-current={entry === page ? "page" : undefined}
               onClick={() => onPageChange(entry)}
-              className="tabular-nums"
+              className={cn(
+                "numeric",
+                entry !== page && "text-muted-foreground hover:text-foreground"
+              )}
             >
               {entry}
             </Button>
@@ -87,11 +93,12 @@ export function Pagination({
 
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="icon-sm"
           aria-label={nextLabel}
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
+          className="text-muted-foreground hover:text-foreground"
         >
           <ChevronRightIcon />
         </Button>
