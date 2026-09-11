@@ -3,6 +3,7 @@
 import { InboxIcon, type LucideIcon } from "lucide-react"
 import { FadeIn } from "@/components/motion/fade-in"
 import { cn } from "@/lib/utils"
+import { durations } from "@/lib/motion-presets"
 
 type EmptyStateProps = {
   icon?: LucideIcon
@@ -23,15 +24,15 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <FadeIn
-      duration={0.2}
-      className={cn("flex flex-col items-center justify-center gap-2 py-8 text-center", className)}
+      duration={durations.fast}
+      className={cn("flex flex-col items-center justify-center gap-2.5 py-8 text-center", className)}
     >
-      <span className="flex size-11 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+      <span className="relative flex size-12 items-center justify-center rounded-panel bg-muted/70 text-muted-foreground ring-1 ring-border/60">
         <Icon className="size-5" />
       </span>
-      <span className="text-sm font-medium">{title}</span>
+      <span className="text-body font-medium">{title}</span>
       {description ? (
-        <span className="max-w-sm text-caption text-muted-foreground">{description}</span>
+        <span className="max-w-sm text-pretty text-caption text-muted-foreground">{description}</span>
       ) : null}
       {action ? <div className="mt-2">{action}</div> : null}
     </FadeIn>

@@ -28,6 +28,12 @@ type DataTableProps<T> = {
  * Minimal, typed data table. Handles loading skeletons and an empty state;
  * row clicks are optional (calls `onRowClick`). Scrolls horizontally on
  * narrow screens instead of collapsing columns.
+ *
+ * Visual hierarchy: the header is a quiet eyebrow row, body rows carry the
+ * data, and the row itself is the target — hover tints it and grows a brand
+ * rail on the left. V3 dropped the header's filled band and the container's
+ * shadow: a table is already a strong enough shape that it does not need
+ * elevation on top of it.
  */
 export function DataTable<T>({
   columns,
@@ -41,15 +47,20 @@ export function DataTable<T>({
   testId,
 }: DataTableProps<T>) {
   return (
-    <div className={cn("relative overflow-x-auto rounded-xl ring-1 ring-foreground/10", className)}>
+    <div
+      className={cn(
+        "relative overflow-x-auto rounded-panel bg-surface ring-1 ring-border/60",
+        className
+      )}
+    >
       <table data-testid={testId} className="w-full min-w-full text-left text-sm">
         <thead>
-          <tr className="border-b bg-muted/50 text-xs text-muted-foreground">
+          <tr className="border-b border-border/70 text-muted-foreground">
             {columns.map((column) => (
               <th
                 key={column.key}
                 scope="col"
-                className={cn("px-4 py-2.5 font-medium whitespace-nowrap", column.className)}
+                className={cn("eyebrow px-4 py-2.5 font-medium whitespace-nowrap", column.className)}
               >
                 {column.header}
               </th>
@@ -59,9 +70,9 @@ export function DataTable<T>({
         <tbody>
           {loading
             ? Array.from({ length: skeletonRows }).map((_, row) => (
-                <tr key={row} className="border-b last:border-0">
+                <tr key={row} className="border-b border-border/50 last:border-0">
                   {columns.map((column) => (
-                    <td key={column.key} className={cn("px-4 py-3", column.className)}>
+                    <td key={column.key} className={cn("px-4 py-2.5", column.className)}>
                       <Skeleton className="h-4 w-full max-w-28" />
                     </td>
                   ))}
@@ -75,10 +86,10 @@ export function DataTable<T>({
                     key={key}
                     onClick={onRowClick ? () => onRowClick(row) : undefined}
                     className={cn(
-                      "border-b transition-colors last:border-0",
+                      "group/row relative border-b border-hairline transition-colors duration-hover ease-standard last:border-0",
                       interactive &&
-                        "cursor-pointer hover:bg-accent/60 focus-within:bg-accent/60 outline-none",
-                      "data-[selected=true]:bg-accent/60"
+                        "cursor-pointer hover:bg-brand-soft/45 focus-within:bg-brand-soft/45 outline-none",
+                      "data-[selected=true]:bg-brand-soft/45"
                     )}
                     tabIndex={interactive ? 0 : undefined}
                     onKeyDown={
@@ -92,8 +103,18 @@ export function DataTable<T>({
                         : undefined
                     }
                   >
-                    {columns.map((column) => (
-                      <td key={column.key} className={cn("px-4 py-3 align-middle", column.className)}>
+                    {columns.map((column, index) => (
+                      <td
+                        key={column.key}
+                        className={cn(
+                          // First cell owns the hover rail so the row reads as one target.
+                          "relative px-4 py-2.5 align-middle",
+                          index === 0 &&
+                            interactive &&
+                            "before:absolute before:inset-y-1.5 before:left-0 before:w-[2px] before:scale-y-0 before:rounded-r-full before:bg-brand before:transition-transform before:duration-hover before:ease-standard group-hover/row:before:scale-y-100",
+                          column.className
+                        )}
+                      >
                         {column.cell(row)}
                       </td>
                     ))}

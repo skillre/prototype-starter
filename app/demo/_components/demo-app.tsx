@@ -12,7 +12,7 @@ import {
   SunMoonIcon,
   UsersIcon,
 } from "lucide-react"
-import { Sidebar, type NavId } from "@/components/layout/sidebar"
+import { Sidebar, defaultNavItems, type NavId } from "@/components/layout/sidebar"
 import { TopNav } from "@/components/layout/top-nav"
 import { MobileNav } from "@/components/layout/mobile-nav"
 import { PageContainer } from "@/components/layout/page-container"
@@ -24,25 +24,27 @@ import { OnboardingWizard } from "@/components/prototype/onboarding-wizard"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useHotkey } from "@/hooks/use-hotkey"
+import { useMessages } from "@/components/i18n/locale-provider"
+import type { Messages } from "@/lib/i18n"
 import { useDashboardStore } from "@/stores/dashboard-store"
 import { OverviewSection } from "./overview-section"
 import { CustomersSection } from "./customers-section"
 import { ActivitySection } from "./activity-section"
 
-const TAB_META: Record<Exclude<NavId, "settings">, { title: string; subtitle: string }> = {
-  overview: { title: "总览", subtitle: "Northwind Analytics · 9月1日 – 9月7日" },
-  customers: { title: "客户", subtitle: "专业版及以下套餐的账户" },
-  activity: { title: "动态", subtitle: "工作区内的所有事件" },
-}
+/** 演示自己的三个页签——`NavId` 是开放的 string，这里收紧成真实取值。 */
+type DemoTab = keyof Messages["demo"]["pages"]
 
 export function DemoApp() {
-  const [activeTab, setActiveTab] = useState<Exclude<NavId, "settings">>("overview")
+  const t = useMessages()
+  const copy = t.demo
+  const [activeTab, setActiveTab] = useState<DemoTab>("overview")
   const [commandOpen, setCommandOpen] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
   const [addCustomerOpen, setAddCustomerOpen] = useState(false)
 
   const status = useDashboardStore((s) => s.status)
   const errorMessage = useDashboardStore((s) => s.errorMessage)
+  const notifications = useDashboardStore((s) => s.notifications)
   const initialize = useDashboardStore((s) => s.initialize)
   const refresh = useDashboardStore((s) => s.refresh)
   const resetDemo = useDashboardStore((s) => s.resetDemo)
@@ -64,38 +66,114 @@ export function DemoApp() {
       setWizardOpen(true)
       return
     }
-    setActiveTab(id)
+    setActiveTab(id as DemoTab)
   }
 
-  const meta = TAB_META[activeTab]
+  // 未读徽标由调用方派生（SidebarNav 本身不再读取 store，以便被其他原型复用）。
+  const navItems = useMemo(
+    () =>
+      defaultNavItems(t).map((item) =>
+        item.id === "activity"
+          ? { ...item, badge: notifications.filter((n) => n.unread).length }
+          : item
+      ),
+    [notifications, t]
+  )
+
+  const meta = copy.pages[activeTab]
+
+  /** 向导里存的是角色键，确认页要展示中文标签——键永远不进 UI。 */
+  const roleLabel = (role: string) =>
+    role === "designer"
+      ? copy.wizard.role.designer
+      : role === "engineer"
+        ? copy.wizard.role.engineer
+        : role === "founder"
+          ? copy.wizard.role.founder
+          : t.common.notAvailable
 
   const paletteGroups = useMemo<PaletteGroup[]>(
     () => [
       {
-        heading: "导航",
+        heading: copy.palette.navigate,
         items: [
-          { id: "nav-overview", label: "前往总览", icon: LayoutDashboardIcon, keywords: "dashboard 首页", onSelect: () => setActiveTab("overview") },
-          { id: "nav-customers", label: "前往客户", icon: UsersIcon, keywords: "账户 表格", onSelect: () => setActiveTab("customers") },
-          { id: "nav-activity", label: "前往动态", icon: ActivityIcon, keywords: "通知 动态", onSelect: () => setActiveTab("activity") },
+          {
+            id: "nav-overview",
+            label: copy.palette.overview,
+            icon: LayoutDashboardIcon,
+            keywords: copy.palette.keywords.overview,
+            onSelect: () => setActiveTab("overview"),
+          },
+          {
+            id: "nav-customers",
+            label: copy.palette.customers,
+            icon: UsersIcon,
+            keywords: copy.palette.keywords.customers,
+            onSelect: () => setActiveTab("customers"),
+          },
+          {
+            id: "nav-activity",
+            label: copy.palette.activity,
+            icon: ActivityIcon,
+            keywords: copy.palette.keywords.activity,
+            onSelect: () => setActiveTab("activity"),
+          },
         ],
       },
       {
-        heading: "操作",
+        heading: copy.palette.actions,
         items: [
-          { id: "add-customer", label: "添加客户", icon: PlusIcon, keywords: "新建 账户", onSelect: () => { setActiveTab("customers"); setAddCustomerOpen(true) } },
-          { id: "refresh", label: "刷新数据", icon: RotateCwIcon, keywords: "重新加载", onSelect: refresh },
-          { id: "wizard", label: "快速上手", icon: LightbulbIcon, keywords: "引导 设置", onSelect: () => setWizardOpen(true) },
-          { id: "theme", label: "切换主题", icon: SunMoonIcon, keywords: "深浅色", shortcut: "⌘K →", onSelect: () => setTheme(resolvedTheme === "dark" ? "light" : "dark") },
-          { id: "reset", label: "重置演示数据", icon: RotateCwIcon, keywords: "恢复", onSelect: () => { resetDemo(); toast.success("演示数据已重置") } },
+          {
+            id: "add-customer",
+            label: copy.palette.addCustomer,
+            icon: PlusIcon,
+            keywords: copy.palette.keywords.addCustomer,
+            onSelect: () => {
+              setActiveTab("customers")
+              setAddCustomerOpen(true)
+            },
+          },
+          {
+            id: "refresh",
+            label: copy.palette.refresh,
+            icon: RotateCwIcon,
+            keywords: copy.palette.keywords.refresh,
+            onSelect: refresh,
+          },
+          {
+            id: "wizard",
+            label: copy.palette.wizard,
+            icon: LightbulbIcon,
+            keywords: copy.palette.keywords.wizard,
+            onSelect: () => setWizardOpen(true),
+          },
+          {
+            id: "theme",
+            label: copy.palette.theme,
+            icon: SunMoonIcon,
+            keywords: copy.palette.keywords.theme,
+            shortcut: "⌘K →",
+            onSelect: () => setTheme(resolvedTheme === "dark" ? "light" : "dark"),
+          },
+          {
+            id: "reset",
+            label: copy.palette.reset,
+            icon: RotateCwIcon,
+            keywords: copy.palette.keywords.reset,
+            onSelect: () => {
+              resetDemo()
+              toast.success(copy.toast.reset)
+            },
+          },
         ],
       },
     ],
-    [resolvedTheme, resetDemo, refresh, setTheme]
+    [copy, resolvedTheme, resetDemo, refresh, setTheme]
   )
 
   return (
     <div data-testid="demo-root" className="flex min-h-dvh">
-      <Sidebar active={activeTab} onNavigate={navigate} />
+      <Sidebar active={activeTab} onNavigate={navigate} items={navItems} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="hidden lg:block">
@@ -112,6 +190,7 @@ export function DemoApp() {
             active={activeTab}
             onNavigate={navigate}
             onOpenCommand={() => setCommandOpen(true)}
+            items={navItems}
           />
         </div>
 
@@ -120,9 +199,9 @@ export function DemoApp() {
             title={meta.title}
             description={meta.subtitle}
             actions={
-              <span className="hidden items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs text-muted-foreground lg:flex">
-                <kbd className="rounded bg-muted px-1 font-mono text-[10px]">⌘K</kbd>
-                打开命令面板
+              <span className="hidden items-center gap-2 text-label text-muted-foreground lg:flex">
+                <kbd className="kbd-chip">⌘K</kbd>
+                {copy.commandHint}
               </span>
             }
           >
@@ -171,68 +250,71 @@ export function DemoApp() {
         steps={[
           {
             id: "welcome",
-            title: "欢迎使用",
-            description: "简单告诉我们你将如何使用 Northwind。",
+            title: copy.wizard.welcome.title,
+            description: copy.wizard.welcome.description(copy.workspace),
             render: ({ data, setData }) => (
               <div className="flex flex-col gap-2">
-                <label className="flex items-center gap-2 text-sm">
+                <label className="flex items-center gap-2 text-body-sm">
                   <Checkbox
                     checked={(data.haveTeam as boolean) ?? false}
                     onCheckedChange={(checked) => setData("haveTeam", checked === true)}
                   />
-                  团队共享
+                  {copy.wizard.welcome.team}
                 </label>
-                <label className="flex items-center gap-2 text-sm">
+                <label className="flex items-center gap-2 text-body-sm">
                   <Checkbox
                     checked={(data.personal as boolean) ?? false}
                     onCheckedChange={(checked) => setData("personal", checked === true)}
                   />
-                  主要用于个人原型
+                  {copy.wizard.welcome.personal}
                 </label>
               </div>
             ),
           },
           {
             id: "role",
-            title: "你的角色",
-            description: "我们会据此定制引导流程。",
+            title: copy.wizard.role.title,
+            description: copy.wizard.role.description,
             render: ({ data, setData }) => (
               <RadioGroup
                 value={String(data.role ?? "")}
                 onValueChange={(next) => setData("role", next)}
               >
-                <label className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 hover:bg-muted/60">
+                <label className="flex cursor-pointer items-center gap-2 rounded-field border px-3 py-2 transition-colors duration-hover hover:bg-brand-soft/50">
                   <RadioGroupItem value="designer" id="role-designer" />
-                  <span className="text-sm">产品设计师</span>
+                  <span className="text-body-sm">{copy.wizard.role.designer}</span>
                 </label>
-                <label className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 hover:bg-muted/60">
+                <label className="flex cursor-pointer items-center gap-2 rounded-field border px-3 py-2 transition-colors duration-hover hover:bg-brand-soft/50">
                   <RadioGroupItem value="engineer" id="role-engineer" />
-                  <span className="text-sm">工程师</span>
+                  <span className="text-body-sm">{copy.wizard.role.engineer}</span>
                 </label>
-                <label className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 hover:bg-muted/60">
+                <label className="flex cursor-pointer items-center gap-2 rounded-field border px-3 py-2 transition-colors duration-hover hover:bg-brand-soft/50">
                   <RadioGroupItem value="founder" id="role-founder" />
-                  <span className="text-sm">创始人 / 产品经理</span>
+                  <span className="text-body-sm">{copy.wizard.role.founder}</span>
                 </label>
               </RadioGroup>
             ),
-            validate: (data) => (data.role ? null : "请选择一个角色后再继续。"),
+            validate: (data) => (data.role ? null : copy.wizard.role.required),
           },
           {
             id: "confirm",
-            title: "确认信息",
-            description: "检查你的答案，然后完成设置。",
+            title: copy.wizard.confirm.title,
+            description: copy.wizard.confirm.description,
             render: ({ data }) => (
-              <ul className="flex flex-col gap-1.5 text-sm text-muted-foreground">
-                <li>工作区：<span className="font-medium text-foreground">Northwind Analytics</span></li>
+              <ul className="flex flex-col gap-1.5 text-body-sm text-muted-foreground">
                 <li>
-                  团队账户：{" "}
+                  {copy.wizard.confirm.workspace}
+                  <span className="font-medium text-foreground">{copy.workspace}</span>
+                </li>
+                <li>
+                  {copy.wizard.confirm.team}
                   <span className="font-medium text-foreground">
-                    {data.haveTeam === true ? "是" : "否"}
+                    {data.haveTeam === true ? copy.wizard.confirm.yes : copy.wizard.confirm.no}
                   </span>
                 </li>
                 <li>
-                  角色：{" "}
-                  <span className="font-medium text-foreground">{String(data.role ?? "—")}</span>
+                  {copy.wizard.confirm.role}
+                  <span className="font-medium text-foreground">{roleLabel(String(data.role))}</span>
                 </li>
               </ul>
             ),
@@ -240,8 +322,8 @@ export function DemoApp() {
         ]}
         onComplete={() => {
           setWizardOpen(false)
-          toast.success("工作区设置完成", {
-            description: "这个向导是可复用的通用组件，见 components/prototype/onboarding-wizard。",
+          toast.success(copy.wizard.done.title, {
+            description: copy.wizard.done.description,
           })
         }}
       />

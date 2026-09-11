@@ -9,62 +9,58 @@ import {
   PaintbrushIcon,
   TerminalSquareIcon,
   TestTube2Icon,
+  type LucideIcon,
 } from "lucide-react"
 import { FadeIn } from "@/components/motion/fade-in"
 import { StaggerContainer } from "@/components/motion/stagger-container"
-import { Button } from "@/components/ui/button"
+import { AmbientBackdrop } from "@/components/prototype/ambient-backdrop"
+import { buttonVariants } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { useMessages } from "@/components/i18n/locale-provider"
 
-const HIGHLIGHTS = [
-  "shadcn/ui（Base UI）基础组件",
-  "Motion 驱动的动画组件库",
-  "Zustand 本地状态 + 真实感 mock 数据",
-  "Recharts 图表、拖拽排序与命令面板",
-  "设计 Token：排版 / 间距 / 圆角 / 动效",
-  "Playwright 端到端测试",
-]
-
-const STACK = [
-  { icon: MousePointerClickIcon, title: "真实交互", description: "没有假按钮。筛选、拖拽、增删、恢复——每个可见控件都作用于本地状态。" },
-  { icon: PaintbrushIcon, title: "设计 Token", description: "排版、间距、圆角、动效时长与内容宽度集中在同一层，杜绝散落的魔法数字。" },
-  { icon: TerminalSquareIcon, title: "对 Agent 友好", description: "AGENTS.md 规则与 interactive-prototype Skill 要求先检查、复用组件、并在浏览器中验证。" },
-  { icon: TestTube2Icon, title: "测试把关", description: "lint、类型检查、Playwright 与生产构建全绿后才算完成：pnpm check。" },
+/** 图标与文案一一对应——文案在词典里，图标留在组件里。 */
+const FEATURE_ICONS: LucideIcon[] = [
+  MousePointerClickIcon,
+  PaintbrushIcon,
+  TerminalSquareIcon,
+  TestTube2Icon,
 ]
 
 export default function LandingPage() {
+  const t = useMessages()
+  const copy = t.landing
+
   return (
     <main className="flex flex-1 flex-col">
       {/* Hero */}
-      <section className="relative overflow-hidden border-b">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_0%,color-mix(in_oklab,var(--chart-1)_14%,transparent),transparent)]"
-        />
+      <section className="relative isolate overflow-hidden border-b">
+        <AmbientBackdrop variant="hero" grid />
         <div className="relative mx-auto flex w-full max-w-content flex-col items-center gap-6 px-gutter py-20 text-center sm:py-28">
           <FadeIn>
-            <Badge variant="outline" className="gap-1.5 text-xs">
+            <Badge variant="outline" className="gap-1.5 bg-surface/70 text-label tracking-normal">
               <BlocksIcon className="size-3.5" />
-              Next.js 16 · Tailwind v4 · shadcn/ui · Motion
+              {copy.badge}
             </Badge>
           </FadeIn>
           <FadeIn delay={0.08}>
-            <h1 className="max-w-2xl text-display font-semibold tracking-tight">
-              交互式原型 Starter
-            </h1>
+            <h1 className="text-display">{copy.title}</h1>
           </FadeIn>
           <FadeIn delay={0.16}>
-            <p className="max-w-xl text-lg text-muted-foreground">
-              面向高保真产品原型的可复用基础：纯前端 + 本地状态 + 真实感 mock 数据——没有任何静态假页面。
+            <p className="max-w-xl text-body text-muted-foreground sm:text-subtitle">
+              {copy.description}
             </p>
           </FadeIn>
           <FadeIn delay={0.24} className="flex flex-wrap items-center justify-center gap-3">
-            <Button render={<Link href="/demo" />} size="lg">
-              打开演示仪表盘
+            <Link href="/crm" className={buttonVariants({ size: "lg" })}>
+              {copy.primaryCta}
               <ArrowRightIcon />
-            </Button>
-            <Button render={<Link href="#stack" />} variant="outline" size="lg">
-              里面有什么
-            </Button>
+            </Link>
+            <Link href="/demo" className={buttonVariants({ variant: "outline", size: "lg" })}>
+              {copy.secondaryCta}
+            </Link>
+            <Link href="#stack" className={buttonVariants({ variant: "ghost", size: "lg" })}>
+              {copy.tertiaryCta}
+            </Link>
           </FadeIn>
         </div>
       </section>
@@ -72,9 +68,9 @@ export default function LandingPage() {
       {/* Highlights */}
       <section className="border-b bg-muted/40">
         <StaggerContainer className="mx-auto grid w-full max-w-content grid-cols-2 gap-x-6 gap-y-3 px-gutter py-8 sm:grid-cols-3">
-          {HIGHLIGHTS.map((item) => (
-            <div key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
-              <CheckCircle2Icon className="size-4 shrink-0 text-chart-3" />
+          {copy.highlights.map((item) => (
+            <div key={item} className="flex items-center gap-2 text-body-sm text-muted-foreground">
+              <CheckCircle2Icon className="size-4 shrink-0 text-success" />
               <span>{item}</span>
             </div>
           ))}
@@ -84,40 +80,50 @@ export default function LandingPage() {
       {/* Stack */}
       <section id="stack" className="mx-auto w-full max-w-content px-gutter py-16 sm:py-20">
         <FadeIn className="mb-10 flex flex-col gap-2">
-          <h2 className="text-title font-semibold tracking-tight">为高效迭代而生</h2>
-          <p className="max-w-lg text-muted-foreground">
-            打开 <code className="rounded bg-muted px-1.5 py-0.5 text-xs">/demo</code>{" "}
-            即可看到一整套 SaaS 仪表盘演示，随后直接复用其中的模式。
+          <h2 className="text-title">{copy.stackTitle}</h2>
+          <p className="max-w-lg text-body text-muted-foreground">
+            {copy.stackDescriptionPrefix}{" "}
+            <code className="rounded-field bg-muted px-1.5 py-0.5 font-mono text-label">/demo</code>{" "}
+            {copy.stackDescriptionSuffix}
           </p>
         </FadeIn>
-        <StaggerContainer className="grid gap-4 sm:grid-cols-2">
-          {STACK.map((item) => {
-            const Icon = item.icon
+        <StaggerContainer className="grid gap-x-10 gap-y-0 sm:grid-cols-2">
+          {copy.features.map((item, index) => {
+            const Icon = FEATURE_ICONS[index] ?? MousePointerClickIcon
+            /* 能力清单读起来应该像一份规格表：四块排开的文字 + hairline，
+               而不是四张一模一样的卡片。图标只是行首的一个标记。 */
             return (
               <div
                 key={item.title}
-                className="rounded-card border bg-card p-5 ring-1 ring-foreground/5"
+                className="flex gap-3.5 border-t border-hairline py-6"
               >
-                <span className="mb-3 flex size-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-field bg-brand-soft text-brand">
                   <Icon className="size-4" />
                 </span>
-                <h3 className="mb-1 text-sm font-semibold">{item.title}</h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">{item.description}</p>
+                <div className="flex min-w-0 flex-col gap-1.5">
+                  <h3 className="text-body font-semibold">{item.title}</h3>
+                  <p className="text-body-sm leading-relaxed text-muted-foreground">
+                    {item.description}
+                  </p>
+                </div>
               </div>
             )
           })}
         </StaggerContainer>
 
-        <FadeIn delay={0.1} className="mt-12 rounded-card border bg-card p-5 font-mono text-xs leading-relaxed text-muted-foreground">
-          <span className="mr-2 text-foreground">$</span>pnpm dev — 打开 /demo<br />
-          <span className="mr-2 text-foreground">$</span>pnpm check — lint + 类型检查 + Playwright<br />
-          <span className="mr-2 text-foreground">$</span>pnpm build — 交付前的生产构建
-        </FadeIn>
+        <div className="mt-10 flex flex-col gap-1 overflow-x-auto border-l-2 border-brand/45 py-1 pl-4 font-mono text-label leading-relaxed text-muted-foreground">
+          {copy.commands.map((command) => (
+            <span key={command} className="whitespace-nowrap">
+              <span className="mr-2 text-brand">$</span>
+              {command}
+            </span>
+          ))}
+        </div>
       </section>
 
       <footer className="border-t py-6">
-        <p className="mx-auto w-full max-w-content px-gutter text-center text-xs text-muted-foreground">
-          原型 Starter —— 前端 + 本地状态 + 真实感 mock 数据。刻意不做后端。
+        <p className="mx-auto w-full max-w-content px-gutter text-center text-label text-muted-foreground">
+          {copy.footer}
         </p>
       </footer>
     </main>

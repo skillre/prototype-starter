@@ -1,9 +1,10 @@
 import type { Metadata } from "next"
+import { messages } from "@/lib/i18n"
 import { DemoApp } from "./_components/demo-app"
 
 export const metadata: Metadata = {
-  title: "演示仪表盘",
-  description: "Northwind Analytics —— 一个真实可交互的 SaaS 仪表盘原型。",
+  title: messages.demo.meta.title,
+  description: messages.demo.meta.description,
 }
 
 export default function DemoPage() {

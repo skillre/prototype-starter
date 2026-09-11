@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { useMessages } from "@/components/i18n/locale-provider"
 import { durations, easings } from "@/lib/motion-presets"
 import { cn } from "@/lib/utils"
 
@@ -48,12 +49,13 @@ export function OnboardingWizard({
   open,
   onOpenChange,
   steps,
-  title = "设置你的工作区",
-  description = "一分钟即可完成设置，之后随时可以修改。",
+  title,
+  description,
   onComplete,
   className,
   testId,
 }: OnboardingWizardProps) {
+  const t = useMessages()
   const [index, setIndex] = useState(0)
   const [data, setDataState] = useState<WizardData>({})
   const [error, setError] = useState<string | null>(null)
@@ -114,12 +116,12 @@ export function OnboardingWizard({
       >
         <DialogHeader>
           <div className="flex items-center justify-between gap-3">
-            <DialogTitle className="text-lg">{title}</DialogTitle>
+            <DialogTitle className="text-lg">{title ?? t.wizard.title}</DialogTitle>
             <span className="text-xs tabular-nums text-muted-foreground">
-              第 {index + 1} 步，共 {steps.length} 步
+              {t.wizard.step(index + 1, steps.length)}
             </span>
           </div>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogDescription>{description ?? t.wizard.description}</DialogDescription>
         </DialogHeader>
 
         {/* Progress track */}
@@ -162,16 +164,16 @@ export function OnboardingWizard({
             disabled={isFirst}
           >
             <ArrowLeftIcon />
-            上一步
+            {t.wizard.back}
           </Button>
           {isLast ? (
             <Button type="button" onClick={finish}>
               <CheckIcon />
-              完成
+              {t.wizard.finish}
             </Button>
           ) : (
             <Button type="button" onClick={() => goTo(index + 1, 1)}>
-              下一步
+              {t.wizard.next}
               <ArrowRightIcon />
             </Button>
           )}

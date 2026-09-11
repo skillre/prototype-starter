@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardAction }
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/prototype/empty-state"
+import { useMessages } from "@/components/i18n/locale-provider"
 import { useDashboardStore } from "@/stores/dashboard-store"
 import { cn } from "@/lib/utils"
 
@@ -21,6 +22,9 @@ const KIND_ICON = {
  * 当"未读"为空时展示空状态。
  */
 export function ActivitySection() {
+  const t = useMessages()
+  const copy = t.demo.activity
+
   const notifications = useDashboardStore((s) => s.notifications)
   const markAllNotificationsRead = useDashboardStore((s) => s.markAllNotificationsRead)
   const markNotificationRead = useDashboardStore((s) => s.markNotificationRead)
@@ -40,11 +44,12 @@ export function ActivitySection() {
       <Tabs value={tab} onValueChange={setTab} data-testid="activity-tabs">
         <TabsList data-testid="activity-tabs-list">
           <TabsTrigger value="all" data-testid="tab-activity-all">
-            全部 <span className="text-muted-foreground">{notifications.length}</span>
+            {copy.tabAll}{" "}
+            <span className="numeric text-muted-foreground">{notifications.length}</span>
           </TabsTrigger>
           <TabsTrigger value="unread" data-testid="tab-activity-unread">
-            未读{" "}
-            <span className={cn(unreadCount > 0 && "text-chart-1")}>{unreadCount}</span>
+            {copy.tabUnread}{" "}
+            <span className={cn("numeric", unreadCount > 0 && "text-brand")}>{unreadCount}</span>
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -52,10 +57,8 @@ export function ActivitySection() {
       <Card size="sm" className="min-h-72">
         <CardHeader className="border-b pb-3">
           <div>
-            <CardTitle>通知</CardTitle>
-            <CardDescription>
-              点击条目标记为已读，顶栏与侧栏的徽标会同步更新。
-            </CardDescription>
+            <CardTitle>{copy.title}</CardTitle>
+            <CardDescription>{copy.description}</CardDescription>
           </div>
           <CardAction>
             <Button
@@ -67,7 +70,7 @@ export function ActivitySection() {
               data-testid="mark-all-read"
             >
               <CheckCheckIcon />
-              全部标为已读
+              {copy.markAllRead}
             </Button>
           </CardAction>
         </CardHeader>
@@ -75,11 +78,11 @@ export function ActivitySection() {
           {visible.length === 0 ? (
             <EmptyState
               icon={BellIcon}
-              title="没有未读通知"
-              description="所有通知都已读——切换到「全部」查看历史记录。"
+              title={copy.emptyTitle}
+              description={copy.emptyDescription}
               action={
                 <Button type="button" variant="outline" size="sm" onClick={() => setTab("all")}>
-                  查看全部通知
+                  {copy.emptyAction}
                 </Button>
               }
             />
@@ -93,25 +96,25 @@ export function ActivitySection() {
                       type="button"
                       onClick={() => markNotificationRead(notification.id)}
                       className={cn(
-                        "flex w-full items-start gap-3 rounded-lg px-2 py-2.5 text-left transition-colors outline-none hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring/60",
-                        notification.unread && "bg-accent/40"
+                        "group/row flex w-full items-start gap-3 rounded-field px-2 py-2.5 text-left outline-none transition-colors duration-hover ease-standard hover:bg-brand-soft/50 focus-visible:ring-2 focus-visible:ring-ring/50",
+                        notification.unread && "bg-brand-soft/30"
                       )}
                     >
-                      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-field bg-muted text-muted-foreground transition-colors duration-hover group-hover/row:text-brand">
                         <Icon className="size-4" />
                       </span>
                       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <span className="flex items-center gap-2 text-sm font-medium">
+                        <span className="flex items-center gap-2 text-body-sm font-medium">
                           {notification.title}
                           {notification.unread ? (
-                            <span className="size-1.5 shrink-0 rounded-full bg-chart-1" />
+                            <span className="size-1.5 shrink-0 rounded-full bg-brand" />
                           ) : null}
                         </span>
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-body-sm text-muted-foreground">
                           {notification.description}
                         </span>
                       </span>
-                      <span className="shrink-0 text-xs text-muted-foreground">
+                      <span className="shrink-0 text-label text-muted-foreground">
                         {notification.time}
                       </span>
                     </button>

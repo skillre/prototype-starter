@@ -14,6 +14,7 @@ import {
   type Plan,
   type Priority,
 } from "@/lib/mock-data"
+import { messages as t } from "@/lib/i18n"
 
 export type DataStatus = "loading" | "ready" | "error"
 export type StatusFilter = CustomerStatus | "all"
@@ -101,7 +102,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   simulateApiFailure: () => {
     set({
       status: "error",
-      errorMessage: "无法连接 api.northwind.dev —— 请求 10 秒后超时。",
+      errorMessage: "无法连接 api.yuntu-analytics.cn —— 请求在 10 秒后超时。",
     })
   },
 
@@ -141,9 +142,9 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       status: input.status,
       mrr: input.mrr,
       region: input.region.trim(),
-      lastActive: "Just now",
+      lastActive: t.data.justNow,
       lastActiveHours: 0,
-      since: "Sep 2026",
+      since: t.data.currentMonth,
       seats: input.seats,
     }
     set((state) => ({ customers: [customer, ...state.customers] }))
