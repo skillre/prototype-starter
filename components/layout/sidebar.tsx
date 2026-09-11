@@ -45,6 +45,19 @@ export interface NavItemDef {
   tone?: "nav" | "action"
 }
 
+/**
+ * 导航分组。侧栏从"一串页面"升级为"两个语义区"：
+ *   工作台   —— 页面之间的切换
+ *   智能中心 —— 直达某个结论（洞察 / 风险 / 助手）
+ * 分组是产品结构，不是视觉装饰，所以它由调用方显式给出。
+ */
+export interface NavGroupDef {
+  id: string
+  /** 省略标题即"动作块"：与页面导航之间加一条 hairline 分隔。 */
+  label?: string
+  items: NavItemDef[]
+}
+
 export interface NavBrandDef {
   name: string
   subtitle: string
@@ -143,8 +156,12 @@ export function SidebarNav({
   /** 点击用户卡片时的真实动作（例如打开个人资料对话框）。 */
   onOpenAccount,
   accountHint,
-  /** 页面导航上方的分组标题。 */
+  /** 页面导航上方的分组标题（未传 groups 时使用）。 */
   sectionLabel,
+  /** 显式分组——传了就完全接管 items 的渲染。 */
+  groups,
+  /** 带 href 的导航项被点击时的副作用（导航本身仍由 Link 负责）。 */
+  onLinkClick,
   navLabel,
   /** 顶部动作按钮组（例如命令面板 / 主题）。 */
   utilities,
@@ -160,6 +177,8 @@ export function SidebarNav({
   onOpenAccount?: () => void
   accountHint?: string
   sectionLabel?: string
+  groups?: NavGroupDef[]
+  onLinkClick?: (id: NavId) => void
   navLabel?: string
   utilities?: React.ReactNode
 }) {
@@ -184,99 +203,144 @@ export function SidebarNav({
 
   const pageItems = resolvedItems.filter((item) => item.tone !== "action")
   const actionItems = resolvedItems.filter((item) => item.tone === "action")
+  const resolvedGroups: NavGroupDef[] =
+    groups && groups.length > 0
+      ? groups
+      : [{ id: "primary", label: sectionLabel ?? t.a11y.sectionLabel, items: pageItems }]
 
   return (
     <div className="flex h-full flex-col">
       <Brand brand={resolvedBrand} />
       <span aria-hidden className="mx-3 h-px bg-sidebar-border" />
 
+      {/*
+        中段滚动：导航 + 目标。条目变多之后，底部状态与身份必须永远可达，
+        因此只有中段滚动，页脚固定——而不是整栏一起溢出。
+      */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <nav
         className="flex flex-col gap-0.5 px-2 pt-3"
         aria-label={navLabel ?? t.a11y.primaryNav}
       >
-        {sectionLabel ?? t.a11y.sectionLabel ? (
-          <span className="eyebrow px-2.5 pb-2 text-muted-foreground/55">
-            {sectionLabel ?? t.a11y.sectionLabel}
-          </span>
-        ) : null}
+        {resolvedGroups.map((group, groupIndex) => (
+          <div key={group.id} className="flex flex-col gap-0.5">
+            {/* 无标题的分组是"动作块"：用一条 hairline 与页面导航分开。 */}
+            {groupIndex > 0 && !group.label ? (
+              <span aria-hidden className="mx-2.5 my-2 h-px bg-sidebar-border" />
+            ) : null}
 
-        {pageItems.map((item) => {
-          const isActive = item.id === active
-          const Icon = item.icon
-          const itemClass = cn(
-            "group/nav-item relative flex h-9 items-center gap-2.5 rounded-field px-2.5 text-body-sm outline-none transition-[color,background-color] duration-hover ease-standard",
-            "focus-visible:ring-2 focus-visible:ring-ring/50",
-            isActive
-              ? "bg-brand-soft font-semibold text-brand ring-1 ring-brand/12 ring-inset"
-              : "font-medium text-muted-foreground hover:bg-interactive hover:text-foreground"
-          )
-          const content = (
-            <>
-              {/* 激活指示：一条从条目中心长出来的左侧轨道。 */}
-              {isActive ? (
-                <motion.span
-                  aria-hidden
-                  initial={{ scaleY: 0, opacity: 0 }}
-                  animate={{ scaleY: 1, opacity: 1 }}
-                  transition={{ duration: durations.hover, ease: easings.outExpo }}
-                  className="absolute top-1/2 left-0 h-4.5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand"
-                />
-              ) : null}
-              <Icon
+            {group.label ? (
+              <span
                 className={cn(
-                  "size-4 shrink-0 transition-transform duration-hover ease-standard",
-                  isActive ? "text-brand" : "group-hover/nav-item:translate-x-0.5"
+                  "eyebrow px-2.5 pb-2 text-muted-foreground/55",
+                  groupIndex > 0 && "pt-3.5"
                 )}
-              />
-              <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
-              {item.badge && item.badge > 0 ? (
-                <Badge
-                  className={cn(
-                    "h-4.5 min-w-4.5 px-1 text-[10px] font-medium tabular-nums",
-                    isActive
-                      ? "bg-brand/15 text-brand"
-                      : "bg-muted text-muted-foreground group-hover/nav-item:bg-background"
-                  )}
-                >
-                  {item.badge}
-                </Badge>
-              ) : null}
-            </>
-          )
-
-          // 有真实路由时用 <Link>：可分享 URL、可新开标签、可被爬虫/测试直接访问。
-          if (item.href) {
-            return (
-              <Link
-                key={item.id}
-                href={item.href}
-                aria-current={isActive ? "page" : undefined}
-                /* 显式 aria-label：徽标数字是补充信息，不能让可访问名变成
-                   "客户 22"——导航项的名字始终只有它的页面名。 */
-                aria-label={item.label}
-                data-testid={`nav-${item.id}`}
-                onClick={() => onNavigate(item.id)}
-                className={itemClass}
               >
-                {content}
-              </Link>
-            )
-          }
+                {group.label}
+              </span>
+            ) : null}
 
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onNavigate(item.id)}
-              aria-current={isActive ? "page" : undefined}
-              aria-label={item.label}
-              data-testid={`nav-${item.id}`}
-              className={itemClass}
-            >
-              {content}
-            </button>
-          )
-        })}
+            {group.items.map((item) => {
+              const isActive = item.id === active
+              const isAction = item.tone === "action"
+              const Icon = item.icon
+              const itemClass = cn(
+                "group/nav-item relative flex h-9 items-center gap-2.5 rounded-field px-2.5 text-body-sm outline-none transition-[color,background-color] duration-hover ease-standard",
+                "focus-visible:ring-2 focus-visible:ring-ring/50",
+                isAction
+                  ? "font-medium text-muted-foreground hover:bg-brand-soft hover:text-brand"
+                  : isActive
+                    ? "bg-brand-soft font-semibold text-brand ring-1 ring-brand/12 ring-inset"
+                    : "font-medium text-muted-foreground hover:bg-interactive hover:text-foreground"
+              )
+              const content = (
+                <>
+                  {/* 激活指示：一条从条目中心长出来的左侧轨道。 */}
+                  {isActive && !isAction ? (
+                    <motion.span
+                      aria-hidden
+                      initial={{ scaleY: 0, opacity: 0 }}
+                      animate={{ scaleY: 1, opacity: 1 }}
+                      transition={{ duration: durations.hover, ease: easings.outExpo }}
+                      className="absolute top-1/2 left-0 h-4.5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand"
+                    />
+                  ) : null}
+                  <Icon
+                    className={cn(
+                      "size-4 shrink-0 transition-transform duration-hover ease-standard",
+                      isAction
+                        ? "group-hover/nav-item:rotate-90"
+                        : isActive
+                          ? "text-brand"
+                          : "group-hover/nav-item:translate-x-0.5"
+                    )}
+                  />
+                  <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+                  {item.badge && item.badge > 0 ? (
+                    <Badge
+                      className={cn(
+                        "h-4.5 min-w-4.5 px-1 text-[10px] font-medium tabular-nums",
+                        isActive
+                          ? "bg-brand/15 text-brand"
+                          : "bg-muted text-muted-foreground group-hover/nav-item:bg-background"
+                      )}
+                    >
+                      {item.badge}
+                    </Badge>
+                  ) : null}
+                </>
+              )
+
+              // 有真实路由时用 <Link>：可分享 URL、可新开标签、可被爬虫/测试直接访问。
+              if (item.href) {
+                return (
+                  /*
+                   * 用原生 <a href> 而不是 next/link：
+                   * 这里需要**恰好一条**导航路径。next/link 会在自己的
+                   * click 处理里再 push 一次，两条路径在同一帧里竞争时，
+                   * 浏览器可能抢到默认行为 —— 那就是一次整页刷新，而整页
+                   * 刷新会丢掉内存里的 store（拖拽结果、筛选、AI 摘要）。
+                   * 保留 href 是为了可访问性、右键菜单与新标签页；
+                   * 带修饰键的点击仍然交给浏览器，不做拦截。
+                   */
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    aria-current={isActive ? "page" : undefined}
+                    /* 显式 aria-label：徽标数字是补充信息，不能让可访问名变成
+                       "客户 22"——导航项的名字始终只有它的页面名。 */
+                    aria-label={item.label}
+                    data-testid={`nav-${item.id}`}
+                    /* 兜底监听器靠这个属性识别"这是一次页面级导航"。 */
+                    data-nav-href={item.href}
+                    /* 导航由 Link 独占：这里只跑副作用（关闭移动端抽屉）。
+                       再叠一次 router.push 会让同一帧出现两条导航路径，
+                       连续快速跳转时路由会退化成整页导航，内存里的 store
+                       会被清空（拖拽结果、筛选、AI 摘要）。 */
+                    onClick={onLinkClick ? () => onLinkClick(item.id) : undefined}
+                    className={itemClass}
+                  >
+                    {content}
+                  </Link>
+                )
+              }
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => onNavigate(item.id)}
+                  aria-current={isActive ? "page" : undefined}
+                  aria-label={item.label}
+                  data-testid={`nav-${item.id}`}
+                  className={itemClass}
+                >
+                  {content}
+                </button>
+              )
+            })}
+          </div>
+        ))}
 
         {actionItems.length > 0 ? (
           <>
@@ -311,15 +375,18 @@ export function SidebarNav({
       {resolvedUsage ? (
         <div className="px-3 pt-4">
           <div className="rounded-panel border border-sidebar-border bg-surface/55 p-3">
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="eyebrow text-muted-foreground/70">{resolvedUsage.label}</span>
-              <span className="numeric text-label font-semibold">{resolvedUsage.progress}%</span>
+            <span className="eyebrow text-muted-foreground/70">{resolvedUsage.label}</span>
+
+            {/* 进度是这里的第一个数字——侧栏回答的是"离目标还有多远"。 */}
+            <div className="mt-2 flex items-baseline gap-1">
+              <span className="numeric text-subtitle font-semibold">
+                {resolvedUsage.progress}
+              </span>
+              <span className="text-body font-medium text-muted-foreground">%</span>
             </div>
 
-            <div className="mt-2 flex items-baseline gap-1">
-              <span className="numeric text-subtitle font-semibold tracking-[-0.02em]">
-                {resolvedUsage.value}
-              </span>
+            <div className="mt-1 flex flex-wrap items-baseline gap-x-1">
+              <span className="numeric text-label font-medium">{resolvedUsage.value}</span>
               {resolvedContext?.target ? (
                 <span className="numeric text-label text-muted-foreground">
                   / {resolvedContext.target}
@@ -341,6 +408,7 @@ export function SidebarNav({
           </div>
         </div>
       ) : null}
+      </div>
 
       <div className="mt-auto flex flex-col gap-2.5 p-3">
         {status ? (
@@ -434,6 +502,8 @@ export function Sidebar({
   accountHint,
   utilities,
   sectionLabel,
+  groups,
+  onLinkClick,
   navLabel,
 }: {
   active: NavId
@@ -448,6 +518,8 @@ export function Sidebar({
   accountHint?: string
   utilities?: React.ReactNode
   sectionLabel?: string
+  groups?: NavGroupDef[]
+  onLinkClick?: (id: NavId) => void
   navLabel?: string
 }) {
   return (
@@ -465,6 +537,8 @@ export function Sidebar({
         accountHint={accountHint}
         utilities={utilities}
         sectionLabel={sectionLabel}
+        groups={groups}
+        onLinkClick={onLinkClick}
         navLabel={navLabel}
       />
     </aside>

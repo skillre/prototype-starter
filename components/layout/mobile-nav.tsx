@@ -11,6 +11,7 @@ import {
   SidebarNav,
   type NavBrandDef,
   type NavContextDef,
+  type NavGroupDef,
   type NavId,
   type NavItemDef,
   type NavStatusDef,
@@ -33,6 +34,7 @@ type MobileNavProps = {
   onOpenAccount?: () => void
   accountHint?: string
   sectionLabel?: string
+  groups?: NavGroupDef[]
 }
 
 /** Sticky mobile header with a slide-in navigation drawer. `lg` and up uses TopNav instead. */
@@ -50,6 +52,7 @@ export function MobileNav({
   onOpenAccount,
   accountHint,
   sectionLabel,
+  groups,
 }: MobileNavProps) {
   const [open, setOpen] = useState(false)
   const { resolvedTheme, setTheme } = useTheme()
@@ -135,6 +138,9 @@ export function MobileNav({
             }
             accountHint={accountHint}
             sectionLabel={sectionLabel}
+            groups={groups}
+            /* Link 自己会完成导航，这里只需要把抽屉收起来。 */
+            onLinkClick={() => setOpen(false)}
           />
         </DrawerContent>
       </Drawer>

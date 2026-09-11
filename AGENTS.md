@@ -172,16 +172,37 @@ Agent 默认**禁止自动 merge**；默认禁止 push main、合并 main、删�
 
 一切视觉常量来自 `app/globals.css` 的 design token 层（typography `text-display/title/subtitle/heading/caption/label/eyebrow/metric/metric-sm/numeric`、semantic spacing `p-gutter/gap-stack/mt-section`、radius `rounded-field/rounded-card/rounded-panel`、motion `duration-*`/`ease-*`、内容宽度 `max-w-dashboard/content/text`）。禁止在页面里撒 magic number。
 
-## 视觉构图（Design System V3 — Premium Data Command Center）
+## 视觉构图（Design System V4 — AI Sales Command Center）
 
 **层级靠构图与排版承担，不靠卡片边框。**
+V4 不是视觉微调，而是从「做得挺好看的仪表盘」走到「有主张的产品」：
+第一屏先给收入智能，然后**产品开口说话**（AI 洞察），再给数据、给指标、最后才是记录。
 
-1. **一屏一个主角**。每个页面先定第一视觉焦点（通常是 Hero 里的那个大数字），其余信息按 Primary → Secondary → Supporting 递减。不要让所有模块视觉权重相同。
+### 层级阶梯（每个页面都要能回答「第一眼应该看到什么」）
+
+| 层级 | 承担者 | 实例（`/crm`） |
+| --- | --- | --- |
+| L1 | 唯一的主角：`text-metric` 大数字 + 与它共面的图形 | `RevenueHero` |
+| L2 | 产品说的话：推导出来的洞察 + 可操作的实体 | `AiInsightLayer` / `lib/insights.ts` |
+| L3 | 一个 Intelligence Module：编辑式编号区块（01/02/03） | `OpportunitySpotlight` |
+| L4 | 真正的数据可视化：构成条 + 视觉排行 | 阶段构成 / 负责人排行 |
+| L5 | 次级指标带：排版 + hairline + 真实迷你走势 | `MetricStrip` |
+| L6 | 记录层：实时流、时间线、队列、排行 | `LiveDataLayer` + 开放区块 |
+
+1. **一屏一个主角**。每个页面先定第一视觉焦点（通常是 Hero 里的那个大数字），其余信息按 L1 → L6 递减。不要让所有模块视觉权重相同。同一个数字在同一屏里只出现一次。
 2. **`Card` 是稀缺资源**。只有真正浮在别的层之上的内容才用它：对话框、抽屉、Popover、Tooltip、拖拽预览。需要"分量"但不需要 elevation 的区块用 `<OpenSection>` + `<SectionHeading>`。
 3. **抽象容器换成语义容器**。优先用 `open section + hairline` / 数式排版块 / 分隔线列表 / 整块图形区，而不是"又一个圆角盒子"。
 4. **构图允许非对称**（58/42、1.45fr/1fr）。全部 50/50 与全部 `gap-4` 会让页面读起来像表格。
 5. **一屏一个光源**。页面自带 Hero 时把全局环境光关掉（`<CrmDataBoundary ambient={false}>`），两个晕染互相抵消等于没有设计。
-6. **复用 V3 构图原语**：`OpenSection`、`SectionHeading`、`MetricStrip`/`MetricItem`。`StatsCard`/`ChartCard` 是"卡片形态"的变体，保留给确实需要卡片的布局，不是默认选择。
+6. **复用 V4 构图原语**：`OpenSection`、`SectionHeading`、`MetricStrip`/`MetricItem`。`StatsCard`/`ChartCard` 是"卡片形态"的变体，保留给确实需要卡片的布局，不是默认选择。
+7. **签名交互只有一个**。当前是「悬停 Hero 图形 → 读数跟着光标走，可点击固定」。其余地方保持静止；「交互动效」用于交代状态变化，不是用来装饰。
+
+### AI 洞察与实时数据的红线
+
+- **洞察必须推导出来**，不能是把文案写死在组件里。`lib/insights.ts` 从当前客户/管道数据算出增长归因、风险敞口（金额 × 停滞天数）与机会紧迫度（金额 × (1 + 停滞天数/10)）；换掉数据，句子里的公司、金额、百分比、停滞天数都会变。**不接外部接口、不联网、同输入同输出**。
+- **"实时"必须是真的**。事件来自真实记录、按有界队列推进（一次一条、只留最新 5 条）、走完就明说"已是最新"而不是无限循环；时钟是真实时钟且在客户端挂载后才渲染（避免水合不一致）；重放入口是真实动作。
+- **洞察里的实体必须可操作**：悬停同步高亮下方同名记录，点击直达客户档案。任何"看起来能点"的实体都要有真实结果。
+- **词典负责措辞，代码负责事实**：`lib/insights.ts` 只产出结构化事实（公司、金额、天数、百分比），文案一律经 `t.dashboard.insight.*`。文案里不出现与区块标题同名的词（例如洞察句不要写「高价值客户」，那是下方区块的标题）。
 
 ### 中文排版红线
 

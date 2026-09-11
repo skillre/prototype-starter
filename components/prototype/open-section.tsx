@@ -41,7 +41,7 @@ export function OpenSection({
           aria-hidden
           className={cn(
             "pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-panel",
-            ambient === "hero" ? "bg-surface/60" : "bg-surface/40"
+            ambient === "hero" ? "bg-[var(--hero-base)]" : "bg-surface/40"
           )}
         >
           <div className={cn("absolute inset-0", ambient === "hero" ? "hero-wash" : "ambient-wash")} />

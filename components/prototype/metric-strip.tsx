@@ -1,5 +1,6 @@
 "use client"
 
+import { useId } from "react"
 import { ArrowDownRightIcon, ArrowUpRightIcon, MinusIcon } from "lucide-react"
 import { AnimatedNumber, formatSeconds } from "@/components/motion/animated-number"
 import { formatCurrency, formatCurrencyCompact, formatNumber } from "@/lib/format"
@@ -82,6 +83,13 @@ type MetricItemProps = {
   deltaLabel?: string
   /** 无 delta 时展示的说明文案。 */
   hint?: string
+  /**
+   * 真实逐月走势（12 个点）——画成一条极细的迷你线，让"这个数字在往哪走"
+   * 变成一眼可见的事实。没有数据就不画，绝不塞装饰性曲线。
+   */
+  trend?: number[]
+  /** 迷你走势的无障碍名称（图表本身是装饰性的，读屏需要这句话）。 */
+  trendLabel?: string
   /** 传了才成为真实的按钮；没有目的地的指标保持纯展示。 */
   onActivate?: () => void
   activateLabel?: string
@@ -97,6 +105,8 @@ export function MetricItem({
   delta,
   deltaLabel,
   hint,
+  trend,
+  trendLabel,
   onActivate,
   activateLabel,
   testId,
@@ -150,6 +160,8 @@ export function MetricItem({
           <span className="truncate text-label text-muted-foreground">{hint}</span>
         ) : null}
       </span>
+
+      {trend && trend.length > 1 ? <Sparkline data={trend} label={trendLabel} /> : null}
     </>
   )
 
@@ -172,5 +184,60 @@ export function MetricItem({
     >
       {body}
     </button>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/* 迷你走势                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * 指标带里的迷你走势。
+ *
+ * 手写 SVG 而不是再挂一个图表库实例：一行 22px 的走势不需要坐标轴、不需要
+ * tooltip、不需要响应式容器，只需要一条线。`preserveAspectRatio="none"` 让
+ * 它随列宽伸展，`non-scaling-stroke` 保证线宽不被拉伸。
+ */
+function Sparkline({ data, label }: { data: number[]; label?: string }) {
+  const gradientId = useId()
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const span = max - min || 1
+  const height = 22
+  const points = data.map((value, index) => {
+    const x = (index / (data.length - 1)) * 100
+    const y = height - ((value - min) / span) * (height - 4) - 2
+    return [x, y] as const
+  })
+  const line = points.map(([x, y], index) => `${index === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`).join(" ")
+  const area = `${line} L100,${height} L0,${height} Z`
+
+  return (
+    <svg
+      aria-hidden={label ? undefined : true}
+      role={label ? "img" : undefined}
+      aria-label={label}
+      viewBox={`0 0 100 ${height}`}
+      preserveAspectRatio="none"
+      className="h-[22px] w-full overflow-visible"
+    >
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--brand)" stopOpacity={0.18} />
+          <stop offset="100%" stopColor="var(--brand)" stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gradientId})`} />
+      <path
+        d={line}
+        fill="none"
+        stroke="var(--brand)"
+        strokeOpacity={0.55}
+        strokeWidth={1.25}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
   )
 }

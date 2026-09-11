@@ -374,10 +374,10 @@ export const zhCN = {
   },
 
   brand: {
-    name: "智销云",
+    name: "智悟云",
     subtitle: "AI 销售工作台",
     mark: "智",
-    metaTitle: "智销云 · AI CRM 原型",
+    metaTitle: "智悟云 · AI CRM 原型",
     metaDescription:
       "高保真交互式 AI CRM 原型——管道仪表盘、客户名册、客户档案、可拖拽任务看板与活动时间线。",
   },
@@ -385,9 +385,14 @@ export const zhCN = {
   nav: {
     dashboard: "总览",
     customers: "客户",
+    opportunities: "机会",
     tasks: "任务",
     activities: "活动",
     addCustomer: "添加客户",
+    /* 智能中心——三个入口都指向真实结果：聚焦洞察层、带筛选条件的名册、AI 命令面板。 */
+    insights: "销售洞察",
+    risks: "风险预警",
+    assistant: "AI 助手",
   },
 
   /**
@@ -395,14 +400,19 @@ export const zhCN = {
    * 侧栏的工作区上下文与实时状态都由真实数据派生——不是装饰。
    */
   shell: {
-    workspaceSection: "工作区",
+    workspaceSection: "工作台",
+    intelligenceSection: "智能中心",
     goalLabel: "本季度目标",
     goalHint: "距季度结算还有 12 天",
-    live: "实时数据",
+    goalUnit: "本季度",
+    live: "数据实时同步",
     liveHint: "更新于 2026 年 9 月",
+    liveAt: (time: string) => `最近同步 ${time}`,
     syncing: "正在同步…",
     accountHint: "打开个人资料",
     commandHint: "搜索或运行命令",
+    /* 侧栏「销售洞察」聚焦到仪表盘的洞察层时，给布局的提示文案。 */
+    focusInsight: "已定位到智能洞察",
   },
 
   page: {
@@ -416,6 +426,11 @@ export const zhCN = {
       title: "客户",
       description: "名册中的全部客户",
     },
+    opportunities: {
+      eyebrow: "销售执行",
+      title: "机会",
+      description: "全部在谈与已签约机会",
+    },
     tasks: {
       eyebrow: "销售执行",
       title: "任务",
@@ -426,7 +441,7 @@ export const zhCN = {
       title: "活动",
       description: "完整的客户互动时间线",
     },
-    breadcrumb: (section: string) => `智销云 / ${section}`,
+    breadcrumb: (section: string) => `智悟云 / ${section}`,
   },
 
   /* --------------------------------------------------------------- statuses */
@@ -462,9 +477,15 @@ export const zhCN = {
       activate: (label: string) => `${label} —— 查看明细`,
     },
 
-    /* 主视觉（Hero）：整个仪表盘的第一视觉焦点。 */
+    /**
+     * 主视觉（Hero）：Revenue Intelligence —— 整个产品的第一视觉焦点。
+     *
+     * 大数字与大型图形共用同一条排版列：悬停图表时，"合同总额"这个位置
+     * 本身就是读数面板（`hero.readingLabel` 替换眉标，数字被换成当月值），
+     * 而不是在旁边再浮一个 tooltip。这就是本产品的签名交互。
+     */
     hero: {
-      sectionLabel: "销售管道",
+      sectionLabel: "销售管道 · 收入智能",
       label: "合同总额",
       rangeLabel: "统计区间",
       range: {
@@ -473,48 +494,119 @@ export const zhCN = {
         m3: "3 个月",
       },
       chartLabel: "近 12 个月已签约金额与在谈管道走势",
-      /* 悬停读数：图表光标处真正读出当期数字。 */
+      /* 悬停读数：眉标与三个事实读数一起同步到光标所在月份。 */
+      readingLabel: "读数",
       reading: (month: string) => `${month} 读数`,
-      readingHint: "悬停图表查看每月读数",
+      readingHint: "悬停图表，读数会跟着光标走",
       won: "已签约",
       pipeline: "在谈管道",
       coverage: "管道覆盖",
       coverageValue: (ratio: string) => `${ratio} 倍`,
       coverageHint: "在谈管道 ÷ 已签约",
+      growthLabel: "环比上月",
+      growthValue: (percent: string) => `${percent}%`,
       live: "实时数据",
       liveHint: "数据更新于 2026 年 9 月",
       action: "查看已签约客户的跟进任务",
+      currentMonth: "当前月",
+      readingOf: (month: string) => `正在读 ${month}`,
+      reset: "回到当月",
+    },
+
+    /**
+     * Hero 图形的题注。`title` 是这条图形的名字（图表本身不是 Card，所以
+     * 它需要一行题注来交代自己是什么），`description` 说明两条序列。
+     */
+    pipeline: {
+      title: "管道表现",
+      description: "近 12 个月已签约金额与在谈管道",
     },
 
     /* 次级指标：一条轻量指标带，不是五张卡。 */
     metrics: {
       sectionLabel: "关键指标",
       cumulativeHint: "截至 2026 年 9 月",
+      trend: (label: string) => `${label}近 12 个月走势`,
     },
 
-    pipeline: {
-      title: "管道表现",
-      description: "近 12 个月已签约金额与在谈管道",
-      won: "已签约",
-      pipeline: "在谈管道",
+    /**
+     * AI 洞察层：仪表盘的第二视觉层级。
+     *
+     * 全部内容由 `lib/insights.ts` 从当前客户与活动确定性推导——不调用任何
+     * 外部接口，也不是装饰文案：换掉数据，句子里的公司、金额与百分比都会变。
+     */
+    insight: {
+      sectionLabel: "AI 洞察",
+      status: "自动分析",
+      analyzing: "正在分析管道数据…",
+      analysisWindow: (count: number) => `基于 ${count} 位客户的互动记录`,
+      /** 区块标题：这一层是"对本月管道的一段解读"，增长与风险都在里面。 */
+      title: "管道解读",
+      /* 刻意不用「高价值客户」四个字：那是下方区块的标题，同一个词在一屏里
+         指两件事，读者会以为它们说的是同一份名单。 */
+      attribution: (percent: string) => `本月合同额增长 ${percent}%，主要由 3 个近期活跃的重点客户推动。`,
+      contributors: "贡献客户",
+      contributorShare: (share: string) => `三家合计占管道 ${share}%`,
+      viewKeyAccounts: "查看重点客户",
+      riskTitle: "风险预警",
+      risk: (company: string, days: number, value: string) =>
+        `${company} 已 ${days} 天未更新，当前合同金额 ${value}。`,
+      riskSummary: (count: number, value: string) => `另有 ${count} 位客户停滞超过 7 天，涉及合同额 ${value}。`,
+      riskAction: (company: string) => `优先跟进「${company}」`,
+      openCustomer: (company: string, value: string) => `查看「${company}」，合同金额 ${value}`,
+      confidence: (value: number) => `置信度 ${value}%`,
+      highlightHint: "悬停贡献客户，下方同名记录会同步高亮。",
+      highlightOn: (company: string) => `已高亮下方「${company}」的记录`,
     },
 
+    /* 机会雷达：编辑式编号区块，替代"再来一张卡片"。 */
+    spotlight: {
+      sectionLabel: "机会雷达",
+      title: "高优先级机会",
+      description: "按合同金额与停滞天数加权排序——贵且卡住的机会排在前面。",
+      open: (company: string, value: string, note: string) =>
+        `查看「${company}」，合同金额 ${value}，${note}`,
+      noteStale: (days: number) => `${days} 天未更新`,
+      noteRecent: (days: number) => `${days} 天前已触达`,
+      noteFresh: (hours: number) => `${hours} 小时内已触达`,
+      allOpportunities: "全部机会",
+    },
+
+    /* 阶段分布：一条构成条 + 可下钻列表，而不是"行 + 右值"的报表。 */
     stage: {
       title: "阶段分布",
-      description: "按当前阶段统计客户与合同金额，点击可下钻",
+      description: "按当前阶段统计合同金额，点击构成条或列表可下钻",
       customers: (value: number) => `${value} 位客户`,
-      /** 条形右侧的金额；未成交阶段显示为「—」。 */
       countUnit: (value: number) => `${value} 位`,
       shareOf: (percent: number) => `占比 ${percent}%`,
       drilldown: (status: string) => `查看「${status}」的客户名单`,
+      total: "管道总额",
+      excludeHint: "已流失记录不计入",
     },
 
-    /* 负责人业绩：与阶段分布并列的第二个"小分布"。 */
+    /* 负责人业绩：竖向视觉排行，取代原来的头像行 + 进度条。 */
     owners: {
       sectionLabel: "团队",
       title: "负责人业绩",
-      description: "在管客户的合同金额与数量",
+      description: "在管客户的合同金额排名",
       deals: (value: number) => `${value} 位客户`,
+      rank: (index: number) => `第 ${index} 名`,
+      leader: "领先",
+    },
+
+    /* 实时数据层：真实事件流 + 时间戳，不是装饰指示灯。 */
+    live: {
+      sectionLabel: "实时",
+      title: "实时数据流",
+      description: "互动发生时即刻进入管道。",
+      syncing: "正在同步…",
+      updatedAt: (time: string) => `更新于 ${time}`,
+      waiting: "等待新事件…",
+      exhausted: "已同步到最新一条事件。",
+      replay: "重新播放",
+      inserted: "新事件",
+      open: (company: string, title: string) => `查看「${company} · ${title}」`,
+      counter: (value: number) => `本次已接收 ${value} 条`,
     },
 
     recentActivity: {
@@ -552,6 +644,7 @@ export const zhCN = {
       },
       open: (company: string, value: string) => `打开「${company}」，合同金额 ${value}`,
       showingTop: (count: number, total: number) => `前 ${count} 位 / 共 ${total} 位`,
+      rank: (index: number) => `第 ${index} 位`,
     },
   },
 
@@ -737,29 +830,91 @@ export const zhCN = {
   },
 
   /* ---------------------------------------------------------- command palette */
+  /**
+   * Command Center：不再是一个导航菜单，而是产品的核心入口——
+   * 导航 / AI 命令 / 记录检索 / 全局操作四组，且每一组都能落到真实结果。
+   */
   palette: {
     title: "命令面板",
     placeholder: "输入命令或搜索…",
+    /** AI 模式下的占位文案：向 AI 提问而不是执行命令。 */
+    aiPlaceholder: "向 AI 提问，或搜索客户…",
     empty: "没有匹配的命令。",
+    emptyCustomer: "没有匹配的客户。",
     navigate: "导航",
     actions: "操作",
+    /** 由当前数据实时生成的记录检索结果。 */
+    customers: "客户",
+    intelligence: "智能",
     goDashboard: "前往总览",
     goCustomers: "前往客户",
+    goOpportunities: "前往机会",
     goTasks: "前往任务",
     goActivities: "前往活动",
     addCustomer: "添加客户",
     toggleTheme: "切换主题",
     refresh: "刷新数据",
     simulateError: "模拟接口失败",
+    /* AI 命令——全部走确定性本地逻辑，不调用外部接口。 */
+    aiSummary: "生成销售摘要",
+    aiRisks: "查看风险客户",
+    aiKeyAccounts: "查看高价值客户",
+    aiInsight: "定位智能洞察",
+    aiDescription: {
+      summary: (company: string) => `为「${company}」生成确定性简报`,
+      risks: (count: number) => `筛选出 ${count} 位停滞客户`,
+      keyAccounts: (count: number) => `按合同金额排序的前 ${count} 位客户`,
+      insight: "跳到总览的 AI 洞察层",
+    },
+    customerDescription: (value: string, status: string) => `${value} · ${status}`,
+    hint: "↑↓ 选择 · ↵ 打开 · esc 关闭",
     keywords: {
       dashboard: "首页 概览 指标 仪表盘",
       customers: "客户 名册 列表 表格",
+      opportunities: "机会 商机 交易 管道",
       tasks: "任务 看板 拖动",
       activities: "活动 时间线 邮件 通话",
       addCustomer: "新建 客户 添加",
       theme: "深色 浅色 外观 主题",
       refresh: "刷新 重新加载 同步",
       error: "错误 失败 离线",
+      summary: "AI 摘要 简报 生成",
+      risks: "风险 流失 停滞 预警",
+      keyAccounts: "高价值 大客户 金额",
+      insight: "洞察 归因 智能",
+    },
+  },
+
+  /* ------------------------------------------------------------ opportunities */
+  opportunities: {
+    searchPlaceholder: "搜索公司、联系人或负责人…",
+    summary: (open: number) => `${open} 个在谈机会`,
+    closedSummary: (won: number, value: string) => `已签约 ${won} 个 · ${value}`,
+    resultCaption: (visible: number, total: number) => `共 ${total} 个机会，当前显示 ${visible} 个`,
+    addOpportunity: "添加机会",
+    filters: {
+      allStages: "全部阶段",
+      allOwners: "全部负责人",
+      sortPrefix: "排序",
+    },
+    sort: {
+      value: "合同金额",
+      createdAt: "创建时间",
+      lastTouchHours: "最近联系",
+      company: "公司",
+    },
+    columns: {
+      deal: "机会",
+      stage: "阶段",
+      owner: "负责人",
+      touch: "最近触达",
+      value: "合同金额",
+    },
+    open: (company: string, value: string) => `打开「${company}」，合同金额 ${value}`,
+    empty: {
+      title: "没有匹配的机会",
+      noSearch: "当前阶段或负责人下没有机会。重置筛选即可查看全部管道。",
+      withSearch: (query: string) => `没有找到与「${query}」匹配的机会，换一个关键词试试。`,
     },
   },
 
@@ -862,9 +1017,9 @@ export const zhCN = {
   account: {
     name: "陈美雅",
     initials: "陈",
-    email: "meiya.chen@zhixiao.cn",
+    email: "meiya.chen@zhiwu.cn",
     role: "高级客户经理",
-    workspace: "智销云",
+    workspace: "智悟云",
     plan: "成长版（内部）",
   },
 }

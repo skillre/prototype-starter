@@ -1,5 +1,5 @@
 /**
- * 智销云 CRM 的真实感 mock 数据。
+ * 智悟云 CRM 的真实感 mock 数据。
  *
  * 与 lib/mock-data.ts（Northwind 演示仪表盘）相互独立——CRM 原型拥有自己的
  * 客户、任务、活动与图表数据，但共用同一套 UI primitive、motion preset 与

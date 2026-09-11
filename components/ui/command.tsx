@@ -58,7 +58,8 @@ function CommandDialog({
       </DialogHeader>
       <DialogContent
         className={cn(
-          "top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0",
+          /* 面板比默认对话框宽：它要在同一行里放下"命令 + 结果说明"。 */
+          "top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0 sm:max-w-xl",
           className
         )}
         showCloseButton={showCloseButton}

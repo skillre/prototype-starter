@@ -26,7 +26,7 @@ export interface AiSummary {
 /** 模拟推理耗时（毫秒）——store 用它驱动 loading 状态。 */
 export const AI_SUMMARY_LATENCY = 1400
 
-const MODEL_ID = "zhixiao-copilot-v2"
+const MODEL_ID = "zhiwu-copilot-v2"
 
 /** 确定性哈希——同样的 id 永远得到同样的"置信度"。 */
 function hash(input: string): number {

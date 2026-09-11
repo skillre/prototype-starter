@@ -40,20 +40,47 @@ First e2e run needs browsers once: `pnpm exec playwright install chromium`.
   drawers, drag-and-drop, the command palette, English-leakage auditing, theme tokens and
   mobile viewports.
 
-## Design System V3 — Premium Data Command Center
+## Design System V4 — AI Sales Command Center
 
 Premium interactive data product: **composition** carries the hierarchy, not card borders.
+V4 is not a visual pass — it is the step from "a well-designed dashboard" to a product
+with a point of view: the screen opens with **revenue intelligence**, then the product
+**speaks** (AI insight), then the data, then the metrics, and only then the records.
 
-### Three composition tiers
+### The composition ladder
 
 Every screen opens with exactly one protagonist, then steps down. Modules do not all get
-the same weight.
+the same weight — that is the whole design.
 
-| Tier | What it is | Primitives |
+| Level | What it is | Where (`/crm`) |
 | --- | --- | --- |
-| **Primary** | One hero region — the largest number on the page plus its chart. Open (no border, no shadow); a radial wash and a masked grid give it a ground. | `OpenSection` (`ambient="hero"`), `text-metric` |
-| **Secondary** | A metric strip: 4 figures separated by hairlines, `text-metric-sm`, no card chrome. | `MetricStrip` / `MetricItem` |
-| **Supporting** | Open sections with an eyebrow + title + description over a hairline; content is a table, a list of rows with dividers, or a timeline. | `SectionHeading`, `DataTable`, `OpenSection` |
+| **L1 · Revenue Intelligence** | The hero: `text-metric` number + the chart it belongs to, sharing one plane. The readout lives *inside* the plot's reserved top band, so the number and the data occupy the same composition instead of sitting side by side. | `RevenueHero` |
+| **L2 · AI Insight** | The product speaks: a derived sentence about growth attribution, three named accounts you can hover (they highlight the matching row further down) and a risk statement with a real next step. | `AiInsightLayer` + `lib/insights.ts` |
+| **L3 · Intelligence module** | Editorial numbered block — `01 / 02 / 03`, ranked by urgency, not by amount. No card. | `OpportunitySpotlight` |
+| **L4 · Data visualisation** | Stage composition as **one** segmented bar + a drill-down legend; owner performance as a **vertical visual ranking**. No "rows with a right-aligned value". | `StageComposition`, owner ranking |
+| **L5 · Secondary metrics** | Four figures on hairlines with real 12-month micro-trends. | `MetricStrip` / `MetricItem` |
+| **L6 · Live + records** | A real event stream with a real clock, the day-grouped activity timeline, the task queue and the ranked key accounts. | `LiveDataLayer`, open sections |
+
+### Signature interaction
+
+**Chart hover → the readout follows the cursor.** Hovering the hero plot re-reads the
+month under the pointer: the eyebrow switches to `9月 读数`, the amount, the pipeline and
+the coverage ratio all move with it, and clicking **pins** that month (a real button,
+`回到当月`, releases it). It is the one motion the page is built around — everything else
+stays still.
+
+### AI is derived, live is real
+
+Two rules keep the product honest:
+
+- **Insight is derived.** `lib/insights.ts` computes growth attribution, risk exposure
+  (`金额 × 停滞天数`) and opportunity urgency (`金额 × (1 + 停滞天数/10)`) from the same
+  customers the rest of the page renders. Change the data and the company names, amounts,
+  percentages and stale-day counts in the sentences change with it. No external API, no
+  network, deterministic output.
+- **Live is real.** The live layer streams the actual activity records on a bounded queue
+  (one every 8 s, newest five kept), stamps a real client clock, says so when the queue is
+  exhausted instead of looping, and its replay button genuinely resets it.
 
 **`Card` is a scarce resource.** Use it only where content genuinely floats above another
 layer: dialogs, drawers, popovers, tooltips, drag previews. If a block needs weight but
@@ -70,6 +97,7 @@ card-shaped variants — they are simply not the default any more.
 | Elevation | `shadow-subtle` · `shadow-card` · `shadow-elevated` · `shadow-floating` — Light and Dark differ |
 | Motion | `duration-instant/fast/normal/slow/glacial` + `duration-press/hover/enter/exit/modal/drawer/list/page`; `ease-standard/out-expo/out-back/spring/emphasized` |
 | Ambient | `ambient-grid` · `ambient-wash` · `hero-wash` · `chart-glow` · `surface-sheen` · `kbd-chip` · `section-tick` · `live-halo` |
+| Hero surface | `--hero-base` · `--ambient-hero-brand` · `--ambient-hero-warm` — the hero reads its **own** ambient tokens, so Dark can be pushed further without dragging every other wash along |
 
 Rules: never hardcode a colour, duration or easing outside the token layer; pick motion by
 **intent** (`motion.enter`, `motion.press`) rather than by feel.
@@ -99,7 +127,10 @@ so 中文 is never synthesised from a Latin face.
 - **Dark** — layered charcoal over a navy undertone. The three surface steps
   (0.152 → 0.202 → 0.238) are deliberately wide apart so elevation reads as luminance, not
   as a border. One controlled ambient bloom per screen, a faint grid, and a single chart
-  glow — never purple, never neon, never glass everywhere.
+  glow — never purple, never neon, never glass everywhere. Dark is allowed to be **more**
+  expressive than Light: the hero sinks *below* the page (`.dark --hero-base` is deeper
+  than `--background`) so the brand blue can come through it. Expressiveness comes from
+  depth, not from turning the glow up.
 
 ### Ambient layer
 
@@ -137,7 +168,8 @@ including dialogs, drawers, menus and the command palette.
 
 ```
 app/                     # routes: / (landing), /demo (demo dashboard), /crm (AI CRM)
-  crm/                   #   /crm · /crm/customers · /crm/customers/[id] · /crm/tasks · /crm/activities
+  crm/                   #   /crm · /crm/customers · /crm/customers/[id] · /crm/opportunities · /crm/tasks · /crm/activities
+  crm/_components/       #   revenue-hero · ai-insight-layer · opportunity-spotlight · live-data-layer · crm-shell
 components/
   ui/                    # shadcn/ui primitives (Base UI "base-nova" style)
   prototype/             # reusable product components
@@ -150,6 +182,7 @@ lib/
   crm-data.ts            # AI CRM mock records (Chinese business data)
   mock-data.ts           # demo workspace mock records (Chinese business data)
   activity-groups.ts     # shared day-bucketing for the activity timelines
+  insights.ts            # deterministic growth / risk / opportunity derivation (the "AI")
   format.ts              # money / number / date formatting + personInitials
   motion-presets.ts      # JS mirror of the motion tokens
 stores/                  # Zustand stores (dashboard demo + CRM)

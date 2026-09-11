@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test"
 
 /**
- * 智销云 CRM 端到端覆盖。
+ * 智悟云 CRM 端到端覆盖。
  *
  * 选择器策略与既有 spec 一致：优先 role + accessible name，其次 label，
  * 最后才用 data-testid。不使用 nth() 与脆弱的 CSS 选择器。

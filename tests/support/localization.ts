@@ -31,7 +31,7 @@ export const ALLOWED_ENGLISH: RegExp[] = [
   /^(AGENTS\.md|CLAUDE\.md|README\.md|SKILL\.md)\b/,
   /^(lint|typecheck|build|dev|check)$/,
   /** 模型 / 服务标识符——代码标识符，不是文案。 */
-  /^(zhixiao-copilot-v2|api\.[a-z0-9.-]+)$/,
+  /^(zhiwu-copilot-v2|api\.[a-z0-9.-]+)$/,
 ]
 
 /** 需要做「零英文」检查的页面：落地页、演示、CRM 全部路由。 */
@@ -41,6 +41,7 @@ export const LOCALIZED_ROUTES = [
   "/crm",
   "/crm/customers",
   "/crm/customers/c-004",
+  "/crm/opportunities",
   "/crm/tasks",
   "/crm/activities",
 ] as const

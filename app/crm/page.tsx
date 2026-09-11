@@ -35,6 +35,7 @@ export default function CrmDashboardPage() {
       <DashboardView
         onOpenCustomer={openCustomer}
         onGoToTasks={() => router.push("/crm/tasks")}
+        onGoToOpportunities={() => router.push("/crm/opportunities")}
         onGoToCustomers={(filter) => {
           const query = filter?.status ? `?status=${filter.status}` : ""
           router.push(`/crm/customers${query}`)

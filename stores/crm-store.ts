@@ -147,7 +147,7 @@ export const useCrmStore = create<CrmState>((set, get) => ({
   simulateError: () =>
     set({
       status: "error",
-      errorMessage: "GET https://api.zhixiao.cn/v1/customers — 请求在 10 秒后超时。",
+      errorMessage: "GET https://api.zhiwu.cn/v1/customers — 请求在 10 秒后超时。",
     }),
 
   reset: () =>
