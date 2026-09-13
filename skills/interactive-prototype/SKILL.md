@@ -1,6 +1,6 @@
 ---
 name: interactive-prototype
-description: 在本项目（Prototype Starter，Next.js 16 + shadcn/base-nova + Motion + Zustand）中开发高保真 Interactive Prototype 的标准工作流：Understand → Inspect → Plan → Build → Run → Browser Validate → Fix → Polish → Test，完成后交给 git-delivery Skill 交付。适用于所有交互式原型/演示页开发任务。
+description: 在本项目（Prototype Starter，Next.js 16 + shadcn/base-nova + Motion + Zustand）中开发高保真 Interactive Prototype 的标准工作流：Understand → Inspect → Plan（含 Visual Manifest 与 Art Direction checkpoint）→ Kits 安装 → Build → Run → Browser Validate → Fix → Polish → Test，完成后交给 git-delivery Skill 交付。**任何业务原型在写 UI 之前必须先产出 Visual Manifest。** 适用于所有交互式原型/演示页开发任务。
 ---
 
 # Interactive Prototype 开发 Skill
@@ -50,6 +50,45 @@ description: 在本项目（Prototype Starter，Next.js 16 + shadcn/base-nova + 
 
 避免没有理解项目结构就开始大量生成代码。输出简短计划（页面/组件文件清单、store action 清单、复用清单、无重复组件声明）。
 
+### 3.5 Visual Direction → Visual Manifest → Art Direction checkpoint
+
+**这一步不可跳过。** 没有 Visual Manifest 就开始写 JSX = 违规。
+
+Agent 的默认审美会强烈回拉：卡片 + 阴影 + 渐变 + 紫色，最后得到"哪都还行、哪都不成立"的页面。
+视觉方向必须先被**声明**，然后才被**实现**。
+
+1. **加载 Kits 的 `skills/visual-direction/SKILL.md`**（创作语义在那里：怎么选 pack、参考板怎么读、
+   签名组件怎么挑、`avoid` 写什么）。Factory 不重述这些。
+2. **产出 `visual-manifest.json`**（八项必填，见 `docs/visual-manifest.md`）：
+   ```
+   productType · firstVisual · stylePack · signatureComponents · effects · motionDirection · density · avoid
+   ```
+   - `firstVisual` 必须写出**第一眼看到什么**，不是印象词（「现代简洁」会被校验器直接拒绝）。
+   - `avoid` 不能为空——它是 Manifest 里唯一约束默认审美的字段。
+3. **校验**：`pnpm factory:manifest`。有 Kits 仓库时加 `--kits` 做上游比对。
+4. **Art Direction checkpoint —— 人工 / 显式确认。**
+   选哪个 pack、第一视觉是什么、不要什么，这些是**设计决策，不是可以默认的东西**。
+   Agent 必须把这个决定交给用户确认，并把结果写进 Manifest；不能替人决定，也不能不记录就跳过。
+
+> Manifest 是**约束**，不是文档。写了 `avoid: ["card-everywhere"]` 却在产物里到处是卡片 = 违规，
+> 会在 Browser QA 与人工视觉验收时被复核。
+
+### 3.6 Kits Source Installation（Manifest 里有 Kits 资产时）
+
+```bash
+pnpm factory:kits              # 先 dry-run 看计划
+pnpm factory:kits --write      # 真实安装 → 校验 lock → 跑 doctor
+pnpm qa:doctor                 # doctor 是正式质量门
+```
+
+参数全部来自 Manifest。安装后：
+
+- `lib/kits/installed/` 是 **Kits-managed**，重新安装会整体覆盖，**禁止手工修改**。
+- `lib/kits/adapters/` 是 **Product-owned**，Kits 永不覆盖；手写集成放这里。
+- 产品代码**不得直接 import `installed/*`**，必须走 `Product → adapters → installed`。
+
+详见 `docs/kits-ownership.md`。不需要任何 Kits 资产的原型可以跳过这一步。
+
 ### 4. Build
 
 - 页面在 `app/<route>/`，可复用业务组件进 `components/prototype/`（或 motion/layout）。
@@ -71,7 +110,20 @@ description: 在本项目（Prototype Starter，Next.js 16 + shadcn/base-nova + 
 - 必要时**截图**存档；
 - loading / empty / error 状态可触发且表现正确。
 
-工具：浏览器手工走查，或补充 `tests/demo.spec.ts` / 新建 spec 的端到端测试。
+Factory v1.1 起，优先用可重复的扫描替代手工走查：
+
+```bash
+pnpm qa            # 所有路由 × 桌面/移动 × 明暗 + 能力探针
+```
+
+它会检查 console / page / request 错误、横向溢出与 **viewport expansion**、
+**No Invisible Semantics**（DOM 语义数 == 无障碍树 role 数）、probe 完整性、
+reduced-motion / coarse-pointer / IntersectionObserver 失效。标准见 `docs/browser-qa.md`。
+
+**注意**：移动端横向溢出不能只看 `scrollWidth - innerWidth`——Chromium 会自动扩张布局视口，
+让这个判据假绿。三条判据缺一不可。
+
+补充 `tests/demo.spec.ts` / 新建 spec 覆盖产品行为。
 
 ### 7. Fix
 
@@ -119,6 +171,10 @@ Implement → Run → Browser → Interact → Inspect → Detect → Fix → Br
 - [ ] realistic mock data
 - [ ] lint / typecheck / test / build 全部通过
 - [ ] 核心流程经真实浏览器验证（含 console error 检查）
+- [ ] **`visual-manifest.json` 已产出且通过 `pnpm factory:manifest`**，`avoid` 里的每一条在产物里确实没有出现
+- [ ] `pnpm qa` 通过（0 console / 0 page error / 0 request failure / 0 横向溢出 / 0 viewport expansion）
+- [ ] 数据型原型：invariant 测试先于 UI 大规模实现写好并保持通过
+- [ ] Manifest 里的 constrains 已由人工视觉验收复核
 
 ## 交付
 
@@ -132,4 +188,8 @@ Implement → Run → Browser → Interact → Inspect → Detect → Fix → Br
 - `components/prototype/*` — 可复用产品组件
 - `stores/dashboard-store.ts` — zustand 模式参考
 - `playwright.config.ts` + `tests/*.spec.ts` — e2e 模式参考
+- `docs/visual-manifest.md` — Visual Manifest 契约与 Art Direction Gate
+- `docs/browser-qa.md` — Browser QA 标准
+- `docs/kits-ownership.md` — Kits 所有权契约
+- `docs/prototype-creation-workflow.md` — 完整生产流程
 - `skills/git-delivery/SKILL.md` — Git 交付工作流

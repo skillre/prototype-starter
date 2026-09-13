@@ -5,15 +5,27 @@ import { useTheme } from "@/components/theme-provider"
 import { toast } from "sonner"
 import {
   ActivityIcon,
+  BellIcon,
+  CreditCardIcon,
   LayoutDashboardIcon,
   LightbulbIcon,
   PlusIcon,
   RotateCwIcon,
+  SettingsIcon,
   SunMoonIcon,
+  UserPlusIcon,
   UsersIcon,
+  ZapIcon,
 } from "lucide-react"
-import { Sidebar, defaultNavItems, type NavId } from "@/components/layout/sidebar"
-import { TopNav } from "@/components/layout/top-nav"
+import {
+  Sidebar,
+  type NavBrandDef,
+  type NavId,
+  type NavItemDef,
+  type NavUsageDef,
+  type NavUserDef,
+} from "@/components/layout/sidebar"
+import { TopNav, type TopNavDataSource } from "@/components/layout/top-nav"
 import { MobileNav } from "@/components/layout/mobile-nav"
 import { PageContainer } from "@/components/layout/page-container"
 import { PageTransition } from "@/components/motion/page-transition"
@@ -34,6 +46,20 @@ import { ActivitySection } from "./activity-section"
 /** 演示自己的三个页签——`NavId` 是开放的 string，这里收紧成真实取值。 */
 type DemoTab = keyof Messages["demo"]["pages"]
 
+/**
+ * 演示自己的通知分类图标。
+ *
+ * 这张表曾经住在 `components/layout/top-nav.tsx` 里（`KIND_ICON`），于是
+ * payment / trial / usage / report 这套产品词汇成了共享 Core 的一部分，
+ * 还逼着 `lib/crm-data.ts` 去镜像同一个 union。它现在是 /demo 自己的决定。
+ */
+const NOTIFICATION_ICONS: Record<string, typeof BellIcon> = {
+  payment: CreditCardIcon,
+  trial: UserPlusIcon,
+  usage: ZapIcon,
+  report: BellIcon,
+}
+
 export function DemoApp() {
   const t = useMessages()
   const copy = t.demo
@@ -48,6 +74,8 @@ export function DemoApp() {
   const initialize = useDashboardStore((s) => s.initialize)
   const refresh = useDashboardStore((s) => s.refresh)
   const resetDemo = useDashboardStore((s) => s.resetDemo)
+  const simulateApiFailure = useDashboardStore((s) => s.simulateApiFailure)
+  const markAllNotificationsRead = useDashboardStore((s) => s.markAllNotificationsRead)
 
   const { resolvedTheme, setTheme } = useTheme()
 
@@ -70,14 +98,23 @@ export function DemoApp() {
   }
 
   // 未读徽标由调用方派生（SidebarNav 本身不再读取 store，以便被其他原型复用）。
-  const navItems = useMemo(
+  //
+  // Factory v1.1：这台演示现在**自己声明**导航项与品牌身份，而不是继承
+  // `components/layout/sidebar.tsx` 的内置默认值。共享组件对产品身份零意见——
+  // 这正是新建原型不会莫名继承「云图分析 / 吴桐」的原因。
+  const navItems: NavItemDef[] = useMemo(
     () =>
-      defaultNavItems(t).map((item) =>
+      [
+        { id: "overview", label: copy.nav.overview, icon: LayoutDashboardIcon },
+        { id: "customers", label: copy.nav.customers, icon: UsersIcon },
+        { id: "activity", label: copy.nav.activity, icon: ActivityIcon },
+        { id: "settings", label: copy.nav.settings, icon: SettingsIcon },
+      ].map((item) =>
         item.id === "activity"
           ? { ...item, badge: notifications.filter((n) => n.unread).length }
           : item
       ),
-    [notifications, t]
+    [notifications, copy.nav]
   )
 
   const meta = copy.pages[activeTab]
@@ -171,9 +208,66 @@ export function DemoApp() {
     [copy, resolvedTheme, resetDemo, refresh, setTheme]
   )
 
+  /* ------------------------------------------------------------------------
+   * 产品身份与顶栏数据源——全部在这里显式注入。
+   *
+   * Factory v1.1 之前，这些值要么由 `components/layout/sidebar.tsx` 内置默认，
+   * 要么由 TopNav 回落到 `useDashboardStore`；结果是共享 Core 组件硬依赖了这个
+   * 演示的 store，而账户身份（姓名/邮箱/头像字）甚至是从词典默认带出来的。
+   * 现在 /demo 与 AI CRM 走同一条路：调用方把身份和数据交进去。
+   * ---------------------------------------------------------------------- */
+  const brand: NavBrandDef = useMemo(
+    () => ({ name: copy.brandName, subtitle: copy.brandSubtitle }),
+    [copy]
+  )
+
+  const account: NavUserDef = useMemo(
+    () => ({ name: copy.userName, email: copy.userEmail, initials: copy.userInitials }),
+    [copy]
+  )
+
+  const usage: NavUsageDef = useMemo(
+    () => ({ label: copy.usageLabel, value: copy.usageValue, progress: 64, hint: copy.usageHint }),
+    [copy]
+  )
+
+  const topNavDataSource: TopNavDataSource = useMemo(
+    () => ({
+      notifications,
+      status,
+      onRefresh: refresh,
+      onSimulateFailure: simulateApiFailure,
+      onReset: resetDemo,
+      onMarkAllRead: markAllNotificationsRead,
+      notificationIcon: (notification) => NOTIFICATION_ICONS[notification.kind ?? ""] ?? BellIcon,
+      // 演示里通知没有详情页；点击回到「动态」页签——这个决定属于 /demo，不属于 TopNav。
+      onNotificationSelect: () => setActiveTab("activity"),
+      primaryNavId: "settings",
+      primaryNavLabel: copy.quickStart,
+      account,
+    }),
+    [
+      notifications,
+      status,
+      refresh,
+      simulateApiFailure,
+      resetDemo,
+      markAllNotificationsRead,
+      copy.quickStart,
+      account,
+    ]
+  )
+
   return (
     <div data-testid="demo-root" className="flex min-h-dvh">
-      <Sidebar active={activeTab} onNavigate={navigate} items={navItems} />
+      <Sidebar
+        active={activeTab}
+        onNavigate={navigate}
+        items={navItems}
+        brand={brand}
+        user={account}
+        usage={usage}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="hidden lg:block">
@@ -182,6 +276,7 @@ export function DemoApp() {
             subtitle={meta.subtitle}
             onOpenCommand={() => setCommandOpen(true)}
             onNavigate={navigate}
+            dataSource={topNavDataSource}
           />
         </div>
         <div className="lg:hidden">
@@ -191,6 +286,9 @@ export function DemoApp() {
             onNavigate={navigate}
             onOpenCommand={() => setCommandOpen(true)}
             items={navItems}
+            brand={brand}
+            user={account}
+            usage={usage}
           />
         </div>
 

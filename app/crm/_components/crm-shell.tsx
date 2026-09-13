@@ -14,8 +14,10 @@ import { useTheme } from "@/components/theme-provider"
 import { toast } from "sonner"
 import {
   ActivityIcon,
+  BellIcon,
   BotIcon,
   BuildingIcon,
+  CreditCardIcon,
   CrownIcon,
   LayoutDashboardIcon,
   ListChecksIcon,
@@ -26,14 +28,17 @@ import {
   SunMoonIcon,
   TargetIcon,
   TriangleAlertIcon,
+  UserPlusIcon,
   UsersIcon,
   WandSparklesIcon,
+  ZapIcon,
 } from "lucide-react"
 import {
   Sidebar,
   type NavBrandDef,
   type NavContextDef,
   type NavGroupDef,
+  type NavItemDef,
   type NavStatusDef,
   type NavUserDef,
 } from "@/components/layout/sidebar"
@@ -63,6 +68,20 @@ export const CRM_ROUTES = {
 
 /** 风险预警的深链接：带筛选条件的客户名册。 */
 export const CRM_RISK_ROUTE = "/crm/customers?status=at-risk"
+
+/**
+ * CRM 自己的通知分类图标。
+ *
+ * 这张表曾经住在共享的 `components/layout/top-nav.tsx` 里（`KIND_ICON`），
+ * 使 payment / trial / usage / report 这套产品词汇成为 Factory Core 的一部分。
+ * Factory v1.1 把图标选择交还给调用方——它本来就是一个产品决定。
+ */
+const NOTIFICATION_ICONS: Record<string, typeof BellIcon> = {
+  payment: CreditCardIcon,
+  trial: UserPlusIcon,
+  usage: ZapIcon,
+  report: BellIcon,
+}
 
 export type CrmRouteKey = keyof typeof CRM_ROUTES
 
@@ -260,6 +279,12 @@ export function CrmShell({ children }: { children: ReactNode }) {
     ],
     [t, customers.length, taskBoard]
   )
+
+  /**
+   * 扁平导航项——`Sidebar` 的 `items` 是必填的（Factory v1.1 移除了内置默认），
+   * 而 `groups` 仍然表达分组结构。两者是同一批条目的两种视图，不是两份数据。
+   */
+  const navItems: NavItemDef[] = useMemo(() => navGroups.flatMap((group) => group.items), [navGroups])
 
   /**
    * 侧栏的工作区上下文：用真实合同总额对比季度目标。
@@ -613,6 +638,7 @@ export function CrmShell({ children }: { children: ReactNode }) {
           active={activeRoute}
           onNavigate={navigate}
           brand={brand}
+          items={navItems}
           groups={navGroups}
           user={account}
           usage={null}
@@ -645,6 +671,8 @@ export function CrmShell({ children }: { children: ReactNode }) {
                   notification.customerId
                     ? `/crm/customers/${notification.customerId}`
                     : CRM_ROUTES.activities,
+                notificationIcon: (notification) =>
+                  (notification.kind ? NOTIFICATION_ICONS[notification.kind] : undefined) ?? BellIcon,
                 onSignOut: () => setSignOutOpen(true),
                 primaryNavId: "profile",
                 primaryNavLabel: t.dialogs.profile.title,
@@ -659,6 +687,7 @@ export function CrmShell({ children }: { children: ReactNode }) {
               onNavigate={navigate}
               onOpenCommand={() => openCommandPalette("search")}
               brand={brand}
+              items={navItems}
               groups={navGroups}
               user={account}
               usage={null}

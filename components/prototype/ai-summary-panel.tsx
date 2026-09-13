@@ -1,19 +1,39 @@
 "use client"
 
+import { useId } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { RefreshCwIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useMessages } from "@/components/i18n/locale-provider"
 import { durations, easings } from "@/lib/motion-presets"
-import type { AiSummary } from "@/lib/ai-summary"
 import { cn } from "@/lib/utils"
 
 export type AiSummaryStatus = "idle" | "loading" | "ready" | "error"
 
+/**
+ * 摘要的**结构**契约——由共享组件定义，不由任何产品定义。
+ *
+ * v1.0.0 这里 import 了 `AiSummary`（来自 `@/lib/ai-summary`），而后者又
+ * `import type { CrmCustomer } from "@/lib/crm-data"`：一条从共享组件穿过产品
+ * 数据模块的编译期依赖。现在只描述形状——任何产品的摘要，形状对得上就能用。
+ */
+export interface AiSummaryLike {
+  /** 一句话结论。 */
+  headline: string
+  /** 3–4 条基于数据的关键信号。 */
+  signals: string[]
+  /** 建议的下一步动作。 */
+  nextStep: string
+  /** 0–100 的确定性置信度评分。 */
+  confidence: number
+  /** 展示用的模型标识（技术标识，不翻译）。 */
+  model: string
+}
+
 type AiSummaryPanelProps = {
   status: AiSummaryStatus
-  summary: AiSummary | null
+  summary: AiSummaryLike | null
   onGenerate: () => void
   className?: string
   testId?: string
@@ -35,11 +55,15 @@ export function AiSummaryPanel({
 }: AiSummaryPanelProps) {
   const t = useMessages()
   const loading = status === "loading"
+  // v1.0.0 这里把 id 写死成 "ai-summary-heading"。两个面板同时挂载就会产生重复
+  // id，`aria-labelledby` 会指向错误（或第一个）节点——正是「No Invisible
+  // Semantics」要防的那类问题：屏幕上看不出任何异常。
+  const headingId = useId()
 
   return (
     <section
       data-testid={testId}
-      aria-labelledby="ai-summary-heading"
+      aria-labelledby={headingId}
       className={cn(
         /* 这是页面上唯一带"品牌色内衬"的区块——AI 摘要值得一块自己的地面，
            但不需要 elevation：不用阴影，改用品牌色左轨 + 极淡的品牌底。 */
@@ -60,7 +84,7 @@ export function AiSummaryPanel({
       <header className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h3
-            id="ai-summary-heading"
+            id={headingId}
             className="flex items-center gap-1.5 text-body font-semibold"
           >
             <span className="flex size-5 items-center justify-center rounded-sm bg-brand-soft text-brand">

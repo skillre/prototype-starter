@@ -51,20 +51,99 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - 必须考虑 **responsive**（桌面与移动端都要可用）。
 - **重要交互必须经过真实浏览器验证**（见 Browser QA 规则）。
 
-## Browser QA 规则（重要交互必做）
+## Browser QA 规则（Factory v1.1）
 
-对于重要交互，**不能只通过源码阅读判断**。必须：
+对于重要交互，**不能只通过源码阅读判断**。必须真实打开浏览器执行。
 
-1. 启动应用（`pnpm dev`，demo 在 http://localhost:3000/demo）
-2. 实际打开浏览器
-3. 执行关键用户流程
-4. 检查页面结果
-5. 检查 console error
-6. 必要时截图
-7. 发现问题后修复（找到根因、最小范围修复）
-8. 修复后重新验证
+```bash
+pnpm qa            # 全量：所有路由 × 桌面/移动 × 明暗 + 能力探针
+pnpm qa --routes=/demo
+```
 
-浏览器验证优先关注：navigation / buttons / forms / tabs / dialogs / drawers / filters / drag and drop / command palette / responsive / loading / empty / error states。
+标准见 `docs/browser-qa.md`。要到达的状态：
+
+```
+0 console error · 0 page error · 0 request failure · 0 横向溢出 · 0 viewport expansion
+```
+
+### 移动端必须三条判据一起查
+
+**不能只用 `scrollWidth - innerWidth`。** Chromium 会为溢出内容自动扩张**布局视口**，
+扩张之后两个值一起变大、差值接近 0，看起来"没有溢出"，而页面其实是按一个用户并不存在的
+宽度排版的。必须同时满足：
+
+1. `abs(window.innerWidth - 请求宽度) <= 1`
+2. `documentElement.scrollWidth <= 请求宽度 + tolerance`
+3. `scrollTo(9999, 0)` 后 `scrollX ≈ 0`
+
+默认矩阵：desktop **1440×900** · mobile **390×844** · dark / light。
+
+### No Invisible Semantics
+
+> **看得到 ≠ accessibility tree 看得到。**
+
+`aria-hidden="true"` 会剪掉整棵子树，而屏幕上一切正常——布局没变、鼠标照样能点，
+只有屏幕阅读器和 `getByRole` 看不到。
+
+- 对 `button` / `link` / `heading`：**DOM 中贡献语义的元素数必须等于无障碍树中该 role 的节点数**。
+- **真实内容祖先禁止 `aria-hidden="true"`。** 只有装饰性元素才允许。
+- 注意 pruned 的精确含义：`aria-hidden` / `hidden` / `inert` / `display:none` 剪子树；
+  `role="presentation"` **只去掉该节点自己的语义，不剪子树**。
+
+### QA Probe Integrity
+
+> **一个静默通过的探针，比没有探针更危险。**
+
+`0 / 0 = NaN`，而 `Math.abs(NaN - expected) > tolerance` 返回 `false` —— **断言静默通过**。
+所有数值探针必须：
+
+- 先 `Number.isFinite(value)`；
+- `NaN` / `undefined` / 非数字 / selector 未命中 → **fail loudly**；
+- 得到 `0` 而本不应为零 → 失败（几乎总是"没量到"，不是真实的零）；
+- 确实允许为零时显式声明。
+
+**不要把「没量到」当成「满足条件」。** 统一使用 `.qa/probe-guard.mjs` 的 `measure()` /
+`expectRatio()`，不要在调用点各写一遍。
+
+**CSS 自定义属性只在声明它的元素及其后代上可见。** 把探针挂到 `<body>` 上去读一个声明在
+深层元素上的变量，一定读到 0。
+
+### Reduced Motion / Coarse Pointer
+
+任何 Signature Component 必须经过三种状态：desktop fine pointer · touch/coarse pointer ·
+`prefers-reduced-motion`。至少检查：
+
+- 内容默认可见（不得停在 `opacity: 0` 等动画）
+- touch 不依赖 hover
+- custom cursor 在 touch 下关闭
+- ambient motion 在 reduced-motion 下关闭
+- **不因为 JS / IntersectionObserver 失败而永久隐藏内容**
+
+`hasTouch` / `isMobile` 是 **browser context** 属性，不是 viewport 属性——`setViewportSize`
+不会让 `(pointer: coarse)` 变成 true。
+
+### Port Isolation
+
+**Playwright 的 `reuseExistingServer` 会接受任何以 2xx/3xx 应答就绪 URL 的 server，
+不做任何身份校验。** 端口 3000 是 Next 的默认端口，一个残留或不属于本项目的 server
+会被当成"被测应用"，整套断言在**错误的页面**上通过——而且不报错。
+
+- **不复用 3000。** Factory 的 QA 端口是 `.qa/qa.config.mjs` 里的 `QA_PORT`。
+- **不自动连接已经存在的未知 server。** `reuseExistingServer: false`，**永远**。
+- **server 必须由当前 test run 管理**，端口显式固定（否则 Next 会自动 +1 而 `baseURL` 还指着旧端口）。
+- **QA 完成后只停止自己启动的 process**（杀进程组；`pnpm dev` 是一层包装，只杀 `pnpm` 会留下孤儿 `next-server`）。
+
+**禁止：**
+
+```bash
+pkill -f "next dev"        # ✗ 会杀掉同机其它原型，甚至你自己的开发服务器
+pkill -f "next-server"     # ✗ 同上
+```
+
+端口被占用时用 `lsof -nP -iTCP:<port> -sTCP:LISTEN` 定位，**确认那确实属于当前任务**再单独停止它。
+
+> 另注：Next 16 的 dev server 是**按项目**加锁的（`.next/dev/lock`），不是按端口。
+> 同一项目不能再起第二个 `next dev`；`pnpm test` 与 `pnpm qa` 不能同时跑。
 
 ## Quality Gates
 
@@ -75,9 +154,32 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm qa
 ```
 
 任何一项失败：**禁止声称完成**。必须修复后重新执行，直至全部通过。
+
+`pnpm check` 会依次跑完这五项。
+
+## Kits Ownership Contract
+
+Factory 不 vendor 任何 Kits 内容，只集成**调用机制**。安装后：
+
+| 路径 | 归属 |
+|---|---|
+| `lib/kits/installed/` | **Kits-managed** —— 重新安装会整体覆盖 |
+| `lib/kits/.kits/` | **Kits-managed** tooling |
+| `lib/kits/kits.lock.json` | **Kits-managed** state（安装状态的唯一凭据） |
+| `lib/kits/adapters/` | **Product-owned** —— Kits 永不覆盖 |
+
+- **禁止手工修改 `installed/`。** 需要升级 = 重新跑 `kits add`，不是手工 patch asset。
+- **产品代码不得直接 import `installed/*`。** 必须走 `Product → adapters → installed`。
+  唯一合法例外是适配层自己（`boundary` 检查豁免它）。
+- `pnpm qa:doctor` 是正式质量门。**doctor 不通过 = 安装状态不可信 = 禁止声称完成。**
+- doctor 在 Kits 仓库缺席时报告 `[upstream-unavailable]` 并**明说未做上游比对**——
+  独立交付是这个模式的正常状态，但"没检查"绝不能被说成"通过"。
+
+详见 `docs/kits-ownership.md`。
 
 ## Git 工作流与安全
 
@@ -93,6 +195,7 @@ Agent 默认**禁止**执行：
 - `git checkout .`
 - `git restore .`
 - `rm -rf`
+- `pkill -f "next dev"` / `pkill -f "next-server"`（会误杀同机其它原型）
 
 除非用户明确要求（force 类操作还需用户确认风险）。对于任何可能覆盖用户修改的命令：**先停止并报告**，不允许擅自覆盖用户工作。
 
@@ -172,44 +275,78 @@ Agent 默认**禁止自动 merge**；默认禁止 push main、合并 main、删�
 
 一切视觉常量来自 `app/globals.css` 的 design token 层（typography `text-display/title/subtitle/heading/caption/label/eyebrow/metric/metric-sm/numeric`、semantic spacing `p-gutter/gap-stack/mt-section`、radius `rounded-field/rounded-card/rounded-panel`、motion `duration-*`/`ease-*`、内容宽度 `max-w-dashboard/content/text`）。禁止在页面里撒 magic number。
 
-## 视觉构图（Design System V4 — AI Sales Command Center）
+## 视觉方向（由 Prototype Kits 负责）
 
-**层级靠构图与排版承担，不靠卡片边框。**
-V4 不是视觉微调，而是从「做得挺好看的仪表盘」走到「有主张的产品」：
-第一屏先给收入智能，然后**产品开口说话**（AI 洞察），再给数据、给指标、最后才是记录。
+**Factory 不规定 Prototype 长什么样。**
 
-### 层级阶梯（每个页面都要能回答「第一眼应该看到什么」）
+Factory 负责「怎么生产 Prototype」，Prototype Kits 负责「Prototype 可以长什么样」。具体风格、
+签名组件、效果、颜色、排版数值都在 Kits 里，通过 Visual Manifest 选择。
 
-| 层级 | 承担者 | 实例（`/crm`） |
-| --- | --- | --- |
-| L1 | 唯一的主角：`text-metric` 大数字 + 与它共面的图形 | `RevenueHero` |
-| L2 | 产品说的话：推导出来的洞察 + 可操作的实体 | `AiInsightLayer` / `lib/insights.ts` |
-| L3 | 一个 Intelligence Module：编辑式编号区块（01/02/03） | `OpportunitySpotlight` |
-| L4 | 真正的数据可视化：构成条 + 视觉排行 | 阶段构成 / 负责人排行 |
-| L5 | 次级指标带：排版 + hairline + 真实迷你走势 | `MetricStrip` |
-| L6 | 记录层：实时流、时间线、队列、排行 | `LiveDataLayer` + 开放区块 |
+Factory Core **禁止**出现：具体 Style Pack 名、具体签名组件名、具体效果名、具体颜色值、
+具体排版数值。可选值一律在**运行时**从 Kits registry 读取——把 id 抄进 Core 的当天就会过期，
+而且会让 Factory 悄悄认识某一个 pack。
 
-1. **一屏一个主角**。每个页面先定第一视觉焦点（通常是 Hero 里的那个大数字），其余信息按 L1 → L6 递减。不要让所有模块视觉权重相同。同一个数字在同一屏里只出现一次。
-2. **`Card` 是稀缺资源**。只有真正浮在别的层之上的内容才用它：对话框、抽屉、Popover、Tooltip、拖拽预览。需要"分量"但不需要 elevation 的区块用 `<OpenSection>` + `<SectionHeading>`。
-3. **抽象容器换成语义容器**。优先用 `open section + hairline` / 数式排版块 / 分隔线列表 / 整块图形区，而不是"又一个圆角盒子"。
-4. **构图允许非对称**（58/42、1.45fr/1fr）。全部 50/50 与全部 `gap-4` 会让页面读起来像表格。
-5. **一屏一个光源**。页面自带 Hero 时把全局环境光关掉（`<CrmDataBoundary ambient={false}>`），两个晕染互相抵消等于没有设计。
-6. **复用 V4 构图原语**：`OpenSection`、`SectionHeading`、`MetricStrip`/`MetricItem`。`StatsCard`/`ChartCard` 是"卡片形态"的变体，保留给确实需要卡片的布局，不是默认选择。
-7. **签名交互只有一个**。当前是「悬停 Hero 图形 → 读数跟着光标走，可点击固定」。其余地方保持静止；「交互动效」用于交代状态变化，不是用来装饰。
+> 历史注记：v1.0.0 这里写的是「Design System V4 — AI Sales Command Center」，把某个参考产品的
+> 视觉方向（`RevenueHero` / `AiInsightLayer` / `CrmDataBoundary` 的构图阶梯）当成了 Factory 的
+> 通用规则。那是参考产品的美术方向，不是 Factory 的。它已迁出 Core。
 
-### AI 洞察与实时数据的红线
+### Art Direction Gate（不可跳过）
 
-- **洞察必须推导出来**，不能是把文案写死在组件里。`lib/insights.ts` 从当前客户/管道数据算出增长归因、风险敞口（金额 × 停滞天数）与机会紧迫度（金额 × (1 + 停滞天数/10)）；换掉数据，句子里的公司、金额、百分比、停滞天数都会变。**不接外部接口、不联网、同输入同输出**。
-- **"实时"必须是真的**。事件来自真实记录、按有界队列推进（一次一条、只留最新 5 条）、走完就明说"已是最新"而不是无限循环；时钟是真实时钟且在客户端挂载后才渲染（避免水合不一致）；重放入口是真实动作。
-- **洞察里的实体必须可操作**：悬停同步高亮下方同名记录，点击直达客户档案。任何"看起来能点"的实体都要有真实结果。
-- **词典负责措辞，代码负责事实**：`lib/insights.ts` 只产出结构化事实（公司、金额、天数、百分比），文案一律经 `t.dashboard.insight.*`。文案里不出现与区块标题同名的词（例如洞察句不要写「高价值客户」，那是下方区块的标题）。
+```
+Understand → Inspect → Product Model → Visual Direction → Visual Manifest
+→ 【人工 / 显式 Art Direction checkpoint】
+→ kits add → Build → Invariant tests → Browser QA → Test → Preview
+→ Visual Acceptance → Release
+```
+
+- **任何业务 Prototype 在 UI 实现前必须先产出 `visual-manifest.json`。**
+  没有 Manifest 就开始写 JSX = 违规。`pnpm factory:kits` 会直接拒绝。
+- **Agent 不能在没有 Manifest 的情况下默认生成 generic AI SaaS visual。**
+  默认审美（卡片 + 阴影 + 渐变 + 紫色）会主动回拉，Manifest 就是那道闸门。
+- **Manifest 里 `firstVisual` 与 `avoid` 是强约束**，由校验器强制。
+- **Art Direction checkpoint 是人工决定**：选哪个 pack、第一视觉是什么、不要什么。
+  Agent 不能替人做这个决定，也不能不记录就跳过。
+- 详见 `docs/visual-manifest.md`；创作语义见 Kits 的 `skills/visual-direction/SKILL.md`。
+
+### 层级与构图（方法，不是配方）
+
+无论选哪套 pack，这几条是**方法**：
+
+1. **一屏一个主角**。先定第一视觉焦点，其余信息按重要性递减。不要让所有模块视觉权重相同；
+   同一个数字在同一屏里只出现一次。
+2. **容器是语义容器，不是装饰容器**。能用「开放区块 + hairline」的地方不要用「又一个圆角盒子」。
+3. **构图允许非对称**。全部 50/50 会让页面读起来像表格。
+4. **一屏一个光源**。页面自带 Hero 时把全局环境光关掉——两个晕染互相抵消等于没有设计。
+5. **签名交互只有一个**。其余地方保持静止；「交互动效」用于交代状态变化，不是用来装饰。
+6. **层级在灰度下依然成立**。不依赖颜色，也不依赖 glow。
+
+### 视觉常量
+
+一切视觉常量来自 `app/globals.css` 的 design token 层与 `lib/motion-presets.ts`。
+**禁止在页面里撒 magic number**，禁止硬编码 duration / ease / 颜色。
+
+token 层是 Factory 的**中性 fallback**：它保证新建原型不会是空仓库。但它不是美术方向——
+美术方向由 Manifest + Kits 决定，并可以覆盖 token 层。
 
 ### 中文排版红线
 
-- **中文不使用负字距**。负 tracking 只允许出现在纯数字 token 上（`text-metric` / `text-numeric` / `.numeric`）。含中文的量词、单位、时长（例如 `4分38秒`）不加 `.numeric`。
-- 中文行高高于纯拉丁方案：`text-display` 1.18、`text-title` 1.3、`text-body` 1.7。中文大标题在 1.05 行高下会被裁切。
+- **中文不使用负字距**。负 tracking 只允许出现在纯数字 token 上（`text-metric` / `text-numeric` / `.numeric`）。
+- 中文行高高于纯拉丁方案：`text-display` 1.18、`text-title` 1.3、`text-body` 1.7。
 - 字体栈以 Geist 起头，再回落到 PingFang / Hiragino / YaHei / Noto，**不用拉丁字体合成中文**。
-- 控件命中区不小于 24px；密集列表的行内链接用 `py-1 -my-1` 扩大命中区而不改变排版。
+- 控件命中区不小于 24px。
+
+### 数据型 Prototype：invariant-first
+
+**复杂数据产品：先定义 invariants，再做 UI。**
+
+在 UI 大规模实现**之前**写不变量测试。数据型 UI 的价值完全建立在"图上的数字是对的"之上；
+没有测试守住这一点，后面每次视觉调整都在赌。
+
+判断标准：totals reconcile（分项之和 == 总计）· derived metrics consistency（派生 == 重算）·
+source data == visualization（图上数值 == 源数据）· insights refer to real records（洞察引用真实记录且可跳转）。
+
+**Factory 只建立这条契约，不包含任何具体业务规则。** 具体账本规则属于具体产品。
+详见 `docs/prototype-creation-workflow.md`。
 
 ## 文案与本地化
 
@@ -226,13 +363,21 @@ V4 不是视觉微调，而是从「做得挺好看的仪表盘」走到「有�
 ## 常用命令
 
 ```bash
-pnpm dev          # http://localhost:3000 ，demo 在 /demo
-pnpm lint         # ESLint
-pnpm typecheck    # next typegen + tsc --noEmit
-pnpm test         # Playwright E2E（自动启动 dev server，需先 pnpm exec playwright install chromium）
-pnpm check        # lint + typecheck + test
-pnpm build        # production build（Turbopack）
+pnpm dev               # http://localhost:3000 ，demo 在 /demo
+pnpm lint              # ESLint
+pnpm typecheck         # next typegen + tsc --noEmit
+pnpm test              # Playwright E2E（端口守卫 + 自管 server，需先 pnpm exec playwright install chromium）
+pnpm build             # production build（Turbopack）
+pnpm qa                # Browser QA 全量扫描（自带 server，端口 3200）
+pnpm check             # lint + typecheck + test + build + qa
+
+pnpm factory:manifest  # 校验 visual-manifest.json（结构 + 上游比对）
+pnpm factory:kits      # 依 Manifest 安装 Kits（默认 dry-run）
+pnpm factory:kits --write
+pnpm qa:doctor         # Kits doctor 质量门
 ```
+
+> `pnpm test` 与 `pnpm qa` **不能同时运行**：Next 16 的 dev server 按项目加锁。
 
 - 开发高保真交互原型时，请同时加载 `skills/interactive-prototype/SKILL.md` 的完整工作流。
 - 完成原型、准备交付时，请加载 `skills/git-delivery/SKILL.md` 的 Git 交付工作流。
