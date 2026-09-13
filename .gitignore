@@ -16,6 +16,10 @@
 # playwright
 /test-results/
 /playwright-report/
+# Playwright browser store + its .links marker. The marker records an ABSOLUTE
+# machine path, so committing it leaks a local path into a template repo that is
+# copied for every new prototype. Browsers resolve from the default cache.
+/.playwright-browsers/
 
 # next.js
 /.next/

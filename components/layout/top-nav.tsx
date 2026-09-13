@@ -6,7 +6,6 @@ import { toast } from "sonner"
 import {
   BellIcon,
   ChevronDownIcon,
-  CreditCardIcon,
   FlaskConicalIcon,
   LogOutIcon,
   MoonIcon,
@@ -15,8 +14,7 @@ import {
   SettingsIcon,
   SunIcon,
   TriangleAlertIcon,
-  UserPlusIcon,
-  ZapIcon,
+  type LucideIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -39,27 +37,42 @@ import {
 } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useMessages } from "@/components/i18n/locale-provider"
-import { useDashboardStore } from "@/stores/dashboard-store"
 import type { NavId } from "@/components/layout/sidebar"
-import type { AppNotification } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 
-const KIND_ICON = {
-  payment: CreditCardIcon,
-  trial: UserPlusIcon,
-  usage: ZapIcon,
-  report: BellIcon,
-} as const
-
 /**
- * 顶栏的数据来源。默认（不传）时行为与 Starter 完全一致：读取 dashboard-store。
- * 其他原型（如 AI CRM）可注入自己的通知、状态与动作，而无需复制这个组件。
+ * 通知条目的**结构**契约——由 Factory 定义，不由任何产品定义。
+ *
+ * v1.0.0 这里 import 了 `AppNotification`（来自 `@/lib/mock-data`），也就是
+ * 共享顶栏的类型系统依赖了某一个原型的数据模块；结果 `lib/crm-data.ts` 不得不
+ * 反向镜像同一个 union。现在只用结构类型：任何产品的通知，只要形状对得上就能用。
  */
-/** 通知条目可携带关联客户 id，用于生成真实详情页链接。 */
-export interface TopNavNotification extends AppNotification {
+export interface TopNavNotification {
+  id: string
+  title: string
+  description: string
+  /** 已格式化好的时间文案——相对时间的措辞是本地化行为，由调用方决定。 */
+  time: string
+  unread: boolean
+  /**
+   * 可选的分类标签，只用于挑图标；`notificationIcon` 未传时才回退到默认图标。
+   * 用 string 而不是 union：分类是产品的词汇表，不是 Factory 的。
+   */
+  kind?: string
+  /** 关联实体 id，供调用方生成详情页链接。 */
   customerId?: string
 }
 
+/**
+ * 顶栏数据源——**必填**。
+ *
+ * v1.0.0 时它是可选的，不传就回落到 `useDashboardStore`：共享的 Core 布局组件
+ * 因此硬依赖了某一个原型的 store，连「陈美雅 / meiya.chen@zhiwu.cn」这种账户
+ * 身份都是从词典里默认带出来的。任何新原型不写一行代码就会继承这份身份。
+ *
+ * 现在没有默认。调用方必须显式给出通知、状态、动作与账户——AI CRM 已经这么做了，
+ * Factory 自己的中立 demo 也走同一条路（见 app/demo/_components/demo-app.tsx）。
+ */
 export interface TopNavDataSource {
   notifications: TopNavNotification[]
   status: "loading" | "ready" | "error"
@@ -69,12 +82,15 @@ export interface TopNavDataSource {
   onMarkAllRead: () => void
   /** 传入后，「退出登录」调用它（CRM 用它打开真实确认对话框）。 */
   onSignOut?: () => void
-  /** 传入后，通知条目会导航到对应客户的详情页（而不是只弹 toast）。 */
+  /** 传入后，通知条目会导航到对应实体的详情页（而不是只弹 toast）。 */
   notificationHref?: (notification: TopNavNotification) => string
-  /** 账户菜单里第一项的目标 id（默认「快速上手」）。 */
-  primaryNavId?: NavId
-  /** 账户菜单里第一项的文案（默认「快速上手」）。 */
-  primaryNavLabel?: string
+  /** 通知没有链接时的真实动作；不传则只弹 toast，不做任何导航。 */
+  onNotificationSelect?: (notification: TopNavNotification) => void
+  /** kind → 图标。不传时统一用 BellIcon。 */
+  notificationIcon?: (notification: TopNavNotification) => LucideIcon
+  /** 账户菜单里第一项的目标 id 与文案——必填，Factory 不替你选。 */
+  primaryNavId: NavId
+  primaryNavLabel: string
   account: { name: string; email: string; initials: string }
   /** 文案可覆盖；未传时取当前语言词典。 */
   labels?: {
@@ -100,8 +116,8 @@ type TopNavProps = {
   subtitle: string
   onOpenCommand: () => void
   onNavigate: (id: NavId) => void
-  /** 不传则使用内置的 dashboard-store 数据源。 */
-  dataSource?: TopNavDataSource
+  /** 必填：通知、状态、动作、账户全部由调用方注入。 */
+  dataSource: TopNavDataSource
 }
 
 /** 桌面端顶栏：页面标题、全局搜索、刷新、主题、通知、演示控制、账户菜单。 */
@@ -114,29 +130,19 @@ export function TopNav({
 }: TopNavProps) {
   const t = useMessages()
 
-  // Hooks 必须无条件调用；未注入时读到的 store 值仅用于兜底默认行为。
-  const storeNotifications = useDashboardStore((state) => state.notifications)
-  const storeMarkAll = useDashboardStore((state) => state.markAllNotificationsRead)
-  const storeRefresh = useDashboardStore((state) => state.refresh)
-  const storeSimulateFailure = useDashboardStore((state) => state.simulateApiFailure)
-  const storeReset = useDashboardStore((state) => state.resetDemo)
-  const storeStatus = useDashboardStore((state) => state.status)
-
-  const notifications = dataSource?.notifications ?? storeNotifications
-  const markAllNotificationsRead = dataSource?.onMarkAllRead ?? storeMarkAll
-  const refresh = dataSource?.onRefresh ?? storeRefresh
-  const simulateApiFailure = dataSource?.onSimulateFailure ?? storeSimulateFailure
-  const resetDemo = dataSource?.onReset ?? storeReset
-  const status = dataSource?.status ?? storeStatus
-  const account = dataSource?.account ?? {
-    name: t.account.name,
-    email: t.account.email,
-    initials: t.account.initials,
-  }
-  const primaryNavId = dataSource?.primaryNavId ?? "settings"
-  const primaryNavLabel = dataSource?.primaryNavLabel ?? t.demo.quickStart
-  const notificationHref = dataSource?.notificationHref
-  const onSignOut = dataSource?.onSignOut
+  const notifications = dataSource.notifications
+  const markAllNotificationsRead = dataSource.onMarkAllRead
+  const refresh = dataSource.onRefresh
+  const simulateApiFailure = dataSource.onSimulateFailure
+  const resetDemo = dataSource.onReset
+  const status = dataSource.status
+  const account = dataSource.account
+  const primaryNavId = dataSource.primaryNavId
+  const primaryNavLabel = dataSource.primaryNavLabel
+  const notificationHref = dataSource.notificationHref
+  const onNotificationSelect = dataSource.onNotificationSelect
+  const notificationIcon = dataSource.notificationIcon
+  const onSignOut = dataSource.onSignOut
 
   // Defaults come from the dictionary; a prototype only overrides what differs.
   const labels = {
@@ -164,17 +170,19 @@ export function TopNav({
   const toggleTheme = () => setTheme(resolvedTheme === "dark" ? "light" : "dark")
 
   const handleReset = () => {
-    resetDemo()
+    resetDemo?.()
     toast.success(labels.resetToastTitle, {
       description: labels.resetToastDescription,
     })
   }
 
-  const openNotification = (notificationTitle: string) => {
+  const openNotification = (notification: TopNavNotification) => {
     // 通知条目在有 href 时会自行导航；这里只负责「无链接」时的兜底反馈。
     if (notificationHref) return
-    onNavigate("activity")
-    toast.info(notificationTitle)
+    // 目标由调用方决定——v1.0.0 这里硬编码 onNavigate("activity")，是某一个
+    // 原型的导航 id 漏进了共享组件。
+    onNotificationSelect?.(notification)
+    toast.info(notification.title)
   }
 
   return (
@@ -300,7 +308,10 @@ export function TopNav({
               </p>
             ) : (
               notifications.map((notification) => {
-                const Icon = KIND_ICON[notification.kind]
+                // 图标由调用方决定；未注入时统一 BellIcon，而不是内置某产品
+                // 的通知分类表（v1.0.0 的 KIND_ICON 会把 payment/trial/usage/report
+                // 这套产品词汇固化进 Core，并逼着 lib/crm-data.ts 反向镜像它）。
+                const Icon = notificationIcon?.(notification) ?? BellIcon
                 const rowContent = (
                   <>
                     <span
@@ -337,7 +348,7 @@ export function TopNav({
                     <DropdownMenuItem
                       key={notification.id}
                       render={<Link href={href} />}
-                      onSelect={() => openNotification(notification.title)}
+                      onSelect={() => openNotification(notification)}
                       className="items-start gap-2.5 rounded-field py-2"
                     >
                       {rowContent}
@@ -348,7 +359,7 @@ export function TopNav({
                 return (
                   <DropdownMenuItem
                     key={notification.id}
-                    onSelect={() => openNotification(notification.title)}
+                    onSelect={() => openNotification(notification)}
                     className="items-start gap-2.5 rounded-field py-2"
                   >
                     {rowContent}
@@ -409,7 +420,7 @@ export function TopNav({
                 type="button"
                 className="justify-start text-danger hover:bg-danger-soft hover:text-danger"
                 onClick={() => {
-                  simulateApiFailure()
+                  simulateApiFailure?.()
                   toast.error(t.toast.refreshFailed, {
                     description: t.toast.refreshFailedDescription,
                   })

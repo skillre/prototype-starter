@@ -3,13 +3,9 @@
 import Link from "next/link"
 import { motion } from "motion/react"
 import {
-  ActivityIcon,
   BlocksIcon,
   ChevronRightIcon,
-  LayoutDashboardIcon,
   RefreshCwIcon,
-  SettingsIcon,
-  UsersIcon,
   type LucideIcon,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -99,18 +95,20 @@ export interface NavStatusDef {
   refreshLabel?: string
 }
 
-/**
- * 内置演示（/demo）的默认导航项——未传 items 时使用。
- * 文案来自词典的 `demo` 分组，组件本身不含硬编码文案。
+/*
+ * NOTE (Factory v1.1) — there is deliberately NO default navigation here.
+ *
+ * v1.0.0 shipped `defaultNavItems(t)` returning `t.demo.nav.*`, plus fallbacks
+ * for brand / user / usage that read `t.demo.*` and a literal `progress: 64`.
+ * That is why every new prototype silently inherited one product's identity: a
+ * fresh page would render 「云图分析 / 吴桐」 without anyone having chosen it.
+ *
+ * Injection is now REQUIRED. The Factory's own neutral demo passes its own
+ * values at the call site (see app/demo/_components/demo-app.tsx) — exactly what
+ * an AI CRM or an AI Finance must do. Removing the default is the point: a
+ * default would be a Factory opinion about what the product is called, and the
+ * Factory does not own that decision.
  */
-export function defaultNavItems(t: ReturnType<typeof useMessages>): NavItemDef[] {
-  return [
-    { id: "overview", label: t.demo.nav.overview, icon: LayoutDashboardIcon },
-    { id: "customers", label: t.demo.nav.customers, icon: UsersIcon },
-    { id: "activity", label: t.demo.nav.activity, icon: ActivityIcon },
-    { id: "settings", label: t.demo.nav.settings, icon: SettingsIcon },
-  ]
-}
 
 /**
  * 品牌标识。
@@ -168,9 +166,11 @@ export function SidebarNav({
 }: {
   active: NavId
   onNavigate: (id: NavId) => void
-  brand?: NavBrandDef
-  items?: NavItemDef[]
-  user?: NavUserDef
+  /** 产品身份三件套——必填，Factory 不提供默认值。 */
+  brand: NavBrandDef
+  items: NavItemDef[]
+  user: NavUserDef
+  /** 传 null 隐藏底部用量卡片；不传同样隐藏（不再有内置默认卡片）。 */
   usage?: NavUsageDef | null
   context?: NavContextDef | null
   status?: NavStatusDef | null
@@ -183,34 +183,31 @@ export function SidebarNav({
   utilities?: React.ReactNode
 }) {
   const t = useMessages()
-  const resolvedBrand: NavBrandDef = brand ?? {
-    name: t.demo.brandName,
-    subtitle: t.demo.brandSubtitle,
-    icon: BlocksIcon,
-  }
-  const resolvedItems = items ?? defaultNavItems(t)
-  const resolvedUser: NavUserDef = user ?? {
-    name: t.demo.userName,
-    email: t.demo.userEmail,
-    initials: t.demo.userInitials,
-  }
   const resolvedContext: NavContextDef | null = context ?? null
-  const resolvedUsage: NavUsageDef | null =
-    resolvedContext ??
-    (usage === undefined
-      ? { label: t.demo.usageLabel, value: t.demo.usageValue, progress: 64, hint: t.demo.usageHint }
-      : usage)
+  // 工作区上下文块优先于 usage；两者都没传时不渲染底部卡片。
+  const resolvedUsage: NavUsageDef | null = resolvedContext ?? usage ?? null
 
-  const pageItems = resolvedItems.filter((item) => item.tone !== "action")
-  const actionItems = resolvedItems.filter((item) => item.tone === "action")
+  const pageItems = items.filter((item) => item.tone !== "action")
+  const actionItems = items.filter((item) => item.tone === "action")
+  /**
+   * 只有当调用方**没有**给出 `groups` 时才单独渲染动作块。
+   *
+   * 显式 `groups` 已经决定了动作块放在哪里——某个分组本身可能就是动作块。
+   * 两种渲染同时生效会让同一个动作出现两次：CRM 传入 `groups`（其中含
+   * 「添加客户」动作）之后，`items` 里同一项又会走一遍动作块分支，
+   * `nav-add-customer` 于是解析到两个元素。v1.0.0 没暴露这个问题，
+   * 只因为那时 `items` 回落到演示默认值（不含 action），动作块恒为空。
+   */
+  const hasExplicitGroups = Boolean(groups && groups.length > 0)
+  const standaloneActionItems = hasExplicitGroups ? [] : actionItems
   const resolvedGroups: NavGroupDef[] =
-    groups && groups.length > 0
+    hasExplicitGroups && groups
       ? groups
       : [{ id: "primary", label: sectionLabel ?? t.a11y.sectionLabel, items: pageItems }]
 
   return (
     <div className="flex h-full flex-col">
-      <Brand brand={resolvedBrand} />
+      <Brand brand={brand} />
       <span aria-hidden className="mx-3 h-px bg-sidebar-border" />
 
       {/*
@@ -342,10 +339,10 @@ export function SidebarNav({
           </div>
         ))}
 
-        {actionItems.length > 0 ? (
+        {standaloneActionItems.length > 0 ? (
           <>
             <span aria-hidden className="mx-2.5 my-2.5 h-px bg-sidebar-border" />
-            {actionItems.map((item) => {
+            {standaloneActionItems.map((item) => {
               const Icon = item.icon
               return (
                 <button
@@ -457,13 +454,13 @@ export function SidebarNav({
           >
             <Avatar size="sm">
               <AvatarFallback className="bg-brand-soft text-brand">
-                {resolvedUser.initials}
+                {user.initials}
               </AvatarFallback>
             </Avatar>
             <span className="flex min-w-0 flex-1 flex-col leading-tight">
-              <span className="truncate text-label font-semibold">{resolvedUser.name}</span>
+              <span className="truncate text-label font-semibold">{user.name}</span>
               <span className="truncate text-[0.6875rem] text-muted-foreground">
-                {resolvedUser.email}
+                {user.email}
               </span>
             </span>
             <ChevronRightIcon className="size-3.5 shrink-0 text-muted-foreground/50 transition-transform duration-hover group-hover/account:translate-x-0.5 group-hover/account:text-brand" />
@@ -472,13 +469,13 @@ export function SidebarNav({
           <div className="flex items-center gap-2.5 rounded-panel border border-sidebar-border bg-surface/55 p-2 transition-colors duration-hover hover:bg-surface">
             <Avatar size="sm">
               <AvatarFallback className="bg-brand-soft text-brand">
-                {resolvedUser.initials}
+                {user.initials}
               </AvatarFallback>
             </Avatar>
             <div className="flex min-w-0 flex-1 flex-col leading-tight">
-              <span className="truncate text-label font-semibold">{resolvedUser.name}</span>
+              <span className="truncate text-label font-semibold">{user.name}</span>
               <span className="truncate text-[0.6875rem] text-muted-foreground">
-                {resolvedUser.email}
+                {user.email}
               </span>
             </div>
           </div>
@@ -508,9 +505,10 @@ export function Sidebar({
 }: {
   active: NavId
   onNavigate: (id: NavId) => void
-  brand?: NavBrandDef
-  items?: NavItemDef[]
-  user?: NavUserDef
+  /** 产品身份三件套——必填，Factory 不提供默认值。 */
+  brand: NavBrandDef
+  items: NavItemDef[]
+  user: NavUserDef
   usage?: NavUsageDef | null
   context?: NavContextDef | null
   status?: NavStatusDef | null
