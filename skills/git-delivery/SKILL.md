@@ -93,7 +93,17 @@ push 前再次确认：
 git branch --show-current   # 绝对不能是 main
 ```
 
-然后：
+**先做生产分支预检**（v1.2 新增，不可跳过）：
+
+```bash
+node scripts/verify-deployment.mjs preflight --branch feature/<name> --production-branch <项目当前值>
+```
+
+- **目标分支就是 Production Branch → STOP，请求用户授权。** 该 push 可能**自动创建 Production deployment**。
+- **Production Branch 未知 → 也 STOP。** "不知道"不是"不会触发生产"。
+- **绝不允许"先 push 再 cancel"**：Production 建起来之后 cancel 不是回滚。
+
+预检通过（不是生产分支，或已获得一次性明确授权）后：
 
 ```bash
 git push -u origin feature/<name>
@@ -111,7 +121,29 @@ feature branch → GitHub → Vercel → Preview Deployment
 
 不需要在项目里加入 Vercel API、Vercel CLI automation 或 GitHub Actions，**除非以后明确需要**。
 
-推送后把 Preview URL 报告给用户，等待**人工确认**。
+推送后把 Preview URL 报告给用户，等待**人工确认**。汇报时：
+
+- **不要靠 URL 判断**这是不是 Preview，先验证身份（`target` / `git ref` / `git SHA` / `readyState`）：
+  ```bash
+  node scripts/verify-deployment.mjs verify --deployment <deployment.json>
+  ```
+- **受 SSO 保护就写受保护，不得称为 public**——只有匿名请求返回 2xx 才支持 "public" 这个说法：
+  ```bash
+  node scripts/verify-deployment.mjs access --status <匿名请求状态码> [--location <跳转目标>]
+  ```
+- 如果为了访问 Preview 用了 `vercel curl`，**必须说明它顺带创建了 automation bypass secret**，
+  以及它是否仍然存在。
+
+### 8. 发布到 Production（需要单独的一次性授权）
+
+只有当用户**明确要求发布**、并且**明确授权创建 Production deployment** 时才做，且必须：
+
+```bash
+# Production 部署的 SHA == 已验收 RC 的 SHA
+node scripts/verify-deployment.mjs verify --deployment production.json --rc <已验收的 SHA>
+```
+
+完整授权矩阵见 `docs/vercel-bootstrap.md` 第 0 节。Agent 默认**不做这一步**。
 
 ## 关于 merge
 

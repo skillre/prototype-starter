@@ -13,7 +13,8 @@
     "qa": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON .qa/browser-qa.mjs",
     "qa:doctor": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/doctor-gate.mjs",
     "factory:manifest": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/validate-manifest.mjs",
-    "factory:kits": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/install-kits.mjs"
+    "factory:kits": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/install-kits.mjs",
+    "factory:deploy": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-deployment.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

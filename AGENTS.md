@@ -271,6 +271,35 @@ feature branch → development → browser QA → Playwright
 
 Agent 默认**禁止自动 merge**；默认禁止 push main、合并 main、删除 feature branch。只有用户明确要求时才执行 merge。发生 merge conflict：**停止并报告**，不擅自进行高风险 conflict resolution。
 
+### 部署授权（Vercel）
+
+**这是基础设施边界，不是构建配置。完整契约见 `docs/vercel-bootstrap.md` 第 0 节。**
+
+没有用户**明确授权**时，不得：
+
+- 创建 Vercel Project · link project · 修改 Production Branch · 修改 Deployment Protection
+- 创建 Production deployment · 把 Preview 提升为 Production · 创建 automation bypass secret
+- **push 到项目的 Production Branch**（它可能自动创建 Production deployment）
+
+另外四条：
+
+1. **push Production Branch 之前先探测再决定。** Production Branch 未知时也要 **STOP**——
+   "不知道"不是"不会触发生产"。**不允许先 push 再 cancel**：Production 建起来之后 cancel 不是回滚。
+2. **部署身份必须验证 `target` / `git ref` / `git SHA` / `readyState`，不能靠 URL。**
+   `gitSource` 的 target 语义不能猜，要回读。
+3. **受 SSO 保护的 URL 不得称为 public。** 只有匿名请求 2xx 才支持 "public" 这个说法。
+4. **`vercel curl` 会顺带创建 automation bypass secret。** 执行前说明，或执行后立即披露——
+   包括它是否仍然存在。不得当普通 curl 处理。
+
+```bash
+node scripts/verify-deployment.mjs actions     # 授权矩阵
+node scripts/verify-deployment.mjs preflight --branch <b> [--production-branch <p>] [--authorized]
+node scripts/verify-deployment.mjs verify --deployment <json> --rc <accepted-sha>
+node scripts/verify-deployment.mjs access --status <code> [--location <url>]
+```
+
+发布到 Production 时：**Production 部署的 SHA 必须等于已验收 RC 的 SHA**（`pnpm factory:deploy`）。
+
 ## 设计 Token
 
 一切视觉常量来自 `app/globals.css` 的 design token 层（typography `text-display/title/subtitle/heading/caption/label/eyebrow/metric/metric-sm/numeric`、semantic spacing `p-gutter/gap-stack/mt-section`、radius `rounded-field/rounded-card/rounded-panel`、motion `duration-*`/`ease-*`、内容宽度 `max-w-dashboard/content/text`）。禁止在页面里撒 magic number。
