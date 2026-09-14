@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test"
 import type { Page } from "@playwright/test"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 
 import {
   STYLE_PRESENCE_CHANNELS,
@@ -230,5 +232,42 @@ test.describe("style presence · probe integrity", () => {
     // If the reference document itself has author CSS, every comparison after it
     // is meaningless — so it must never be accepted as a reference.
     expect(() => assertBaselineIsUnstyled(sampleOf({ bodyMarginTop: 0 }))).toThrow(/参照物被污染/)
+  })
+})
+
+/* -------------------------------------------------------------------------- */
+/* §13 — the pairing rule is pinned where an agent reads it                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * "Role-count parity is necessary, not sufficient" is the one sentence that
+ * keeps the Invisible Semantics detector from being read as a clean bill of
+ * health. A paired check that is half-forgotten is the failure it guards
+ * against, so the statement is asserted rather than trusted to survive edits.
+ */
+test.describe("DOM == AX is documented as necessary, not sufficient", () => {
+  const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8")
+
+  test("the sweep, the standard and AGENTS.md all say it", () => {
+    const sweep = read(".qa/browser-qa.mjs")
+    expect(sweep).toMatch(/necessary, not sufficient/i)
+    expect(sweep).toMatch(/aria-hidden`-host scan/)
+
+    const doc = read("docs/browser-qa.md")
+    expect(doc).toContain("必要条件")
+    expect(doc).toMatch(/不是「没有 Invisible Semantics」的充分条件/)
+    expect(doc).toMatch(/被隐藏宿主扫描/)
+
+    const agents = read("AGENTS.md")
+    expect(agents).toMatch(/DOM == AX` 是必要条件，不是充分条件/)
+    expect(agents).toMatch(/两条检查必须同时存在/)
+  })
+
+  test("the paired detector still exists and is still wired in", () => {
+    // If the aria-hidden-host scan is ever removed, parity becomes the only
+    // check — and parity cannot see a fully pruned subtree.
+    const sweep = read(".qa/browser-qa.mjs")
+    expect(sweep).toContain("INVISIBLE_SEMANTICS_VIOLATIONS")
+    expect(sweep).toContain("no interactive content under aria-hidden")
   })
 })
