@@ -225,7 +225,12 @@ const VALID_MANIFEST = {
 
 test("Visual Manifest: a complete manifest validates", () => {
   const result = validateVisualManifest(VALID_MANIFEST)
-  expect(result.issues).toEqual([])
+  // `ok` means "no errors". Warnings are advice, and v1.2 added one: an
+  // undeclared signature budget is a decision the Factory refuses to make on the
+  // product's behalf, so it says so out loud instead of assuming a number. The
+  // budget contract itself is tested in tests/art-direction.spec.ts.
+  expect(result.issues.filter((issue) => issue.severity === "error")).toEqual([])
+  expect(result.issues.map((issue) => issue.code)).toEqual(["manifest/signature-budget-undeclared"])
   expect(result.ok).toBe(true)
 })
 

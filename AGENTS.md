@@ -339,14 +339,26 @@ Factory Core **禁止**出现：具体 Style Pack 名、具体签名组件名、
 ### Art Direction Gate（不可跳过）
 
 ```
-Understand → Inspect → Product Model → Visual Direction → Visual Manifest
-→ 【人工 / 显式 Art Direction checkpoint】
+Understand → Inspect → Product Model
+→ Art Direction Divergence   ← 这个产品为什么不该长得像 Reference Sample / 上一个 Prototype？
+→ Visual Manifest            ← 把决定写下来（含 intentional deviations）
+→ 【Human Art Direction Gate：九问，人工确认】
 → kits add → Build → Invariant tests → Browser QA → Test → Preview
 → Visual Acceptance → Release
 ```
 
+- **Divergence 先于 Manifest。** 在继承任何已有视觉模式之前，先给出 divergence statement：
+  禁止 dashboard hero / 不用 sidebar 作主结构 / 不采用 card grid / mobile 必须重新编排……
+  Starter 与 Style Pack 会施加一个重力场；不说话，产出就会朝它塌下去。它是**人的输入**，不是生成物。
 - **任何业务 Prototype 在 UI 实现前必须先产出 `visual-manifest.json`。**
   没有 Manifest 就开始写 JSX = 违规。`pnpm factory:kits` 会直接拒绝。
+- **与 pack 默认不一致的地方必须记进 `deviations`**（`axis` / `from` / `to` / `reason`）。
+  偏离是**记录，不是自动批准**：它不能绕过 `avoid`，链接轴（`density` / `motion`）还必须与对应字段一致。
+  没记录的偏离 = 下一个人眼里的笔误。
+- **签名组件数量上限由人写进 `signatureComponentBudget`。** Factory 守住你写的数，不替你定数；
+  没写就只是 warning（不假装通过）。0 个是合法决定。
+- **校验分三层**：L1 字段合法性 → L2 Factory 自洽 → L3 与所选 pack 的 profile 比对
+  （`motion.language` / `profile.density`，只在 Kits 在场时）。**L3 没跑就说没跑，不写成 PASS。**
 - **Agent 不能在没有 Manifest 的情况下默认生成 generic AI SaaS visual。**
   默认审美（卡片 + 阴影 + 渐变 + 紫色）会主动回拉，Manifest 就是那道闸门。
 - **Manifest 里 `firstVisual` 与 `avoid` 是强约束**，由校验器强制。

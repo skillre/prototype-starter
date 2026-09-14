@@ -1,6 +1,6 @@
 # Prototype Creation Workflow
 
-Factory v1.1 的正式生产流程。**顺序不可交换**——每一步都在为下一步消除一整类返工。
+Factory v1.2 的正式生产流程。**顺序不可交换**——每一步都在为下一步消除一整类返工。
 
 ```
 Factory baseline
@@ -13,7 +13,11 @@ feature/<product>
       ↓
 Product Model
       ↓
-Visual Manifest          ← Art Direction Gate：写 UI 之前必须先有
+Art Direction Divergence ← 先回答：这个产品为什么不该长得像 Reference Sample / 上一个原型
+      ↓
+Visual Manifest          ← 把决定写下来（含 intentional deviations）
+      ↓
+Human Art Direction Gate ← 人工停一次，不可跳过：九问，答完才能继续
       ↓
 Kits Source Installation
       ↓
@@ -62,19 +66,68 @@ git branch --show-current        # 必须是 feature/<product>
 
 这一阶段的产出不是代码，是对"第一视觉焦点是什么"的初步判断——它是下一步的输入。产品模型没想清楚就开始选色，最后得到的是"哪都还行、哪都不成立"。
 
-### 4 · Visual Manifest — Art Direction Gate
+### 4 · Art Direction Divergence
 
-**在写任何 UI 之前**产出 `visual-manifest.json`。
+**先于 Manifest。** 在继承任何已有视觉模式之前，回答一句话：
+
+> **这个产品为什么不应该长得像 Reference Sample / 上一个 Prototype？**
+
+为什么这一步必须单独存在：Starter 与 Style Pack 会主动施加一个**重力场**。baseline 里
+有 sidebar、有 hero、有卡片网格、有环境光；什么都不说的时候，产出就会朝那个形状塌下去
+——而那不是任何人为这个产品做的决定。
+
+这一步的产出是一句 **divergence statement**（写进 Manifest 之前的草稿，不需要机器格式），
+例如：
+
+- 禁止 dashboard hero：这个产品没有"总览"这个动作；
+- 不使用 sidebar 作为主结构：主结构是纵向论证链；
+- 不采用 card grid：区域之间靠 hairline 与留白分开；
+- mobile 必须重新编排，而不是把三列压成一列；
+- 第一视觉由"缺口"而不是指标数字主导。
+
+它不是"再写一份设计文档"，也不是 Manifest 的自动生成物——**它是人的 Art Direction 输入**。
+写不出这句话，通常意味着 Product Model（第 3 步）还没想清楚。
+
+> v1.1 的流程里没有这一步，于是"不要长得像默认模板"这件事只存在于 `avoid` 字段里，
+> 而 `avoid` 是**结果**；这一步是产生它的**过程**。
+
+### 5 · Visual Manifest
+
+**在写任何 UI 之前**产出 `visual-manifest.json`，把第 3、4 步的决定写成**机器可检查的形状**。
 
 见 `docs/visual-manifest.md`。要点：
 
 - 八项必填；`firstVisual` 与 `avoid` 是强约束，会被校验器强制；
+- 与 pack 默认不一致的地方写进 `deviations`（axis / from / to / reason）——
+  偏离是**记录**，不是自动批准，也不能绕过 `avoid`；
+- 签名组件数量上限写进 `signatureComponentBudget`（Factory 只守你写的数，不替你定数）；
 - 具体可选值从 Kits registry 读取，Factory 不复制；
-- 校验：`pnpm factory:manifest`。
+- 校验：`pnpm factory:manifest`（结构 → 自洽 → 与 pack 比对）。
 
 **没有 Manifest 就不能进入实现。** `pnpm factory:kits` 会直接拒绝。
 
-### 5 · Kits Source Installation（`kits add`）
+### 6 · Human Art Direction Gate
+
+**在安装 Kits 与写 UI 之前，人工停一次。** 这不是审批流程，是要求人对下面九件事**给出答案**：
+
+| # | 必须回答 | 落在哪 |
+|---|---|---|
+| 1 | 第一视觉是什么 | `firstVisual` |
+| 2 | 页面**绝对不能**长成什么 | `avoid` |
+| 3 | density | `density`（与 pack 不一致就写 `deviations`） |
+| 4 | motion direction | `motionDirection` |
+| 5 | signature budget：最多几个签名组件 | `signatureComponentBudget` |
+| 6 | Style Pack | `stylePack` |
+| 7 | effects budget：要不要 effect、最多几个 | `effects` |
+| 8 | desktop / mobile 是否需要结构分化 | 决定 + 写进 divergence statement |
+| 9 | 是否存在 intentional deviations，理由是什么 | `deviations[].reason` |
+
+**九问，不是二十项问卷。** 每一问都对应一个会被机器检查的字段或一条会进 `avoid` 的约束；
+答不上来的那一问就是这一步存在的理由。Agent 可以起草，**不能代替人确认**。
+
+回答完之后 `pnpm factory:manifest` 必须通过；`deviations` 里每一条都要有理由。
+
+### 7 · Kits Source Installation（`kits add`）
 
 机制上这一步就是执行 `kits add`，由 Factory 包装成一条命令：
 
@@ -85,7 +138,7 @@ pnpm factory:kits --write      # 真实安装 → 校验 lock → 跑 doctor
 
 参数全部来自 Manifest（`stylePack` / `signatureComponents` / `effects`）。Factory 调用 Kits CLI，不重新实现它。
 
-### 6 · Product-owned adapters
+### 8 · Product-owned adapters
 
 `lib/kits/adapters/` 归产品所有，Kits 永不覆盖。产品的手写集成放这里。
 
@@ -93,11 +146,11 @@ pnpm factory:kits --write      # 真实安装 → 校验 lock → 跑 doctor
 
 见 `docs/kits-ownership.md`。
 
-### 7 · Build
+### 9 · Build
 
 真实组件 + 局部状态驱动。每个可见控件连到 state 或 store；不允许假按钮，不允许静态 mockup。
 
-### 8 · Invariant tests（数据型原型必做）
+### 10 · Invariant tests（数据型原型必做）
 
 **复杂数据产品：先定义不变量，再做 UI。**
 
@@ -114,9 +167,9 @@ pnpm factory:kits --write      # 真实安装 → 校验 lock → 跑 doctor
 
 > Factory **不**包含任何具体的账本规则。AI Finance 的金额/停滞天数语义属于 AI Finance。
 
-写不变量测试的时机是第 8 步，不是第 12 步：它是 UI 的**规格**，不是 UI 的**备注**。
+写不变量测试的时机是第 10 步，不是第 14 步：它是 UI 的**规格**，不是 UI 的**备注**。
 
-### 9 · Browser QA
+### 11 · Browser QA
 
 ```bash
 pnpm qa
@@ -128,7 +181,7 @@ pnpm qa
 0 console error · 0 page error · 0 request failure · 0 横向溢出 · 0 viewport expansion
 ```
 
-### 10 · Preview
+### 12 · Preview
 
 ```bash
 pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm qa
@@ -139,24 +192,25 @@ git push -u origin feature/<product>
 
 → GitHub → Vercel Preview。见 `docs/vercel-bootstrap.md`。
 
-### 11 · Human Visual Acceptance
+### 13 · Human Visual Acceptance
 
 **机器能证明的是"没有回归"；"这一版好不好看"不在机器的证据范围内。**
 
 Preview URL 交给用户做人工视觉验收。同时复核 Manifest 的约束是否被遵守——特别是 `avoid` 里的每一条在产物里是否真的没有出现。
 
-### 12 · Release → Production → Hub registration
+### 14 · Release → Production → Hub registration
 
 只有用户明确要求时才 merge `main`。Agent 默认不 merge、不 tag、不删 feature branch。
 
 ---
 
-## Agent 不能跳过的四步
+## Agent 不能跳过的五步
 
 | 步骤 | 跳过会怎样 |
 |---|---|
+| **Art Direction Divergence** | 直接继承 baseline 的重力场：sidebar + hero + card grid，产出"哪个产品都能用，但哪个都不是" |
 | **Visual Manifest** | 回到默认审美：卡片 + 阴影 + 渐变 + 紫色，产出"哪都还行、哪都不成立" |
-| **Art Direction checkpoint** | Agent 替人做了设计决策，而且没有记录 |
+| **Human Art Direction Gate** | Agent 替人做了设计决策，而且没有记录——有意偏离会以"笔误"的样子留在 Manifest 里 |
 | **Invariant tests** | 数据型原型的正确性靠肉眼，每次视觉调整都在赌 |
 | **Human Visual Acceptance** | 把"没有回归"当成"可以发布" |
 
@@ -164,6 +218,6 @@ Preview URL 交给用户做人工视觉验收。同时复核 Manifest 的约束�
 
 ## 现在还没做的自动化
 
-Factory v1.1 **不做** one-click generator。上面的流程定义了接口，但每个阶段的判断仍然是人的（或 Agent 的）工作。
+Factory v1.2 **不做** one-click generator。上面的流程定义了接口，但每个阶段的判断仍然是人的（或 Agent 的）工作。
 
 下一阶段可以考虑 `create-prototype` v0.1，但它的设计前提是这条流程已经被真实跑过——那正是 v1.1 提供的。
