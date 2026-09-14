@@ -14,7 +14,9 @@
     "qa:doctor": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/doctor-gate.mjs",
     "factory:manifest": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/validate-manifest.mjs",
     "factory:kits": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/install-kits.mjs",
-    "factory:deploy": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-deployment.mjs"
+    "factory:deploy": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-deployment.mjs",
+    "factory:contract": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-product-contract.mjs",
+    "factory:init": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-init.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

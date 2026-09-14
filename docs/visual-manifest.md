@@ -177,6 +177,7 @@ Manifest 不是文档，是**门**。
 
 ```
 Understand → Inspect → Product Model
+→ Product Semantic Invariants
 → Art Direction Divergence   ← 先回答「为什么不该长得像 Reference Sample / 上一个 Prototype」
 → Visual Manifest
 → 【Human Art Direction Gate：九问】

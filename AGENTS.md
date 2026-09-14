@@ -198,6 +198,30 @@ Factory 不 vendor 任何 Kits 内容，只集成**调用机制**。安装后：
 
 详见 `docs/kits-ownership.md`。
 
+## Product Semantic Contract（产品语义不变量）
+
+**视觉回答「长什么样」；语义回答「绝不能搞错什么」。两者分开。**
+
+`product-contract.json` 是产品语义约束的登记面，**不是** Visual Manifest 的一部分：
+
+```json
+{ "schemaVersion": 1,
+  "invariants": [
+    { "id": "tension.resolved-requires-fact-change",
+      "statement": "把紧张标记为已解决必须伴随一次真实的事实变更，而不只是状态字段被改写。",
+      "enforcement": "test" } ] }
+```
+
+- **id 机器可读、与语言无关**（点分小写 kebab），不依赖中文文案，也不依赖测试标题；
+- **测试用 `tests/support/product-contract.ts` 的 `invariant(id, title, …)` 登记**同一个 id；
+- `pnpm factory:contract` **双向核对**：声明了没登记 → FAIL；登记了没声明 → FAIL；
+- **0 条合法**，但它必须是一个决定（gate 会以 warning 说出来）；
+- **Factory 不生成、不推断、不改写任何一条**：不许从代码猜 invariant、从 UI 猜状态机、
+  自动生成 statement 或领域测试。判断是人做的。
+
+> 第三 Prototype 的 18 条不变量写得很好、也都有测试——但它们只活在一个 spec 文件里，
+> 文件之外没有任何东西看得见。F11 要修的就是这个。
+
 ## Git 工作流与安全
 
 ### Git 安全规则（红线）
@@ -340,6 +364,7 @@ Factory Core **禁止**出现：具体 Style Pack 名、具体签名组件名、
 
 ```
 Understand → Inspect → Product Model
+→ Product Semantic Invariants  ← 先定义「绝不能搞错什么」，登记进 product-contract.json
 → Art Direction Divergence   ← 这个产品为什么不该长得像 Reference Sample / 上一个 Prototype？
 → Visual Manifest            ← 把决定写下来（含 intentional deviations）
 → 【Human Art Direction Gate：九问，人工确认】
@@ -427,7 +452,7 @@ border / rule 的基础语义 · reduced motion 行为。
 source data == visualization（图上数值 == 源数据）· insights refer to real records（洞察引用真实记录且可跳转）。
 
 **Factory 只建立这条契约，不包含任何具体业务规则。** 具体账本规则属于具体产品。
-详见 `docs/prototype-creation-workflow.md`。
+不变量写在 `product-contract.json` 并用 `invariant()` 登记（见下），详见 `docs/prototype-creation-workflow.md` 第 4 步。
 
 ## 文案与本地化
 
@@ -452,7 +477,9 @@ pnpm build             # production build（Turbopack）
 pnpm qa                # Browser QA 全量扫描（自带 server，端口 3200）
 pnpm check             # lint + typecheck + test + build + qa
 
-pnpm factory:manifest  # 校验 visual-manifest.json（结构 + 上游比对）
+pnpm factory:manifest  # 校验 visual-manifest.json（L1 结构 + L2 自洽 + L3 与 pack 比对）
+pnpm factory:contract  # 产品语义不变量：声明 ↔ 测试登记，双向核对
+pnpm factory:deploy    # 部署授权与身份（preflight / verify / access / actions）
 pnpm factory:kits      # 依 Manifest 安装 Kits（默认 dry-run）
 pnpm factory:kits --write
 pnpm qa:doctor         # Kits doctor 质量门

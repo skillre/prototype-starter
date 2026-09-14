@@ -13,6 +13,8 @@ feature/<product>
       ↓
 Product Model
       ↓
+Product Semantic Invariants ← 先定义「绝不能搞错什么」，登记进 product-contract.json
+      ↓
 Art Direction Divergence ← 先回答：这个产品为什么不该长得像 Reference Sample / 上一个原型
       ↓
 Visual Manifest          ← 把决定写下来（含 intentional deviations）
@@ -66,7 +68,56 @@ git branch --show-current        # 必须是 feature/<product>
 
 这一阶段的产出不是代码，是对"第一视觉焦点是什么"的初步判断——它是下一步的输入。产品模型没想清楚就开始选色，最后得到的是"哪都还行、哪都不成立"。
 
-### 4 · Art Direction Divergence
+### 4 · Product Semantic Invariants
+
+**先于 Art Direction，先于 UI。** 回答：**这个产品绝对不能在语义上搞错什么？**
+
+第三 Prototype 的 18 条不变量就是这一类东西——`resolved ≠ accepted-as-limitation`、
+AI 建议不得进入 Finding、派生事实与人的处置不是同一份状态。它们不是视觉约束，
+所以**不放进 `visual-manifest.json`**；它们进 `product-contract.json`：
+
+```json
+{
+  "schemaVersion": 1,
+  "invariants": [
+    {
+      "id": "tension.resolved-requires-fact-change",
+      "statement": "把紧张标记为「已解决」必须伴随一次真实的事实变更，而不是只改状态字段。",
+      "enforcement": "test"
+    }
+  ]
+}
+```
+
+并用 `tests/support/product-contract.ts` 的 `invariant()` 把测试登记到同一个 id 上：
+
+```ts
+invariant("tension.resolved-requires-fact-change", "已解决必须有事实变更", () => {
+  test("负例：只改状态码 → 必须被拒绝", async () => { … })
+})
+```
+
+```bash
+pnpm factory:contract     # 双向核对：声明 ↔ 登记
+```
+
+- **id 是机器可读的、与语言无关的**（点分小写 kebab），不依赖中文文案，也不依赖测试标题；
+- **声明与 enforcement 缺一不可**：声明了没人守 → FAIL；测试登记了没声明 → FAIL；
+- **0 条是合法的**，但它必须是一个决定，不是没人问过；
+- **Factory 不生成、不推断、不改写任何一条**：判断是人做的，这里只提供登记面与一致性门。
+
+**不变量先于 UI 写完**，因为它是 UI 的**规格**，不是 UI 的**备注**：
+
+| 类型 | 判断标准 |
+|---|---|
+| 总量守恒 | 分项之和 == 总计 |
+| 派生一致性 | 派生指标 == 从原始数据重算的结果 |
+| 数据 == 可视化 | 图上渲染的数值 == 源数据里的数值 |
+| 引用真实记录 | 洞察里的实体确实存在于数据集中，且可跳转 |
+
+> Factory **不**包含任何具体账本规则。AI Finance 的金额/停滞天数语义属于 AI Finance。
+
+### 5 · Art Direction Divergence
 
 **先于 Manifest。** 在继承任何已有视觉模式之前，回答一句话：
 
@@ -91,7 +142,7 @@ git branch --show-current        # 必须是 feature/<product>
 > v1.1 的流程里没有这一步，于是"不要长得像默认模板"这件事只存在于 `avoid` 字段里，
 > 而 `avoid` 是**结果**；这一步是产生它的**过程**。
 
-### 5 · Visual Manifest
+### 6 · Visual Manifest
 
 **在写任何 UI 之前**产出 `visual-manifest.json`，把第 3、4 步的决定写成**机器可检查的形状**。
 
@@ -106,7 +157,7 @@ git branch --show-current        # 必须是 feature/<product>
 
 **没有 Manifest 就不能进入实现。** `pnpm factory:kits` 会直接拒绝。
 
-### 6 · Human Art Direction Gate
+### 7 · Human Art Direction Gate
 
 **在安装 Kits 与写 UI 之前，人工停一次。** 这不是审批流程，是要求人对下面九件事**给出答案**：
 
@@ -127,7 +178,7 @@ git branch --show-current        # 必须是 feature/<product>
 
 回答完之后 `pnpm factory:manifest` 必须通过；`deviations` 里每一条都要有理由。
 
-### 7 · Kits Source Installation（`kits add`）
+### 8 · Kits Source Installation（`kits add`）
 
 机制上这一步就是执行 `kits add`，由 Factory 包装成一条命令：
 
@@ -138,7 +189,7 @@ pnpm factory:kits --write      # 真实安装 → 校验 lock → 跑 doctor
 
 参数全部来自 Manifest（`stylePack` / `signatureComponents` / `effects`）。Factory 调用 Kits CLI，不重新实现它。
 
-### 8 · Product-owned adapters
+### 9 · Product-owned adapters
 
 `lib/kits/adapters/` 归产品所有，Kits 永不覆盖。产品的手写集成放这里。
 
@@ -146,28 +197,9 @@ pnpm factory:kits --write      # 真实安装 → 校验 lock → 跑 doctor
 
 见 `docs/kits-ownership.md`。
 
-### 9 · Build
+### 10 · Build
 
 真实组件 + 局部状态驱动。每个可见控件连到 state 或 store；不允许假按钮，不允许静态 mockup。
-
-### 10 · Invariant tests（数据型原型必做）
-
-**复杂数据产品：先定义不变量，再做 UI。**
-
-在 UI 大规模实现**之前**写好不变量测试，而不是等页面做完了再补。理由很实际：数据型 UI 的价值完全建立在"图上的数字是对的"之上；如果这一点没有测试守住，后面每一次视觉调整都在赌。
-
-不变量是**产品的**，不是 Factory 的。Factory 只要求这件事发生，并给出判断标准：
-
-| 类型 | 例子 |
-|---|---|
-| 总量守恒 | 分项之和 == 总计 |
-| 派生一致性 | 派生指标 == 从原始数据重算的结果 |
-| 数据 == 可视化 | 图上渲染的数值 == 源数据里的数值 |
-| 引用真实记录 | 洞察里的实体确实存在于数据集中，且可跳转 |
-
-> Factory **不**包含任何具体的账本规则。AI Finance 的金额/停滞天数语义属于 AI Finance。
-
-写不变量测试的时机是第 10 步，不是第 14 步：它是 UI 的**规格**，不是 UI 的**备注**。
 
 ### 11 · Browser QA
 
@@ -202,12 +234,24 @@ Preview URL 交给用户做人工视觉验收。同时复核 Manifest 的约束�
 
 只有用户明确要求时才 merge `main`。Agent 默认不 merge、不 tag、不删 feature branch。
 
+**部署不是一次中立的 push。** 发布到 Production 之前读 `docs/vercel-bootstrap.md` 第 0 节，
+并跑一次预检：
+
+```bash
+node scripts/verify-deployment.mjs preflight --branch <b> [--production-branch <p>] [--authorized]
+node scripts/verify-deployment.mjs verify --deployment <json> --rc <已验收 SHA>
+```
+
+创建 / 连接 Project、改 Production Branch、改 Deployment Protection、创建 Production deployment、
+创建 bypass token 都需要用户**明确授权**；受 SSO 保护的 URL 不得称为 public。
+
 ---
 
-## Agent 不能跳过的五步
+## Agent 不能跳过的六步
 
 | 步骤 | 跳过会怎样 |
 |---|---|
+| **Product Semantic Invariants** | 最承重的产品决策只活在某个 spec 文件里：没有登记、没人复查、换人即失传 |
 | **Art Direction Divergence** | 直接继承 baseline 的重力场：sidebar + hero + card grid，产出"哪个产品都能用，但哪个都不是" |
 | **Visual Manifest** | 回到默认审美：卡片 + 阴影 + 渐变 + 紫色，产出"哪都还行、哪都不成立" |
 | **Human Art Direction Gate** | Agent 替人做了设计决策，而且没有记录——有意偏离会以"笔误"的样子留在 Manifest 里 |

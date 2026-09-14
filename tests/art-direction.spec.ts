@@ -513,8 +513,8 @@ test.describe("the Art Direction Gate in the workflow", () => {
 
   test("the divergence step asks a question about the previous visual", () => {
     const doc = workflow()
-    const start = doc.indexOf("### 4 · Art Direction Divergence")
-    const end = doc.indexOf("### 5 ·", start)
+    const start = doc.indexOf("### 5 · Art Direction Divergence")
+    const end = doc.indexOf("### 6 ·", start)
     expect(start, "divergence 必须是一个独立阶段").toBeGreaterThan(-1)
     const section = doc.slice(start, end)
 
@@ -528,8 +528,8 @@ test.describe("the Art Direction Gate in the workflow", () => {
 
   test("the gate lists the decisions a human must answer, and is not a questionnaire", () => {
     const doc = workflow()
-    const start = doc.indexOf("### 6 · Human Art Direction Gate")
-    const end = doc.indexOf("### 7 ·", start)
+    const start = doc.indexOf("### 7 · Human Art Direction Gate")
+    const end = doc.indexOf("### 8 ·", start)
     expect(start, "Human Art Direction Gate 必须是独立阶段").toBeGreaterThan(-1)
     const gate = doc.slice(start, end)
 

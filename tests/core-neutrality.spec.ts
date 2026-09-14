@@ -10,6 +10,7 @@ import {
   compareStylePresence,
 } from "../.qa/style-presence.mjs"
 import { walkScoped } from "../scripts/lib/kits-seam.mjs"
+import { invariant } from "./support/product-contract"
 
 /**
  * Core neutrality (Factory v1.2 · N1 = F3 + F4).
@@ -373,3 +374,27 @@ test.describe("the Reference Sample opts in explicitly", () => {
     }
   })
 })
+
+/* -------------------------------------------------------------------------- */
+/* the registered invariant                                                    */
+/* -------------------------------------------------------------------------- */
+
+invariant(
+  "factory.core-not-art-directed",
+  "Factory Core 的默认输出不携带 Art Direction personality",
+  () => {
+    test("中性层无性格 token，且每个消费性格的共享组件都保留了中性默认", () => {
+      expect(PERSONALITY_PATTERN.test(read("app/globals.css")), "globals.css 不得含性格 token").toBe(
+        false,
+      )
+      for (const [file, gates] of Object.entries(GATED_PERSONALITY_CONSUMERS)) {
+        for (const gate of gates) {
+          expect(read(file), `${file} 必须保留 gate：${gate}`).toContain(gate)
+        }
+      }
+      for (const [file, gate] of Object.entries(CAPABILITY_DEFAULTS)) {
+        expect(read(file), `${file} 必须保留中性默认：${gate}`).toContain(gate)
+      }
+    })
+  },
+)
