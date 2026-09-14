@@ -89,6 +89,9 @@ pnpm qa --routes=/demo
 - **真实内容祖先禁止 `aria-hidden="true"`。** 只有装饰性元素才允许。
 - 注意 pruned 的精确含义：`aria-hidden` / `hidden` / `inert` / `display:none` 剪子树；
   `role="presentation"` **只去掉该节点自己的语义，不剪子树**。
+- **`DOM == AX` 是必要条件，不是充分条件。** 剪枝会同时从两侧移除节点，整块内容被隐藏时两侧数量依然相等。
+  真正的检测器是配套的「`aria-hidden` 宿主内不得有可交互内容」扫描。**两条检查必须同时存在**，
+  任何一条被删掉，这一类回归都会重新变成静默通过。
 
 ### QA Probe Integrity
 
@@ -107,6 +110,20 @@ pnpm qa --routes=/demo
 
 **CSS 自定义属性只在声明它的元素及其后代上可见。** 把探针挂到 `<body>` 上去读一个声明在
 深层元素上的变量，一定读到 0。
+
+### Style Presence（这一页不是一份没写 CSS 的 HTML）
+
+**App Router 按模块图打包 CSS。** 某条路由的入口组件没有 import 那份样式表，样式就永远到不了浏览器——
+而不报错、不警告、DOM 完整、所有按 testid 的断言全部通过。第三个 Prototype 真的发布过这样一条路由。
+
+`pnpm qa` 现在把每条路由与**同一个浏览器**里渲染的**未加样式基线**做差，要求至少在
+`stylePresenceMinChannels` 个独立样式域（`box-reset` · `type` · `surface` · `ink`）上不同。
+
+**禁止**用这些代理指标替代：`styleSheets.length > 0` · CSS 请求存在 · 只检查 CSS 变量是否声明 ·
+`fontFamily !== ""`（UA 默认字体也是非空字符串）· 引用产品专属 class · 注入 debug marker。
+
+**已知边界**：它检测的是**整页处于浏览器默认态**。根样式表加载了、只有路由自己的样式表缺失时，
+产品必须自己写断言（那是产品知识，Factory 无从猜测）。见 `docs/browser-qa.md` 第 7 节。
 
 ### Reduced Motion / Coarse Pointer
 

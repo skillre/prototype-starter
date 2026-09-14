@@ -27,6 +27,12 @@
  *     cost a real regression once, so DOM counts are now compared against the
  *     browser's own accessibility tree per role.
  *
+ *     Role-count parity is **necessary, not sufficient**, and nothing in this
+ *     script may be read as claiming otherwise: pruning removes nodes from
+ *     *both* sides of the comparison, so a fully hidden subtree keeps the two
+ *     counts equal. The paired `aria-hidden`-host scan is what catches the
+ *     actual defect. Two checks, kept together on purpose.
+ *
  *  3. PROBE INTEGRITY. Every numeric probe passes through `measure()`, which
  *     fails loudly on a missing selector or a non-finite value. The failure it
  *     prevents is specific and nasty: `Math.abs(NaN - expected) > tolerance` is
@@ -39,6 +45,12 @@
  *  5. PORT ISOLATION. This script starts its own dev server on a dedicated port
  *     and stops only that child. It refuses to attach to a server it did not
  *     start — see `scripts/check-qa-port.mjs` for why.
+ *
+ *  6. STYLE-LOADED (v1.2). Every route is compared against the browser's own
+ *     unstyled baseline, measured in the same context. A page whose computed
+ *     style matches the default state in every channel is an unstyled document —
+ *     and in that state every other check on this list still passes, which is
+ *     how the third prototype shipped one. See `.qa/style-presence.mjs`.
  *
  * Usage
  * -----
@@ -61,6 +73,7 @@ import {
   pointerRatioTolerance,
   routes as configuredRoutes,
   settleMs,
+  stylePresenceMinChannels,
   themes,
   tolerancePx,
   viewports,
@@ -72,6 +85,15 @@ import {
   LAYOUT_PROBE,
   POINTER_PROBE,
 } from "./probes.mjs"
+import {
+  STYLE_PRESENCE_CHANNELS,
+  STYLE_PRESENCE_PROBE,
+  StylePresenceError,
+  UA_BASELINE_DOCUMENT,
+  assertBaselineIsUnstyled,
+  compareStylePresence,
+  describeStylePresence,
+} from "./style-presence.mjs"
 import { accessibilityRoleCounts } from "./ax-tree.mjs"
 
 /* -------------------------------------------------------------------------- */
@@ -319,6 +341,39 @@ async function stopOwnServer(child) {
 /* In-page probes                                                              */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * The unstyled reference, measured once per (context, theme) and cached.
+ *
+ * It must be the *same browser* — a hard-coded "UA default is 8px / Times"
+ * would be a statement about this machine's locale and font configuration, not
+ * about the browser. Rendering a bare document in the same context makes the
+ * comparison three-way honest: same engine, same locale, same media emulation.
+ */
+const styleBaselines = new WeakMap()
+
+async function styleBaseline(context, theme) {
+  let byTheme = styleBaselines.get(context)
+  if (!byTheme) {
+    byTheme = new Map()
+    styleBaselines.set(context, byTheme)
+  }
+  if (byTheme.has(theme)) return byTheme.get(theme)
+
+  const page = await context.newPage()
+  try {
+    await page.emulateMedia({ colorScheme: theme })
+    await page.setContent(UA_BASELINE_DOCUMENT)
+    const sample = await page.evaluate(STYLE_PRESENCE_PROBE)
+    // A contaminated baseline makes every later comparison meaningless, so it
+    // fails as a probe fault rather than being accepted as a reference.
+    assertBaselineIsUnstyled(sample)
+    byTheme.set(theme, sample)
+    return sample
+  } finally {
+    await page.close()
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 /* One page check                                                              */
 /* -------------------------------------------------------------------------- */
@@ -403,7 +458,30 @@ async function checkPage(context, route, viewport, theme) {
       ok(where, "not horizontally scrollable")
     }
 
+    // ---- style-loaded: is this page the browser default? -------------------
+    // Deliberately before the semantics checks: a page in the browser-default
+    // state produces noise in everything downstream, and the first failure line
+    // should name the actual cause.
+    const baseline = await styleBaseline(context, theme)
+    const styleSample = await page.evaluate(STYLE_PRESENCE_PROBE)
+    const presence = compareStylePresence(baseline, styleSample, {
+      minChannels: stylePresenceMinChannels,
+    })
+    if (!presence.styled) {
+      fail(where, describeStylePresence(presence, baseline, styleSample))
+    } else {
+      ok(
+        where,
+        `style-loaded (${presence.differing.length}/${STYLE_PRESENCE_CHANNELS.length} 通道 ≠ UA baseline)`,
+      )
+    }
+
     // ---- No Invisible Semantics ------------------------------------------
+    // Two complementary checks, neither sufficient alone: role-count parity
+    // catches a subtree that was pruned, and the aria-hidden-host scan catches
+    // interactive content inside a region that was deliberately hidden. A
+    // pruned subtree satisfies both sides of the parity comparison, which is
+    // why parity can never be the only check.
     const session = await context.newCDPSession(page)
     const axCounts = await accessibilityRoleCounts(session, note)
     await session.detach()
@@ -451,7 +529,7 @@ async function checkPage(context, route, viewport, theme) {
       ok(where, `content visible (${visible.height}px / ${visible.textLength} chars)`)
     }
   } catch (error) {
-    if (error instanceof ProbeError) fail(where, error.message)
+    if (error instanceof ProbeError || error instanceof StylePresenceError) fail(where, error.message)
     else fail(where, `检查过程异常: ${error.message}`)
   } finally {
     await page.close()
@@ -489,7 +567,7 @@ async function checkReducedMotion(context, route) {
       ok(where, "无无限循环动画")
     }
   } catch (error) {
-    if (error instanceof ProbeError) fail(where, error.message)
+    if (error instanceof ProbeError || error instanceof StylePresenceError) fail(where, error.message)
     else fail(where, `检查过程异常: ${error.message}`)
   } finally {
     await page.close()
@@ -561,7 +639,7 @@ async function checkCoarsePointer(browser, route) {
       )
     }
   } catch (error) {
-    if (error instanceof ProbeError) fail(where, error.message)
+    if (error instanceof ProbeError || error instanceof StylePresenceError) fail(where, error.message)
     else fail(where, `检查过程异常: ${error.message}`)
   }
 }

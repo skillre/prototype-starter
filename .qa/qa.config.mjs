@@ -85,5 +85,23 @@ export const tolerancePx = 1
  */
 export const pointerRatioTolerance = 0.02
 
+/**
+ * Quorum for the style-presence bundle (Factory v1.2 · N3).
+ *
+ * Every route must differ from a same-browser **unstyled baseline** in at least
+ * this many independent style domains — `box-reset` · `type` · `surface` ·
+ * `ink`. A page that matches the browser default in all four is not a styled
+ * page with a bug; it is an unstyled page.
+ *
+ * Why 2 and not 4: 4 would make the gate depend on the product painting every
+ * domain (a product that only resets margins and sets a font would fail while
+ * being perfectly styled). Why not 1: a single differing property is weak
+ * evidence — it is exactly what one stray rule produces.
+ *
+ * Measured on this Factory: 4/4 channels differ. With the root stylesheet
+ * removed: 0/4.
+ */
+export const stylePresenceMinChannels = 2
+
 /** Fail the run if any numeric probe cannot be measured. Always leave on. */
 export const failOnUnmeasurableProbe = true
