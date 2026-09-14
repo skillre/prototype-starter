@@ -139,7 +139,11 @@ export function loadManifest(projectRoot, explicitPath) {
  * with the Kits repo absent (that is the whole point of Source Installation), so
  * callers report `upstream-unavailable` rather than erroring.
  */
-export function resolveKitsRoot({ explicit, projectRoot }) {
+/**
+ * @param {{ explicit?: string, projectRoot?: string }} [options]
+ */
+export function resolveKitsRoot({ explicit, projectRoot } = {}) {
+  if (!projectRoot) throw new Error("resolveKitsRoot 需要 projectRoot")
   const candidates = []
   if (explicit) candidates.push(isAbsolute(explicit) ? explicit : resolve(projectRoot, explicit))
   const fromEnv = process.env[KITS_ROOT_ENV_VAR]
@@ -284,6 +288,20 @@ function readPath(value, dotted) {
  * A mismatch with no recorded deviation is an error: either the decision was
  * never made, or it was made and not written down.
  */
+/**
+ * @param {Record<string, unknown>} manifest
+ * @param {Record<string, any>} packManifest
+ * @returns {{
+ *   status: "verified" | "unverifiable" | "mismatch",
+ *   issues: Array<{path: string, code: string, message: string}>,
+ *   checked: Array<{
+ *     label: string, field: string, axis: string,
+ *     packPath: string, packLabel: string,
+ *     packValue: string, declared: string, recorded?: boolean,
+ *   }>,
+ *   unverifiable: Array<{label: string, field: string, reason: string}>,
+ * }}
+ */
 export function crossCheckPackProfile(manifest, packManifest) {
   const checks = [
     {
@@ -302,8 +320,11 @@ export function crossCheckPackProfile(manifest, packManifest) {
     },
   ]
 
+  /** @type {Array<{path: string, code: string, message: string}>} */
   const issues = []
+  /** @type {Array<{label: string, field: string, axis: string, packPath: string, packLabel: string, packValue: string, declared: string, recorded?: boolean}>} */
   const checked = []
+  /** @type {Array<{label: string, field: string, axis: string, reason: string}>} */
   const unverifiable = []
 
   const deviations = Array.isArray(manifest.deviations) ? manifest.deviations : []
