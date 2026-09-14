@@ -54,6 +54,13 @@ type CommandPaletteProps = {
   hint?: string
   /** Lands on the dialog panel — used by e2e tests. */
   testId?: string
+  /**
+   * 打开命令面板背后的环境光。
+   *
+   * **默认关闭（Factory v1.2 · N1）。** 环境光是性格不是结构；要它就显式传
+   * `ambient`（Reference Sample 就是这么做的）。
+   */
+  ambient?: boolean
 }
 
 /**
@@ -81,6 +88,7 @@ export function CommandPalette({
   placeholder,
   hint,
   testId,
+  ambient = false,
 }: CommandPaletteProps) {
   const t = useMessages()
   const [query, setQuery] = useState("")
@@ -105,7 +113,9 @@ export function CommandPalette({
       description={t.a11y.commandHint}
     >
       <div data-testid={testId} className="relative isolate overflow-hidden rounded-panel">
-        <AmbientBackdrop variant="panel" grid />
+        {/* 面板环境光：显式 opt-in（Factory v1.2 · N1）。默认关闭——共享组件的
+            默认值就是 Factory 的审美决定，而 Factory 不拥有这个决定。 */}
+        {ambient ? <AmbientBackdrop variant="panel" grid /> : null}
         <Command loop className="relative bg-transparent">
           {mode === "ai" ? (
             <span

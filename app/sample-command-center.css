@@ -1,0 +1,169 @@
+/* =============================================================================
+ * Reference Sample · Command Center personality
+ *
+ * ===========================================================================
+ * 这个文件属于 **Reference Sample**，不属于 Factory Core。
+ * ===========================================================================
+ *
+ * ## 它为什么存在
+ *
+ * N1 之前，`app/globals.css` 的 `:root` / `.dark` 里直接声明了
+ * `--ambient-brand` / `--hero-base` / `--chart-glow` 等一套"环境光"变量。
+ * 那意味着**每一个**从 baseline 派生出来的原型，在做出任何决定之前，
+ * 就已经继承了下面这些东西：
+ *
+ *   - 页面顶部的品牌色晕染（cinematic ambient wash）
+ *   - Hero 区域的一束光（hero lighting）
+ *   - 折线图下面的一层辉光（chart glow）
+ *   - 侧栏品牌块的"材质"高光与"实时"光晕
+ *
+ * 它们不是结构，是**性格**。Factory Core 应该提供 structure，不是 style
+ * personality —— 所以这一层整体搬到这里：只有显式 import 了这个文件的
+ * 模块图才会得到它。
+ *
+ * ## opt-in 的机制就是 import 本身
+ *
+ * App Router 按**模块图**打包 CSS（这条性质在第三个 Prototype 上是一颗地雷，
+ * 见 docs/browser-qa.md 第 7 节；这里它正好是我们要的工具）：
+ *
+ *   app/crm/_components/crm-shell.tsx   import "@/app/sample-command-center.css"
+ *   app/demo/_components/demo-app.tsx   import "…"
+ *   app/page.tsx                        import "…"
+ *
+ * 于是：
+ *
+ *   - `/`、`/demo`、`/crm/**` —— Reference Sample，保留原来的性格；
+ *   - `/_not-found` 以及**任何新写的路由** —— 中性 shell，只有结构。
+ *
+ * 一句话：**Personality must be explicit.**
+ *
+ * ## 为什么这里是普通 CSS，而不是 `@utility`
+ *
+ * 第一版把 `@utility ambient-wash { … }` 搬了过来。`next build` **成功**了，
+ * 但同时打出 `Unknown at rule: @utility` —— Turbopack 只对入口样式表
+ * （`@import "tailwindcss"` 所在的 `globals.css`）跑 Tailwind 变换，普通 CSS
+ * 文件里的 `@utility` 会被整体丢弃。也就是说：build 绿、类名不存在、
+ * 环境光静默消失——正是这一阶段要防的那类失败。
+ *
+ * 所以这里用**普通 CSS 类**：它们是真实声明，编译后一定存在，可以用
+ * 构建产物直接验证（见 tests/core-neutrality.spec.ts）。
+ *
+ * ## 与 N3（style-presence）的关系
+ *
+ * 这个文件不提供"基础可读性"。字体、间距、surface/ink、focus、border、
+ * responsive 都还在 `globals.css` 里，中性 shell 依然**有设计**，
+ * 不是浏览器默认白页。
+ * ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+ * Ambient / hero / chart-glow tokens
+ * ------------------------------------------------------------------------- */
+
+:root {
+  /* Hero 的底色：Light 下是一层淡淡的纸白，Dark 下比页面更深——主视觉要能
+     把光"压"出来，而不是靠把整块区域刷亮。 */
+  --hero-base: oklch(1 0 0 / 0.55);
+  --ambient-hero-brand: oklch(0.5 0.16 254 / 0.13);
+  --ambient-hero-warm: oklch(0.6 0.125 218 / 0.1);
+  --ambient-brand: oklch(0.5 0.16 254 / 0.12);
+  --ambient-warm: oklch(0.6 0.125 218 / 0.09);
+  --ambient-grid: oklch(0.19 0.014 260 / 0.035);
+  --ambient-ring: oklch(0.5 0.16 254 / 0.26);
+  /* Chart line glow — one controlled bloom, hero chart only. */
+  --chart-glow: oklch(0.5 0.16 254 / 0.28);
+}
+
+.dark {
+  /* Dark 允许比 Light 更有表现力：Hero 沉到页面之下，品牌蓝从中透出来。
+     用"更深的底 + 更亮的光"换语气，而不是加霓虹或紫色。 */
+  --hero-base: oklch(0.122 0.016 264);
+  --ambient-hero-brand: oklch(0.72 0.15 250 / 0.3);
+  --ambient-hero-warm: oklch(0.78 0.12 202 / 0.14);
+  --ambient-brand: oklch(0.72 0.15 250 / 0.16);
+  --ambient-warm: oklch(0.78 0.12 202 / 0.08);
+  --ambient-grid: oklch(1 0 0 / 0.05);
+  --ambient-ring: oklch(0.72 0.15 250 / 0.34);
+  --chart-glow: oklch(0.72 0.15 250 / 0.52);
+}
+
+/* ---------------------------------------------------------------------------
+ * The surfaces those tokens paint
+ * ------------------------------------------------------------------------- */
+
+/**
+ * A very light grid, used behind hero / chart / palette surfaces. The grid is
+ * masked at the edges so it reads as texture rather than as a table.
+ */
+.ambient-grid {
+  background-image:
+    linear-gradient(to right, var(--ambient-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--ambient-grid) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/** Radial brand wash. Pair with `.ambient-grid` for the layered look. */
+.ambient-wash {
+  background-image:
+    radial-gradient(60% 55% at 50% 0%, var(--ambient-brand), transparent 72%),
+    radial-gradient(38% 42% at 88% 8%, var(--ambient-warm), transparent 70%);
+}
+
+/**
+ * The hero's own light source: one off-centre bloom, nothing else.
+ * It reads its own tokens so the hero can be pushed further in dark without
+ * dragging every other ambient surface along with it.
+ */
+.hero-wash {
+  background-image:
+    radial-gradient(52% 68% at 12% 0%, var(--ambient-hero-brand), transparent 68%),
+    radial-gradient(44% 56% at 92% 12%, var(--ambient-hero-warm), transparent 72%);
+}
+
+/** Faint top highlight used on premium cards and panels. */
+.surface-sheen {
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--foreground) 4%, transparent),
+    transparent 42%
+  );
+}
+
+/**
+ * Single controlled bloom under the hero chart's stroke. It is the only glow
+ * in the product — applied to one SVG path, never to a container.
+ */
+.chart-glow {
+  filter: drop-shadow(0 6px 16px var(--chart-glow));
+}
+
+/* ---------------------------------------------------------------------------
+ * Personality motion
+ * ------------------------------------------------------------------------- */
+
+/* Slow ambient drift for the brand wash. Long, low-amplitude, never distracting. */
+@keyframes ambient-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -1.5%, 0) scale(1.04);
+  }
+}
+
+/**
+ * Live indicator — a still core dot with one expanding halo. The halo proves
+ * the data is live without the dot itself moving, so it never competes with
+ * the metric beside it.
+ */
+@keyframes live-halo {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.55;
+  }
+  70%,
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}

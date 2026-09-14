@@ -52,6 +52,9 @@ import { useMessages } from "@/components/i18n/locale-provider"
 import { useCrmStore } from "@/stores/crm-store"
 import { formatCurrencyCompact } from "@/lib/format"
 import { AddCustomerDialog } from "./add-customer-dialog"
+// Reference Sample 的**性格层**：环境光 / Hero 光 / 图表辉光 / 实时光晕。
+// 这一层不属于 Factory Core —— 它只跟着显式 import 它的模块图走（Factory v1.2 · N1）。
+import "@/app/sample-command-center.css"
 import { CustomerDetailDrawer } from "./customer-detail-drawer"
 
 /** 本季度目标——侧栏工作区上下文用它与真实合同总额对比。 */
@@ -179,6 +182,8 @@ export function CrmShell({ children }: { children: ReactNode }) {
       subtitle: t.brand.subtitle,
       // Sidebar 自己提供品牌底色方块，这里只放字；否则会出现方块套方块。
       mark: <span className="relative text-[15px] font-semibold leading-none">{t.brand.mark}</span>,
+      // 品牌块的内高光：Reference Sample 的显式选择（共享组件默认关闭）。
+      sheen: true,
     }),
     [t]
   )
@@ -325,6 +330,8 @@ export function CrmShell({ children }: { children: ReactNode }) {
       busy: status === "loading",
       onRefresh: refresh,
       refreshLabel: t.a11y.refreshData,
+      // 实时状态点外圈的光晕：Reference Sample 的显式选择（默认关闭）。
+      pulse: true,
     }),
     [status, refresh, t]
   )
@@ -712,6 +719,8 @@ export function CrmShell({ children }: { children: ReactNode }) {
           }
           hint={t.palette.hint}
           testId="command-palette"
+          // 面板环境光：Reference Sample 的显式选择（默认关闭）。
+          ambient
         />
 
         <AddCustomerDialog

@@ -12,7 +12,15 @@ type PageContainerProps = {
   className?: string
   /** Constrain content width; passthrough to the inner wrapper. */
   contentClassName?: string
-  /** Set false on dense pages (board, wide table) that need the full canvas. */
+  /**
+   * Opt in to the page-level ambient backdrop.
+   *
+   * **Default off (Factory v1.2 · N1).** An ambient wash is Art Direction, not
+   * structure: a brand-new route that inherits one has been given a personality
+   * nobody chose. The capability stays here; turning it on is a decision the
+   * product makes at the call site (`<PageContainer ambient>`), which is also
+   * what the Reference Sample now does.
+   */
   ambient?: boolean
   /**
    * `full`    — eyebrow + display-ish title + description. For pages where the
@@ -26,12 +34,15 @@ type PageContainerProps = {
 }
 
 /**
- * Standard page shell: an optional ambient backdrop, a header block with a
- * clear type hierarchy, then the content on a consistent max width.
+ * Standard page shell: a header block with a clear type hierarchy, then the
+ * content on a consistent max width.
  *
- * V3 note on the ambient layer: it is off by default for pages that carry
- * their own protagonist region. Two light sources on one screen is what makes
- * a page look "decorated" instead of art-directed.
+ * Neutral by default (Factory v1.2 · N1). The ambient layer used to default to
+ * ON, which meant every new route inherited a brand wash before anyone decided
+ * it should have one — the Factory quietly supplying a personality. It is now
+ * opt-in, and the Reference Sample opts in explicitly. The eyebrow tick below
+ * stays: it is a structural rule mark (see AGENTS.md · Core Neutrality), not a
+ * lighting effect.
  */
 export function PageContainer({
   eyebrow,
@@ -41,7 +52,7 @@ export function PageContainer({
   children,
   className,
   contentClassName,
-  ambient = true,
+  ambient = false,
   variant = "full",
 }: PageContainerProps) {
   return (

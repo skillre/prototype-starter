@@ -37,6 +37,14 @@ type AiSummaryPanelProps = {
   onGenerate: () => void
   className?: string
   testId?: string
+  /**
+   * 面板内的品牌光晕。
+   *
+   * **默认关闭（Factory v1.2 · N1）。** 全站唯一允许"发光"的地方也必须是
+   * 显式的：一个默认打开的光晕，就是 Factory 替所有产品做的审美决定。
+   * Reference Sample 在调用点显式传 `glow`。
+   */
+  glow?: boolean
 }
 
 /**
@@ -44,7 +52,8 @@ type AiSummaryPanelProps = {
  * 结果是确定性 mock（见 lib/ai-summary.ts），可反复重新生成。
  *
  * 视觉上这是全站唯一允许"发光"的地方——它本来就是 AI 能力的展示面。
- * 光晕克制在一层柔和径向渐变内，不叠加粒子或大面积渐变。
+ * 光晕克制在一层柔和径向渐变内，不叠加粒子或大面积渐变，而且**默认关闭**：
+ * 调用方要显式传 `glow`（Factory v1.2 · N1）。
  */
 export function AiSummaryPanel({
   status,
@@ -52,6 +61,7 @@ export function AiSummaryPanel({
   onGenerate,
   className,
   testId,
+  glow = false,
 }: AiSummaryPanelProps) {
   const t = useMessages()
   const loading = status === "loading"
@@ -71,15 +81,17 @@ export function AiSummaryPanel({
         className
       )}
     >
-      {/* 品牌光晕：只在面板内部，不溢到页面。 */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 opacity-70"
-        style={{
-          backgroundImage:
-            "radial-gradient(120% 90% at 0% 0%, var(--ambient-brand), transparent 62%)",
-        }}
-      />
+      {/* 品牌光晕：只在面板内部，不溢到页面；显式 opt-in，见 AiSummaryPanelProps.glow。 */}
+      {glow ? (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10 opacity-70"
+          style={{
+            backgroundImage:
+              "radial-gradient(120% 90% at 0% 0%, var(--ambient-brand), transparent 62%)",
+          }}
+        />
+      ) : null}
 
       <header className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-0.5">

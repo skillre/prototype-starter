@@ -1,5 +1,8 @@
 "use client"
 
+// Reference Sample 的**性格层**：环境光 / Hero 光 / 图表辉光 / 实时光晕。
+// 这一层不属于 Factory Core —— 它只跟着显式 import 它的模块图走（Factory v1.2 · N1）。
+import "@/app/sample-command-center.css"
 import { useEffect, useMemo, useState } from "react"
 import { useTheme } from "@/components/theme-provider"
 import { toast } from "sonner"
@@ -294,6 +297,8 @@ export function DemoApp() {
 
         <main className="flex-1">
           <PageContainer
+            // 页面环境光：Reference Sample 的显式选择（PageContainer 默认关闭）。
+            ambient
             title={meta.title}
             description={meta.subtitle}
             actions={
@@ -339,6 +344,8 @@ export function DemoApp() {
         onOpenChange={setCommandOpen}
         groups={paletteGroups}
         testId="command-palette"
+        // 面板环境光：Reference Sample 的显式选择（默认关闭）。
+        ambient
       />
 
       <OnboardingWizard

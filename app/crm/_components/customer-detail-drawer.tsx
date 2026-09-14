@@ -186,6 +186,8 @@ export function CustomerDetailDrawer({
             status={aiStatus}
             summary={aiSummary}
             onGenerate={() => generateAiSummary(customer.id)}
+            // AI 面板的品牌光晕：Reference Sample 的显式选择（默认关闭）。
+            glow
           />
 
           <Separator />

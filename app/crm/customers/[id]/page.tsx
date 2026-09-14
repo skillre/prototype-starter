@@ -244,6 +244,8 @@ export default function CrmCustomerDetailPage({ params }: PageProps<"/crm/custom
                 status={aiStatus}
                 summary={aiSummary}
                 onGenerate={() => generateAiSummary(customer.id)}
+                // AI 面板的品牌光晕：Reference Sample 的显式选择（默认关闭）。
+                glow
               />
 
               <section className="flex flex-col gap-4">

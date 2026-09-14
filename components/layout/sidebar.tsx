@@ -60,6 +60,14 @@ export interface NavBrandDef {
   icon?: LucideIcon
   /** 自定义品牌图形（单个汉字或字母），优先于 icon。 */
   mark?: React.ReactNode
+  /**
+   * 给品牌方块加一条内高光（"材质"）。
+   *
+   * **默认关闭（Factory v1.2 · N1）。** 它属于视觉性格，不属于结构：
+   * 侧栏是共享组件，一个默认打开的高光就是 Factory 替所有产品做的审美决定。
+   * 想要就显式传 `sheen: true`（Reference Sample 就是这么做的）。
+   */
+  sheen?: boolean
 }
 
 export interface NavUserDef {
@@ -93,6 +101,13 @@ export interface NavStatusDef {
   busy?: boolean
   onRefresh?: () => void
   refreshLabel?: string
+  /**
+   * 给状态点加一圈扩散光晕（配合 `@keyframes live-halo`）。
+   *
+   * **默认关闭（Factory v1.2 · N1）。** 光晕是装饰性的：它不传递任何状态信息，
+   * `label` 已经说了数据是不是实时的。所以由调用方显式打开。
+   */
+  pulse?: boolean
 }
 
 /*
@@ -122,8 +137,8 @@ function Brand({ brand }: { brand: NavBrandDef }) {
   return (
     <div className="flex items-center gap-2.5 px-3 pt-4 pb-3.5">
       <span className="relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-[11px] bg-brand text-brand-foreground shadow-subtle ring-1 ring-brand/25 ring-inset">
-        {/* 内高光：让实心块有"材质"，不需要阴影堆叠。 */}
-        <span aria-hidden className="surface-sheen absolute inset-0" />
+        {/* 内高光：让实心块有"材质"，不需要阴影堆叠。显式 opt-in，见 NavBrandDef.sheen。 */}
+        {brand.sheen ? <span aria-hidden className="surface-sheen absolute inset-0" /> : null}
         {brand.mark ?? <Icon className="relative size-4" />}
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5 leading-none">
@@ -411,7 +426,12 @@ export function SidebarNav({
         {status ? (
           <div className="flex items-center gap-2 rounded-field px-2.5 py-1.5">
             <span className="relative flex size-2 shrink-0 items-center justify-center">
-              <span aria-hidden className="absolute size-2 rounded-full bg-success/35 [animation:live-halo_3.2s_ease-out_infinite]" />
+              {status.pulse ? (
+                <span
+                  aria-hidden
+                  className="absolute size-2 rounded-full bg-success/35 [animation:live-halo_3.2s_ease-out_infinite]"
+                />
+              ) : null}
               <span className="relative size-1.5 rounded-full bg-success" />
             </span>
             <span className="flex min-w-0 flex-1 flex-col leading-tight">

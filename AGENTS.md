@@ -386,6 +386,29 @@ Understand → Inspect → Product Model
 token 层是 Factory 的**中性 fallback**：它保证新建原型不会是空仓库。但它不是美术方向——
 美术方向由 Manifest + Kits 决定，并可以覆盖 token 层。
 
+### Core Neutrality（Core 提供结构，不提供性格）
+
+**Factory Core 默认拥有：** spacing · typography mechanics · 语义 foreground/background ·
+focus 状态 · 无障碍状态 · responsive 容器 · layout primitives · density 机制 ·
+border / rule 的基础语义 · reduced motion 行为。
+
+**Factory Core 默认不拥有：** ambient glow · hero glow · chart glow · cinematic lighting ·
+装饰性 halo · 产品专属 brand flourish · 「为了看起来高级」而存在的视觉效果。
+
+这些属于 Kits Style Pack / Effect Pack / 产品自己。
+
+落地方式（v1.2 · N1）：
+
+| 位置 | 规则 |
+|---|---|
+| `app/globals.css` | **中性层**：不含 `--ambient-*` / `--hero-*` / `--chart-glow`，不含 `ambient-wash` / `hero-wash` / `chart-glow` / `surface-sheen` / `live-halo` |
+| `app/sample-command-center.css` | **Reference Sample 的性格层**：只有显式 import 它的模块图才有（`/`、`/demo`、`/crm/**`） |
+| `components/**` | 性格必须**显式 opt-in**：`PageContainer ambient`（默认 false）· `OpenSection ambient`（默认 none）· `CommandPalette ambient` · `AiSummaryPanel glow` · `NavBrandDef.sheen` · `NavStatusDef.pulse` |
+| 新写的路由 | 默认拿到**中性 shell**：有字体、间距、surface/ink、focus、border、responsive —— 没有环境光 |
+
+> **Personality must be explicit.** 一个默认打开的装饰，就是 Factory 替所有产品做的审美决定。
+> Neutral ≠ 无设计：中性 shell 仍然必须通过 `pnpm qa` 的 style-presence（它守的是"不是浏览器默认白页"）。
+
 ### 中文排版红线
 
 - **中文不使用负字距**。负 tracking 只允许出现在纯数字 token 上（`text-metric` / `text-numeric` / `.numeric`）。

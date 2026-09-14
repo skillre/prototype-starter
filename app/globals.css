@@ -331,19 +331,6 @@
     0 20px 44px -14px oklch(0.19 0.02 262 / 0.14),
     0 44px 88px -32px oklch(0.19 0.02 262 / 0.16);
 
-  /* ---- Ambient lighting ------------------------------------------------- */
-  /* Hero 的底色：Light 下是一层淡淡的纸白，Dark 下比页面更深——主视觉要能
-     把光"压"出来，而不是靠把整块区域刷亮。 */
-  --hero-base: oklch(1 0 0 / 0.55);
-  --ambient-hero-brand: oklch(0.5 0.16 254 / 0.13);
-  --ambient-hero-warm: oklch(0.6 0.125 218 / 0.1);
-  --ambient-brand: oklch(0.5 0.16 254 / 0.12);
-  --ambient-warm: oklch(0.6 0.125 218 / 0.09);
-  --ambient-grid: oklch(0.19 0.014 260 / 0.035);
-  --ambient-ring: oklch(0.5 0.16 254 / 0.26);
-  /* Chart line glow — one controlled bloom, hero chart only. */
-  --chart-glow: oklch(0.5 0.16 254 / 0.28);
-
   /* ---- Motion easings --------------------------------------------------- */
   --motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --motion-ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -435,18 +422,6 @@
     0 8px 20px -6px oklch(0 0 0 / 0.6),
     0 36px 76px -24px oklch(0 0 0 / 0.85);
 
-  /* ---- Ambient lighting — controlled, never a purple haze --------------- */
-  /* Dark 允许比 Light 更有表现力：Hero 沉到页面之下，品牌蓝从中透出来。
-     用"更深的底 + 更亮的光"换语气，而不是加霓虹或紫色。 */
-  --hero-base: oklch(0.122 0.016 264);
-  --ambient-hero-brand: oklch(0.72 0.15 250 / 0.3);
-  --ambient-hero-warm: oklch(0.78 0.12 202 / 0.14);
-  --ambient-brand: oklch(0.72 0.15 250 / 0.16);
-  --ambient-warm: oklch(0.78 0.12 202 / 0.08);
-  --ambient-grid: oklch(1 0 0 / 0.05);
-  --ambient-ring: oklch(0.72 0.15 250 / 0.34);
-  --chart-glow: oklch(0.72 0.15 250 / 0.52);
-
   /* ---- Sidebar surfaces ------------------------------------------------- */
   /* Slightly darker than the page: the rail recedes, content comes forward. */
   --sidebar: oklch(0.176 0.016 264);
@@ -494,7 +469,12 @@
 }
 
 /* =============================================================================
- * Utilities
+ * Neutral utilities only
+ *
+ * `section-tick` (a structural rule mark) and `kbd-chip` live here. Everything
+ * with art-direction personality — ambient wash, hero lighting, chart glow,
+ * surface sheen, the live halo — moved to `app/sample-command-center.css`,
+ * which only the Reference Sample imports. See AGENTS.md · Core Neutrality.
  * ========================================================================== */
 
 /** Tabular, tightly-tracked numerals — every metric, amount and date. */
@@ -530,52 +510,6 @@
   margin-right: 0.5rem;
 }
 
-/**
- * A very light grid, used behind hero / chart / palette surfaces. The grid is
- * masked at the edges so it reads as texture rather than as a table.
- */
-@utility ambient-grid {
-  background-image:
-    linear-gradient(to right, var(--ambient-grid) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--ambient-grid) 1px, transparent 1px);
-  background-size: 44px 44px;
-}
-
-/** Radial brand wash. Pair with `ambient-grid` for the layered look. */
-@utility ambient-wash {
-  background-image:
-    radial-gradient(60% 55% at 50% 0%, var(--ambient-brand), transparent 72%),
-    radial-gradient(38% 42% at 88% 8%, var(--ambient-warm), transparent 70%);
-}
-
-/**
- * The hero's own light source: one off-centre bloom, nothing else.
- * It reads its own tokens so the hero can be pushed further in dark without
- * dragging every other ambient surface along with it.
- */
-@utility hero-wash {
-  background-image:
-    radial-gradient(52% 68% at 12% 0%, var(--ambient-hero-brand), transparent 68%),
-    radial-gradient(44% 56% at 92% 12%, var(--ambient-hero-warm), transparent 72%);
-}
-
-/** Faint top highlight used on premium cards and panels. */
-@utility surface-sheen {
-  background-image: linear-gradient(
-    to bottom,
-    color-mix(in oklab, var(--foreground) 4%, transparent),
-    transparent 42%
-  );
-}
-
-/**
- * Single controlled bloom under the hero chart's stroke. It is the only glow
- * in the product — applied to one SVG path, never to a container.
- */
-@utility chart-glow {
-  filter: drop-shadow(0 6px 16px var(--chart-glow));
-}
-
 /** Keyboard shortcut chip. */
 @utility kbd-chip {
   display: inline-flex;
@@ -600,34 +534,6 @@
   }
   to {
     transform: translateX(100%);
-  }
-}
-
-/* Slow ambient drift for the brand wash. Long, low-amplitude, never distracting. */
-@keyframes ambient-drift {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(0, -1.5%, 0) scale(1.04);
-  }
-}
-
-/**
- * Live indicator — a still core dot with one expanding halo. The halo proves
- * the data is live without the dot itself moving, so it never competes with
- * the metric beside it.
- */
-@keyframes live-halo {
-  0% {
-    transform: scale(0.6);
-    opacity: 0.55;
-  }
-  70%,
-  100% {
-    transform: scale(2.1);
-    opacity: 0;
   }
 }
 

@@ -17,6 +17,9 @@ import { AmbientBackdrop } from "@/components/prototype/ambient-backdrop"
 import { buttonVariants } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useMessages } from "@/components/i18n/locale-provider"
+// Reference Sample 的**性格层**：环境光 / Hero 光 / 图表辉光 / 实时光晕。
+// 这一层不属于 Factory Core —— 它只跟着显式 import 它的模块图走（Factory v1.2 · N1）。
+import "@/app/sample-command-center.css"
 
 /** 图标与文案一一对应——文案在词典里，图标留在组件里。 */
 const FEATURE_ICONS: LucideIcon[] = [
