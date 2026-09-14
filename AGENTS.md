@@ -222,6 +222,31 @@ Factory 不 vendor 任何 Kits 内容，只集成**调用机制**。安装后：
 > 第三 Prototype 的 18 条不变量写得很好、也都有测试——但它们只活在一个 spec 文件里，
 > 文件之外没有任何东西看得见。F11 要修的就是这个。
 
+## Initialization Boundary（初始化边界）
+
+**`prototype-starter` 里住着三种东西，处置方式完全不同：**
+
+| 层 | 路径 | 派生新原型时 |
+|---|---|---|
+| **A · Factory Core** | `components/**` `lib/**` `scripts/**` `.qa/**` `hooks/**` `stores/**` `skills/**` 与 Core 契约测试 | **复制** |
+| **B · Reference Sample** | `app/crm/**` `app/demo/**` `app/_sample/**` `app/sample-command-center.css` 与示例测试 | **参考，默认删除**；保留就必须显式标注为示例 |
+| **C · Initialization Surface** | `package.json` `README.md` `app/layout.tsx` `app/page.tsx` `app/not-found.tsx` `lib/i18n/zh-CN.ts` | **必须重写** |
+
+边界是机器可读的：`init-contract.json` + `pnpm factory:init`。
+
+- `stage: "baseline"`（默认）= Factory 自己：Sample 允许存在，baseline 身份必须完好。
+  **改了包名却留着 `baseline` → FAIL**（不许半初始化）。
+- `stage: "product"` = 产品：初始化面上不得残留 baseline / Sample 身份；
+  首页链接 `/crm` 必须落在 `data-reference-sample` 标注的区块里；
+  Factory 落地页标记 `data-factory-landing` 必须消失。
+- 扫描有 `scanned / excluded / violations`，**0 scanned 不能 PASS**；
+  Sample 可以在自己的路径里说自己的名字。
+
+**完整清单（13 步，人工执行）见 `docs/product-initialization.md`。**
+
+> Shell 是**可选能力**：`Sidebar` / `TopNav` / `MobileNav` 由产品按需使用，
+> `app/layout.tsx`（Core）不得引入任何一种产品 IA（有 contract test 守着）。
+
 ## Git 工作流与安全
 
 ### Git 安全规则（红线）
@@ -479,6 +504,7 @@ pnpm check             # lint + typecheck + test + build + qa
 
 pnpm factory:manifest  # 校验 visual-manifest.json（L1 结构 + L2 自洽 + L3 与 pack 比对）
 pnpm factory:contract  # 产品语义不变量：声明 ↔ 测试登记，双向核对
+pnpm factory:init      # 初始化边界：baseline / product、残留身份、0-scan
 pnpm factory:deploy    # 部署授权与身份（preflight / verify / access / actions）
 pnpm factory:kits      # 依 Manifest 安装 Kits（默认 dry-run）
 pnpm factory:kits --write

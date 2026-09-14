@@ -254,19 +254,22 @@ test.describe("404 safety", () => {
 
     await expect(page.getByTestId("app-not-found")).toBeVisible()
     // 恢复链接必须真实可用。
-    await page.getByRole("link", { name: "客户", exact: true }).click()
-    await page.waitForURL("**/crm/customers")
-    await waitForCrm(page)
-    await expect(page.getByTestId("crm-table")).toBeVisible()
+    //
+    // v1.2 · INIT：全站 404 的恢复路径回到首页，而不是把 Reference Sample 的
+    // 导航当成默认出口 —— 派生出来的新原型不能看起来"默认就是 CRM"。
+    // 「永远给出真实可用的下一步」这条保证本身没有变，只是下一步换了目的地。
+    await page.getByRole("link", { name: "返回首页" }).click()
+    await page.waitForURL(/\/$/)
+    await expect(page.getByRole("link", { name: "查看参考原型" })).toBeVisible()
   })
 
   test("an unknown top-level route is also recoverable", async ({ page }) => {
     const response = await page.goto("/totally-unknown")
     expect(response?.status()).toBe(404)
     await expect(page.getByTestId("app-not-found")).toBeVisible()
-    await page.getByRole("link", { name: "AI CRM 总览" }).click()
-    await page.waitForURL("**/crm")
-    await waitForCrm(page)
+    await page.getByRole("link", { name: "返回首页" }).click()
+    await page.waitForURL(/\/$/)
+    await expect(page.locator("main")).toBeVisible()
   })
 
   test("an unknown customer id renders an in-page not-found with a way back", async ({ page }) => {

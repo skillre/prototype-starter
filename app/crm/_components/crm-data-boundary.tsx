@@ -3,6 +3,7 @@
 import { PageContainer } from "@/components/layout/page-container"
 import { PageTransition } from "@/components/motion/page-transition"
 import { LoadingState } from "@/components/prototype/loading-state"
+import { DashboardSkeleton } from "@/app/_sample/dashboard-skeleton"
 import { ErrorState } from "@/components/prototype/error-state"
 import { useCrmStore } from "@/stores/crm-store"
 import { useCrmPageMeta, type CrmRouteKey } from "./crm-shell"
@@ -15,8 +16,14 @@ type CrmDataBoundaryProps = {
   /** 标题上方的小字（面包屑 / 分组）。 */
   eyebrow?: string
   actions?: React.ReactNode
-  /** 加载骨架的形态。 */
-  loadingVariant?: "cards" | "section" | "rows"
+  /**
+   * 加载骨架的形态。
+   *
+   * `dashboard`（默认）用的是 **Reference Sample 自己的** hero + 指标带骨架
+   * （`app/_sample/dashboard-skeleton.tsx`）—— 它跟着本页的真实构图走，所以属于产品侧；
+   * 其余两种是 Core 提供的通用结构骨架。
+   */
+  loadingVariant?: "dashboard" | "section" | "rows"
   /** 页头形态，见 PageContainer。总览用 compact（主视觉由 Hero 承担）。 */
   variant?: "full" | "compact" | "none"
   /** 页面自带主视觉时关掉全局环境光，避免两个光源互相抵消。 */
@@ -34,7 +41,7 @@ export function CrmDataBoundary({
   description,
   eyebrow,
   actions,
-  loadingVariant = "cards",
+  loadingVariant = "dashboard",
   variant = "full",
   ambient = true,
   children,
@@ -60,7 +67,11 @@ export function CrmDataBoundary({
         </div>
       ) : status === "loading" ? (
         <div data-testid="crm-loading" className="flex flex-col gap-6">
-          <LoadingState variant={loadingVariant} count={5} />
+          {loadingVariant === "dashboard" ? (
+            <DashboardSkeleton />
+          ) : (
+            <LoadingState variant={loadingVariant} count={5} />
+          )}
           <LoadingState variant="section" />
           <LoadingState variant="rows" count={3} />
         </div>

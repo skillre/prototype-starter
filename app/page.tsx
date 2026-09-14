@@ -34,7 +34,9 @@ export default function LandingPage() {
   const copy = t.landing
 
   return (
-    <main className="flex flex-1 flex-col">
+    /* data-factory-landing：这是 Factory 的落地页，不是某个产品的。
+       派生新原型时必须写自己的首页并移除这个标记 —— 由 scripts/verify-init.mjs 检查。 */
+    <main data-factory-landing className="flex flex-1 flex-col">
       {/* Hero */}
       <section className="relative isolate overflow-hidden border-b">
         <AmbientBackdrop variant="hero" grid />
@@ -54,15 +56,14 @@ export default function LandingPage() {
             </p>
           </FadeIn>
           <FadeIn delay={0.24} className="flex flex-wrap items-center justify-center gap-3">
-            <Link href="/crm" className={buttonVariants({ size: "lg" })}>
+            {/* 主 CTA 指向 Factory 自己的东西，不指向参考原型：
+                参考原型是示例，不是这个 baseline 的产品入口。 */}
+            <Link href="#reference-sample" className={buttonVariants({ size: "lg" })}>
               {copy.primaryCta}
               <ArrowRightIcon />
             </Link>
-            <Link href="/demo" className={buttonVariants({ variant: "outline", size: "lg" })}>
+            <Link href="#stack" className={buttonVariants({ variant: "outline", size: "lg" })}>
               {copy.secondaryCta}
-            </Link>
-            <Link href="#stack" className={buttonVariants({ variant: "ghost", size: "lg" })}>
-              {copy.tertiaryCta}
             </Link>
           </FadeIn>
         </div>
@@ -81,6 +82,39 @@ export default function LandingPage() {
       </section>
 
       {/* Stack */}
+      {/* Reference Sample：显式标注的示例入口。
+          data-reference-sample 是机器可读的标记 —— 它同时告诉 verify-init：
+          链接到这里是「被标注的示例」，而不是「把 CRM 当成产品主入口」。 */}
+      <section
+        id="reference-sample"
+        data-reference-sample
+        className="border-b bg-muted/20 px-gutter py-12 sm:py-14"
+      >
+        <div className="mx-auto flex w-full max-w-content flex-col gap-6">
+          <FadeIn className="flex flex-col gap-2">
+            <span className="eyebrow text-muted-foreground">{copy.sampleTitle}</span>
+            <p className="max-w-2xl text-body text-muted-foreground">{copy.sampleDescription}</p>
+          </FadeIn>
+          <StaggerContainer className="grid gap-3 sm:grid-cols-2">
+            <Link
+              href="/crm"
+              className="flex items-center justify-between gap-4 rounded-panel border bg-surface px-5 py-4 transition-colors duration-hover hover:border-brand/40"
+            >
+              <span className="text-body font-medium">{copy.sampleCrmCta}</span>
+              <ArrowRightIcon className="size-4 shrink-0 text-muted-foreground" />
+            </Link>
+            <Link
+              href="/demo"
+              className="flex items-center justify-between gap-4 rounded-panel border bg-surface px-5 py-4 transition-colors duration-hover hover:border-brand/40"
+            >
+              <span className="text-body font-medium">{copy.sampleDemoCta}</span>
+              <ArrowRightIcon className="size-4 shrink-0 text-muted-foreground" />
+            </Link>
+          </StaggerContainer>
+          <p className="text-caption text-muted-foreground">{copy.sampleNote}</p>
+        </div>
+      </section>
+
       <section id="stack" className="mx-auto w-full max-w-content px-gutter py-16 sm:py-20">
         <FadeIn className="mb-10 flex flex-col gap-2">
           <h2 className="text-title">{copy.stackTitle}</h2>

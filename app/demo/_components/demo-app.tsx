@@ -33,6 +33,7 @@ import { MobileNav } from "@/components/layout/mobile-nav"
 import { PageContainer } from "@/components/layout/page-container"
 import { PageTransition } from "@/components/motion/page-transition"
 import { LoadingState } from "@/components/prototype/loading-state"
+import { DashboardSkeleton } from "@/app/_sample/dashboard-skeleton"
 import { ErrorState } from "@/components/prototype/error-state"
 import { CommandPalette, type PaletteGroup } from "@/components/prototype/command-palette"
 import { OnboardingWizard } from "@/components/prototype/onboarding-wizard"
@@ -319,7 +320,7 @@ export function DemoApp() {
               </div>
             ) : status === "loading" ? (
               <div data-testid="loading-state" className="flex flex-col gap-6">
-                <LoadingState variant="cards" count={4} />
+                <DashboardSkeleton />
                 <LoadingState variant="section" />
                 <LoadingState variant="rows" count={3} />
               </div>

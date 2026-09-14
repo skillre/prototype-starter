@@ -277,12 +277,19 @@ export const zhCN = {
    */
   landing: {
     badge: "Next.js 16 · Tailwind v4 · shadcn/ui · Motion",
-    title: "交互式原型 Starter",
+    title: "交互式原型基线",
     description:
-      "面向高保真产品原型的可复用基础：纯前端 + 本地状态 + 真实感 mock 数据——没有任何静态假页面。",
-    primaryCta: "打开 AI CRM 原型",
-    secondaryCta: "打开演示仪表盘",
-    tertiaryCta: "里面有什么",
+      "这是 Prototype Factory 的基线：Factory Core 提供结构与契约，参考原型演示它跑起来的样子。派生新原型之前，先走一遍 docs/product-initialization.md 的初始化清单。",
+    primaryCta: "查看参考原型",
+    secondaryCta: "里面有什么",
+    /* Reference Sample 区块：示例是显式标注的，不是这个 baseline 的产品身份。 */
+    sampleTitle: "参考原型 Reference Sample",
+    sampleDescription:
+      "下面两个是可运行的参考原型，用来演示这套基线能做出什么。它们是示例，不是这个基线的产品身份——派生新原型时可以直接删除。",
+    sampleNote:
+      "删除范围：app/crm/**、app/demo/**、app/sample-command-center.css 与对应的示例测试。清单见 docs/product-initialization.md。",
+    sampleCrmCta: "打开 AI CRM 原型",
+    sampleDemoCta: "打开演示仪表盘",
     highlights: [
       "shadcn/ui（Base UI）基础组件",
       "Motion 驱动的动画组件库",
@@ -319,7 +326,7 @@ export const zhCN = {
       "pnpm check — lint + 类型检查 + Playwright",
       "pnpm build — 交付前的生产构建",
     ],
-    footer: "原型 Starter —— 前端 + 本地状态 + 真实感 mock 数据。刻意不做后端。",
+    footer: "Prototype Factory 基线 —— 前端 + 本地状态 + 真实感 mock 数据。刻意不做后端。",
   },
 
   /** 通用分页文案——Pagination 的默认标签取这里，调用方无需重复传入。 */
@@ -1001,8 +1008,8 @@ export const zhCN = {
     app: {
       metaTitle: "页面不存在",
       title: "这个页面不存在",
-      description: "你访问的地址不属于这个原型，下面都是真实可用的入口。",
-      action: "AI CRM 总览",
+      description: "你访问的地址不属于这个原型，回到首页继续。",
+      action: "返回首页",
       backHome: "返回首页",
     },
     crm: {

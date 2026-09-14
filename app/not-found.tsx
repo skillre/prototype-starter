@@ -1,7 +1,5 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 import { NotFoundState } from "@/components/prototype/not-found-state"
-import { buttonVariants } from "@/components/ui/button"
 import { messages } from "@/lib/i18n"
 
 export const metadata: Metadata = { title: messages.notFound.app.metaTitle }
@@ -16,23 +14,16 @@ export default function AppNotFound() {
   return (
     <main className="relative flex flex-1 items-center justify-center px-gutter py-16">
       <div className="w-full max-w-content">
+        {/* 全站 404 不属于任何产品：主行动回到首页。
+            Reference Sample 的导航不能出现在这里 —— 那会让派生出来的新原型
+            看起来"默认就是 CRM"（INIT 边界审计的重点之一）。 */}
         <NotFoundState
           code="404"
           testId="app-not-found"
           title={t.title}
           description={t.description}
-          action={{ label: t.action, href: "/crm" }}
-          suggestions={[
-            { label: messages.nav.customers, href: "/crm/customers" },
-            { label: messages.nav.tasks, href: "/crm/tasks" },
-            { label: messages.nav.activities, href: "/crm/activities" },
-          ]}
+          action={{ label: t.action, href: "/" }}
         />
-        <div className="mt-6 flex justify-center">
-          <Link href="/" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-            {t.backHome}
-          </Link>
-        </div>
       </div>
     </main>
   )
