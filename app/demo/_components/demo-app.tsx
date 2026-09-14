@@ -220,7 +220,9 @@ export function DemoApp() {
    * 现在 /demo 与 AI CRM 走同一条路：调用方把身份和数据交进去。
    * ---------------------------------------------------------------------- */
   const brand: NavBrandDef = useMemo(
-    () => ({ name: copy.brandName, subtitle: copy.brandSubtitle }),
+    // 品牌块的内高光：Reference Sample 的显式 opt-in（共享组件默认关闭，见 AGENTS.md · Core Neutrality）。
+    // 少了这一行，/demo 的侧栏会比 v1.1 少一层"材质"——那是没人决定过的视觉变化。
+    () => ({ name: copy.brandName, subtitle: copy.brandSubtitle, sheen: true }),
     [copy]
   )
 
