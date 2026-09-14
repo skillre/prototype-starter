@@ -12,6 +12,12 @@ import {
   QA_PORT,
   routes as configuredRoutes,
 } from "../.qa/qa.config.mjs"
+import {
+  KITS_ROOT,
+  PRODUCT_SOURCE_ROOTS,
+  stripComments,
+  walkScoped,
+} from "../scripts/lib/kits-seam.mjs"
 
 /**
  * Factory v1.1 contract tests.
@@ -139,10 +145,29 @@ test("shared layout requires product identity to be injected", () => {
  *
  * This is the mechanical answer to "is the Factory still unaware of specific
  * Style Packs?". `docs/` and `tests/` are excluded on purpose: a documentation
- * example is allowed to be concrete, and a test fixture is not Core source. The
- * moment one of these ids appears in `lib/`, `components/`, `app/` or
- * `scripts/`, the Factory has learned a Kits value it should have read from the
- * registry at runtime.
+ * example is allowed to be concrete, and a test fixture is not Core source.
+ * The moment one of these ids appears in Core *code*, the Factory has learned a
+ * Kits value it should have read from the registry at runtime.
+ *
+ * Two scope corrections came out of the third prototype (v1.2 · F9), and both
+ * are visible in the test below rather than hidden in it:
+ *
+ *   1. `lib/kits/**` is excluded. After a real `kits add`, `installed/` and the
+ *      generated adapter seams are *named after assets* — that is what they are.
+ *      v1.1 walked `lib/` in full, so a **correct installation** failed this
+ *      test, and the only way to satisfy it was to patch the Factory inside
+ *      every product. The third prototype's `tests/factory-contract.spec.ts`
+ *      carries exactly that patch.
+ *   2. Comments are stripped. Grading prose as code is the mistake this file
+ *      already refuses to make elsewhere ("a config that documents `never reuse
+ *      port 3000` necessarily contains the string `3000`"). It is not
+ *      hypothetical here either: `scripts/lib/kits-seam.mjs` documents the seam
+ *      by naming the ids it exists to catch, and the third prototype's
+ *      `research-shell.css` names its pack ten times in its design record.
+ *
+ * Neither correction is an amnesty: `tests/kits-seam.spec.ts` re-checks the
+ * identity rule with a scope that follows the install, and refuses to report
+ * success when it scanned no files.
  */
 const KITS_ASSET_IDS = [
   "cinematic",
@@ -159,16 +184,19 @@ const KITS_ASSET_IDS = [
 ]
 
 test("Factory Core source names no specific Kits asset", () => {
-  const offenders = []
-  const scanned = ["lib", "components", "app", "scripts", "hooks", "stores"]
+  const offenders: string[] = []
+  const { files, excluded } = walkScoped(ROOT, {
+    roots: PRODUCT_SOURCE_ROOTS,
+    excludeTrees: [KITS_ROOT],
+  })
 
-  for (const dir of scanned) {
-    if (!existsSync(join(ROOT, dir))) continue
-    for (const file of walk(join(ROOT, dir), (p) => /\.(ts|tsx|mjs)$/.test(p))) {
-      const contents = read(file)
-      for (const id of KITS_ASSET_IDS) {
-        if (contents.includes(id)) offenders.push(`${file} → "${id}"`)
-      }
+  // A scan that looked at nothing must not be able to report a clean tree.
+  expect(files.length, "Core 扫描必须真的扫到文件").toBeGreaterThan(0)
+
+  for (const file of files) {
+    const code = stripComments(read(file))
+    for (const id of KITS_ASSET_IDS) {
+      if (code.includes(id)) offenders.push(`${file} → "${id}"`)
     }
   }
 
@@ -177,6 +205,7 @@ test("Factory Core source names no specific Kits asset", () => {
     "Factory Core 不得包含具体 Kits 资产 id。可选值必须在运行时从 Kits registry 读取，\n" +
       "否则新增一个 Style Pack 就会让 Factory 静默过期（见 docs/visual-manifest.md）。",
   ).toEqual([])
+  expect(excluded, `lib/kits/** 的豁免计数（本次 ${excluded} 个文件）应当是可报告的`).toBeGreaterThanOrEqual(0)
 })
 
 /* -------------------------------------------------------------------------- */
