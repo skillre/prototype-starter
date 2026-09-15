@@ -40,6 +40,27 @@ of real production use (AI CRM, AI Finance) and Prototype Kits v0.1.1 proved out
 
 The full audit is in `docs/factory-audit-v1.1.md`.
 
+## What changed in v1.2
+
+v1.2 turns six things that used to be judgement calls into contracts, and adds the layer that was
+missing entirely: what happens **after** the Preview.
+
+| Capability | Gate | Contract |
+|---|---|---|
+| Deployment authorization | `pnpm factory:deploy` | `docs/vercel-bootstrap.md` §0 |
+| Kits seam (managed / adapters / Product) | `pnpm factory:manifest --kits …` | `docs/kits-ownership.md` |
+| Generic style-presence QA | `pnpm qa` | `docs/browser-qa.md` §7 |
+| Art Direction decisions (deviations, signature budget, motion cross-check) | `pnpm factory:manifest` | `docs/visual-manifest.md` |
+| Core Neutrality (personality is an explicit opt-in) | `pnpm qa` + contract tests | `AGENTS.md` §Core Neutrality |
+| Product Semantic Contract (declared ↔ enforced) | `pnpm factory:contract` | `docs/prototype-creation-workflow.md` §4 |
+| Initialization Boundary (baseline vs product) | `pnpm factory:init` | `docs/product-initialization.md` |
+| Remote Online QA (the deployment, not the dev server) | `pnpm qa:online` | `docs/browser-qa.md` §8 |
+| Release: RC → HVA → Source → Production → tag | — (a person decides) | `docs/release-runbook.md` |
+
+Two of these are deliberately *not* automatable: **Human Visual Acceptance** and the **Art
+Direction checkpoint** are human decisions, and the release contract refuses to invent a state
+that skips them.
+
 ### Shared components now require injection
 
 `Sidebar` / `MobileNav` take `brand`, `items`, `user` as **required** props. `TopNav` takes a
@@ -67,10 +88,12 @@ data, or a product route; a contract test enforces it.
 Understand → Inspect → Product Model → Visual Direction → Visual Manifest
 → 【human / explicit Art Direction checkpoint】
 → kits add → Build → Invariant tests → Browser QA → Test → Preview
-→ Human Visual Acceptance → Release
+→ Online QA (same RC SHA) → 【Human Visual Acceptance】
+→ source release (ff-only → main) → Production (SHA == RC) → annotated tag → housekeeping
 ```
 
-Full detail: `docs/prototype-creation-workflow.md`.
+Full detail: `docs/prototype-creation-workflow.md`; the release half is `docs/release-runbook.md`
+(a release candidate is a **SHA**, and no machine may declare the human step done).
 
 ### Visual Manifest — the Art Direction Gate
 
@@ -132,7 +155,14 @@ See `docs/kits-ownership.md`.
 ```bash
 pnpm qa                    # every discovered route × 2 viewports × 2 themes + capability probes
 pnpm qa --routes=/demo
+pnpm qa:online --base-url=https://<deployment> --identity=<deployment.json> --expect-sha=<rc-sha>
 ```
+
+The two entries share **one** sweep (`.qa/sweep.mjs`): same probes, same thresholds, same
+style-presence channels. They differ in one variable — the origin. `pnpm qa` starts and stops its
+own dev server; `pnpm qa:online` sweeps a URL this run does not own and is an **observer**: it
+never starts a server, never deploys, never creates a bypass token, and never prints a secret. A
+protected URL is reported as protected — not as a deployment failure, and not as public.
 
 Routes, viewports, themes and tolerances live in `.qa/qa.config.mjs` — the sweep knows no route
 names and discovers them from `app/`.
@@ -184,9 +214,9 @@ just intended: a contract test scans `lib/`, `components/`, `app/`, `scripts/`, 
 | **Motion** | `components/motion/*` (FadeIn, SlideIn, ScaleIn, PageTransition, StaggerContainer, AnimatedNumber) |
 | **Layout** | `components/layout/*` (Sidebar, TopNav, MobileNav, PageContainer) — all injection-required |
 | **i18n** | `lib/i18n/*` + `components/i18n/*`; every user-visible string resolves through the dictionary |
-| **Contract** | `lib/visual-manifest.ts` + `.schema.json` |
-| **Tooling** | `scripts/install-kits.mjs`, `scripts/validate-manifest.mjs`, `scripts/doctor-gate.mjs`, `scripts/check-qa-port.mjs`, `.qa/*` |
-| **Docs** | `docs/visual-manifest.md`, `docs/kits-ownership.md`, `docs/browser-qa.md`, `docs/prototype-creation-workflow.md`, `docs/vercel-bootstrap.md`, `docs/factory-audit-v1.1.md` |
+| **Contract** | `lib/visual-manifest.ts` + `.schema.json`, `lib/product-contract.schema.json`, `lib/init-contract.schema.json`, `product-contract.json`, `init-contract.json` |
+| **Tooling** | `scripts/install-kits.mjs`, `scripts/validate-manifest.mjs`, `scripts/doctor-gate.mjs`, `scripts/check-qa-port.mjs`, `scripts/verify-deployment.mjs`, `scripts/verify-product-contract.mjs`, `scripts/verify-init.mjs`, `.qa/*` |
+| **Docs** | `docs/visual-manifest.md`, `docs/kits-ownership.md`, `docs/browser-qa.md`, `docs/prototype-creation-workflow.md`, `docs/vercel-bootstrap.md`, `docs/release-runbook.md`, `docs/product-initialization.md`, `docs/factory-audit-v1.1.md` |
 | **Skills** | `skills/interactive-prototype/SKILL.md`, `skills/git-delivery/SKILL.md` |
 
 ### Still in the repo: the reference product
@@ -197,6 +227,15 @@ describe it, and it is no longer the definition of the Factory's visual directio
 sample, not as a template.
 
 The neutral demo is `/demo` — non-CRM, non-Finance, no Style Pack.
+
+v1.2 makes that boundary machine-readable. Three layers, three dispositions — `pnpm factory:init`
+enforces them, and `docs/product-initialization.md` is the checklist a person follows:
+
+| Layer | Paths | When deriving a product |
+|---|---|---|
+| **Factory Core** | `components/**` `lib/**` `scripts/**` `.qa/**` `hooks/**` `stores/**` `skills/**` | copy as-is |
+| **Reference Sample** | `app/crm/**` `app/demo/**` `app/_sample/**` `app/sample-command-center.css` | reference; delete by default — keeping it requires an explicit sample label |
+| **Initialization Surface** | `package.json` `README.md` `app/layout.tsx` `app/page.tsx` `app/not-found.tsx` `lib/i18n/zh-CN.ts` | rewrite |
 
 ## Structure
 
@@ -229,11 +268,15 @@ pnpm lint              # ESLint
 pnpm typecheck         # next typegen + tsc --noEmit
 pnpm test              # Playwright (port guard + self-managed server)
 pnpm build             # production build (Turbopack)
-pnpm qa                # Browser QA sweep
+pnpm qa                # Browser QA sweep (starts its own server, port 3200)
+pnpm qa:online         # Online QA against a URL this run does not own
 pnpm check             # all five, in order
 
 pnpm factory:manifest  # validate visual-manifest.json
 pnpm factory:kits      # install Kits assets from the manifest (dry-run by default)
+pnpm factory:deploy    # deployment authorization + identity (actions / preflight / verify / access)
+pnpm factory:contract  # product semantic invariants: declared ↔ enforced
+pnpm factory:init      # initialization boundary: baseline / product, residual identity
 pnpm qa:doctor         # Kits doctor gate
 ```
 
@@ -253,9 +296,10 @@ pnpm qa:doctor         # Kits doctor gate
 
 ```
 main → feature/<name> → development → QA → commit → push → Vercel Preview
-     → human review → merge main
+     → online QA → human review → ff-only merge main → Production → annotated tag (target == RC)
 ```
 
 `main` is the stable baseline; agents never develop on it and never merge to it by default. Git
 safety rules live in `AGENTS.md`; the delivery checklist is in `skills/git-delivery/SKILL.md`;
-Vercel setup is in `docs/vercel-bootstrap.md`.
+Vercel setup is in `docs/vercel-bootstrap.md`; the release half — including the STOP before
+pushing a Production Branch — is in `docs/release-runbook.md`.
