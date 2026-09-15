@@ -23,28 +23,12 @@
   "unresolved": [
     {
       "id": "upstream/control-repo",
-      "what": "skillre/prototype-factory-control 是否存在、是否已发布可复用的 reusable-prototype-ci.yml@v1",
-      "why": "CI 想优先调用根控制仓的 reusable workflow，但那需要一个真实存在、且打了 v1 的外部 workflow 引用。引用一个不存在的仓会让 workflow 直接不可用——CI 不是「跑得慢」，是根本不跑。",
-      "probe": "2026-09-15 四次核实，全部指向「不存在」：(1) curl https://api.github.com/repos/skillre/prototype-factory-control → 404；(2) https://github.com/skillre/prototype-factory-control → 404；(3) 本地 /Users/skillre/ai-prototypes/prototype-factory-control → 不存在，且全工作区 grep 'prototype-factory-control' → 0 命中；(4) 真正的根控制面是 /Users/skillre/ai-prototypes 本身：`git remote -v` 为空、`git rev-parse HEAD` 失败（main 无任何 commit）、且没有 .github/ 目录 —— 所以 reusable-prototype-ci.yml 既不在本地也不在任何远端。",
-      "checkedOn": "2026-09-15",
-      "value": null
-    },
-    {
-      "id": "upstream/control-repo-commit",
-      "what": "根控制仓的 commit SHA / v1 tag 指向的确切内容",
-      "why": "锁定一份不可复现的外部引用比不引用更糟：它看起来像被钉住了，实际谁也没核过。",
-      "probe": "未执行——没有可解析的 ref：远端仓不存在，根控制面仓 main 无 commit、无 remote。宁缺勿猜。",
-      "checkedOn": "2026-09-15",
-      "value": null
-    },
-    {
-      "id": "upstream/starter-remote",
-      "what": "本仓 origin（github.com/skillre/prototype-starter）是否已发布，CI 是否真的有运行场所",
-      "why": "`.github/workflows/ci.yml` 只有在仓被推到一个真实远端之后才会运行。把「CI 会跑」当既成事实，会在第一次 push 时才发现它从来没有运行过。",
-      "probe": "curl https://api.github.com/repos/skillre/prototype-starter → 404（本仓 git remote -v 指向该地址）。观察于 2026-09-15；未执行 push，因此未做进一步核实。",
-      "checkedOn": "2026-09-15",
+      "what": "skillre/prototype-factory-control 的 reusable workflow 尚无已验证的不可变 release ref",
+      "why": "控制仓已创建并发布 main，但产品仓仍使用自包含 CI。切换为外部 reusable workflow 前必须先验证一个不可变 commit/tag 及真实 Actions run；仅有仓名和 main 分支不够。",
+      "probe": "2026-09-16 已核实控制仓 origin 存在，远端 main 含 a3b069b 与 83916bf，且 .github/workflows/reusable-prototype-ci.yml 已发布；尚未创建/验证专用 annotated release tag，也尚无产品仓调用该 workflow 的成功 run。",
+      "checkedOn": "2026-09-16",
       "value": null
     }
   ],
-  "note": "baseline 自身的治理锁，记录升级到 policy 1.3.0 那一刻的事实。`starter.commit` 是升级开始时基线 HEAD 的 SHA，不是「当前 HEAD」——HEAD 前进不会让锁失效（校验器只在漂移时给 warning，不判失败）。`AGENTS.md` 里只有 `factory-core-policy` 管理块受管，块外是人类写的文档。已用本仓校验器逐字比对根控制面 contracts/factory-lock.schema.json：本锁命中 oneOf 的「Factory baseline governance lock」分支（108 条断言全过），`starter.version` 1.2.0 落在 catalog/compatibility.json 的 supportedVersionRange `>=1.1.0 <2.0.0` 内。控制面的 catalog/projects/starter.json 仍记 `lockPresent: false`、`lockPath: factory/factory.lock.json`——那是升级前的扫描快照，需由控制面一侧刷新（不在本仓范围）。"
+  "note": "baseline 自身的治理锁，记录升级到 policy 1.3.0 那一刻的事实。starter.commit 是升级开始时基线 HEAD，而不是治理提交本身；治理采纳提交是 6191916。控制仓 skillre/prototype-factory-control 已于 2026-09-16 发布，但在不可变 reusable-workflow release ref 与真实调用被验证前，本仓继续使用自包含 CI。AGENTS.md 只有 factory-core-policy 管理块受管，块外仍是仓库自己的文档。"
 }
