@@ -249,7 +249,7 @@ test.describe("DOM == AX is documented as necessary, not sufficient", () => {
   const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8")
 
   test("the sweep, the standard and AGENTS.md all say it", () => {
-    const sweep = read(".qa/browser-qa.mjs")
+    const sweep = read(".qa/sweep.mjs")
     expect(sweep).toMatch(/necessary, not sufficient/i)
     expect(sweep).toMatch(/aria-hidden`-host scan/)
 
@@ -266,7 +266,7 @@ test.describe("DOM == AX is documented as necessary, not sufficient", () => {
   test("the paired detector still exists and is still wired in", () => {
     // If the aria-hidden-host scan is ever removed, parity becomes the only
     // check — and parity cannot see a fully pruned subtree.
-    const sweep = read(".qa/browser-qa.mjs")
+    const sweep = read(".qa/sweep.mjs")
     expect(sweep).toContain("INVISIBLE_SEMANTICS_VIOLATIONS")
     expect(sweep).toContain("no interactive content under aria-hidden")
   })

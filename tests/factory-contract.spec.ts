@@ -324,7 +324,9 @@ test("QA route config contains no product-specific route", () => {
 })
 
 test("QA sweep discovers routes and never hard-codes them", () => {
-  const sweep = read(".qa/browser-qa.mjs")
+  // v1.2: the sweep moved to `.qa/sweep.mjs` so the local and the remote runner
+  // share one implementation; the entry point now only owns the local server.
+  const sweep = read(".qa/sweep.mjs")
   expect(sweep).toContain("discoverRoutes")
   expect(sweep).not.toMatch(/["'`]\/crm/)
 })
