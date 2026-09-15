@@ -224,15 +224,34 @@ git push -u origin feature/<product>
 
 → GitHub → Vercel Preview。见 `docs/vercel-bootstrap.md`。
 
+**这个 commit 的 SHA 就是 RC。** 记下它——后面每一步都在说「同一个 SHA」。
+Preview 出来之后先验证身份（`target` / `git ref` / `git SHA` / `readyState`），**不要靠 URL 判断**：
+
+```bash
+node scripts/verify-deployment.mjs verify --deployment preview.json --rc <rc-sha>
+```
+
+然后在**部署环境上**跑在线 QA —— 本地绿了不等于部署上是对的：
+
+```bash
+pnpm qa:online --base-url=<preview-url> --identity=preview.json --expect-sha=<rc-sha>
+```
+
+见 `docs/browser-qa.md` 第 8 节。受 SSO 保护时它**不算部署失败**，也不要写成 public。
+
 ### 13 · Human Visual Acceptance
 
 **机器能证明的是"没有回归"；"这一版好不好看"不在机器的证据范围内。**
 
 Preview URL 交给用户做人工视觉验收。同时复核 Manifest 的约束是否被遵守——特别是 `avoid` 里的每一条在产物里是否真的没有出现。
 
+**HVA 未完成，状态只能是 `READY FOR HUMAN VISUAL ACCEPTANCE`** —— 契约里没有 `READY FOR RELEASE` 这个状态。
+
 ### 14 · Release → Production → Hub registration
 
-只有用户明确要求时才 merge `main`。Agent 默认不 merge、不 tag、不删 feature branch。
+**完整顺序见 `docs/release-runbook.md`**（RC → 门禁 → Preview → 在线 QA → HVA → 源码发布 →
+Production → annotated tag → housekeeping）。只有用户明确要求时才 merge `main`；
+Agent 默认不 merge、不 tag、不删 feature branch。
 
 **部署不是一次中立的 push。** 发布到 Production 之前读 `docs/vercel-bootstrap.md` 第 0 节，
 并跑一次预检：
@@ -244,6 +263,9 @@ node scripts/verify-deployment.mjs verify --deployment <json> --rc <已验收 SH
 
 创建 / 连接 Project、改 Production Branch、改 Deployment Protection、创建 Production deployment、
 创建 bypass token 都需要用户**明确授权**；受 SSO 保护的 URL 不得称为 public。
+
+**`main` 就是 Production Branch 时，push 前 STOP；不允许「先 push 再 cancel」。**
+tag 必须是 annotated，且指向**已验收的 RC SHA**；不要 `git push --tags`。
 
 ---
 

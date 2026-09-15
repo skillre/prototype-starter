@@ -134,6 +134,15 @@ feature branch → GitHub → Vercel → Preview Deployment
 - 如果为了访问 Preview 用了 `vercel curl`，**必须说明它顺带创建了 automation bypass secret**，
   以及它是否仍然存在。
 
+**在部署上跑在线 QA**（本地绿了不等于部署上是对的）：
+
+```bash
+pnpm qa:online --base-url=<preview-url> --identity=<deployment.json> --expect-sha=<rc-sha>
+```
+
+受保护 → 不算部署失败，也不要写成 public；没有授权 secret 就不跑，**不自己创建 token**。
+见 `docs/browser-qa.md` 第 8 节。
+
 ### 8. 发布到 Production（需要单独的一次性授权）
 
 只有当用户**明确要求发布**、并且**明确授权创建 Production deployment** 时才做，且必须：
@@ -143,7 +152,13 @@ feature branch → GitHub → Vercel → Preview Deployment
 node scripts/verify-deployment.mjs verify --deployment production.json --rc <已验收的 SHA>
 ```
 
-完整授权矩阵见 `docs/vercel-bootstrap.md` 第 0 节。Agent 默认**不做这一步**。
+- `readyState: READY` **不是**充分条件：还要看 target / ref / SHA / **alias 是否真的在服务** /
+  核心路由 HTTP / Production 在线 QA；平台的 `live` 字段不作为判据；
+- annotated tag 指向的 commit **必须等于已验收的 RC SHA**，不要 `git push --tags`；
+- 之后还有 housekeeping（bypass secret、保护设置、working tree、SHA 对齐、产物位置……）。
+
+**完整顺序见 `docs/release-runbook.md`**；完整授权矩阵见 `docs/vercel-bootstrap.md` 第 0 节。
+Agent 默认**不做这一步**。
 
 ## 关于 merge
 
@@ -151,16 +166,22 @@ Agent 默认**禁止自动 merge、push main、删除 feature branch**。
 
 只有当用户明确要求时才执行 `feature/<name> → main` 的合并。发生 merge conflict：**停止并报告**，不做高风险冲突解决。
 
+**`main` 是 Production Branch 时，push 前必须 STOP**（`preflight` 会拦），
+且**不允许「先 push 再 cancel」**：Production 一旦建起来，cancel 不是回滚。
+
 ## 完成标准（Definition of Done）
 
 - [ ] 当前 branch 是 `feature/<name>`（不是 main）
 - [ ] diff 已审查，无 secrets / 产物 / 无关改动
-- [ ] lint / typecheck / test / build 全部通过
+- [ ] lint / typecheck / test / build / qa 全部通过
 - [ ] commit 信息清晰、范围明确
 - [ ] （任务要求 delivery 时）已 push 并获得 Vercel Preview URL
+- [ ] （有 Preview 时）身份已验证 · 在线 QA 已跑 · 可访问性如实报告
 - [ ] 未擅自改动 main、未强推、未覆盖用户修改
 
 ## 参考文件
 
 - `AGENTS.md` — Git 工作流与安全规则（必读）
+- `docs/release-runbook.md` — 发布顺序（RC → HVA → Production → tag → housekeeping）
+- `docs/vercel-bootstrap.md` — 部署授权边界与项目设置
 - `skills/interactive-prototype/SKILL.md` — 开发与验证工作流

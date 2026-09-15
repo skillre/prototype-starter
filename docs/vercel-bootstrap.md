@@ -125,6 +125,14 @@ node scripts/verify-deployment.mjs verify --deployment production.json --rc <acc
 # ✓ Production 3858f3c… == 已验收 RC，readyState READY。
 ```
 
+**`readyState: "READY"` 是必要条件，不是充分条件。** 一个 deployment 可以 READY，
+而域名仍指向上一个版本；路由可以 200，而页面是没样式的。所以 Production 验收是**多证据**的
+（target / ref / SHA == RC / alias 正在服务 / 核心路由 HTTP / Production 上的在线 QA），
+而平台的 `live` 字段**不作为判据**。完整清单见 `docs/release-runbook.md` 第 8 节。
+
+**完整顺序（RC → 门禁 → Preview → 在线 QA → HVA → 源码发布 → Production → tag → housekeeping）
+见 `docs/release-runbook.md`。** 本节只回答"能不能做"。
+
 ---
 
 ## 1 · 项目设置
@@ -175,20 +183,29 @@ node scripts/verify-deployment.mjs verify --deployment production.json --rc <acc
 
 ## 4 · Preview 之后
 
-`feature/<name> → GitHub → Vercel Preview → 人工确认 → merge main`。
+`feature/<name> → GitHub → Vercel Preview → 在线 QA → 人工确认 → merge main`。
 
-- Preview URL 交给用户做**人工视觉验收**。
-- Agent **默认不 merge `main`**，即使 Preview 全绿。
-- 机器能证明的是"没有回归"；"这一版好不好看"不在机器的证据范围内。
+- **在线 QA 跑在 Preview 上**（`pnpm qa:online`）：本地绿了不等于部署上是对的，
+  见 `docs/browser-qa.md` 第 8 节；
+- Preview URL 交给用户做**人工视觉验收**；
+- Agent **默认不 merge `main`**，即使 Preview 全绿；
+- 机器能证明的是"没有回归"；"这一版好不好看"不在机器的证据范围内；
 - **把 Preview URL 交给用户时说明它的可访问性**：受 SSO 保护就说受保护，
-  不要因为"浏览器里能打开"就写成 public（见 0.5）。
+  不要因为"浏览器里能打开"就写成 public（见 0.5）；
+- 之后的每一步（HVA → 源码发布 → Production → annotated tag → housekeeping）
+  见 `docs/release-runbook.md`。
+
+> **`main` 就是 Production Branch 时，push `main` 前必须 STOP**（见 0.2）——
+> 即便已经拿到"merge 到 main"的授权，那也是一次可能直接建起 Production 的基础设施动作。
 
 ---
 
 ## 5 · 相关
 
+- `docs/release-runbook.md` — 发布顺序与每步的凭据（RC → tag → housekeeping）
 - `AGENTS.md` — Git 工作流与安全规则（红线命令、branch 策略、部署授权）
 - `skills/git-delivery/SKILL.md` — 交付工作流（push 前的 preflight 在这里嵌入）
 - `scripts/lib/deploy-contract.mjs` — 授权矩阵与三项可机器判定的检查
+- `scripts/lib/release-contract.mjs` — 发布状态机 / tag 契约 / Production 多证据
 - `scripts/verify-deployment.mjs` — 可执行的 deployment gate
 - `docs/prototype-creation-workflow.md` — 完整生产流程

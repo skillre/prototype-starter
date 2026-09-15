@@ -1,6 +1,14 @@
 # Browser QA Standard
 
-`pnpm qa` —— Factory v1.1 的浏览器质量门。跑在 `.qa/browser-qa.mjs`，配置在 `.qa/qa.config.mjs`。
+Factory 的浏览器质量门，两个入口、一套判据：
+
+| 入口 | 模式 | 跑在 | 扫描对象 |
+|---|---|---|---|
+| `pnpm qa` | **LOCAL_MANAGED** | `.qa/browser-qa.mjs` | 本 run 自己起的 dev server（端口 3200） |
+| `pnpm qa:online` | **REMOTE** | `.qa/online-qa.mjs` | 一个已经存在的 URL（Preview / Production） |
+
+两者共用 `.qa/sweep.mjs` —— 探针、判据、视口矩阵、style-presence 通道、DOM==AX 配套扫描**只有一份**。
+配置在 `.qa/qa.config.mjs`。
 
 这份文档说明**为什么**是这些判据。每一条都来自一次真实的假绿或真实回归，不是清单式的最佳实践。
 
@@ -26,6 +34,9 @@ QA_VERBOSE=1 pnpm qa       # 打印每一项通过
 | 路由 | `app/` 下自动发现的全部静态路由 |
 
 动态段（`[id]`）无法静态发现，会被跳过并在输出里说明；具体路径写进配置的 `extraRoutes`。
+
+> **两种模式用同一份矩阵、同一批判据。** 下面第 1–7 节的每一条，在 `pnpm qa:online` 下同样成立 ——
+> 否则就会出现「本地 QA 和线上 QA 是两套真相」，那正是 REMOTE 模式要去掉的失败模式。见第 8 节。
 
 ---
 
@@ -258,6 +269,101 @@ pkill -f "next-server"     # ✗ 同上
 
 ---
 
+## 8 · Online QA（REMOTE）—— 本地绿了不等于部署上是对的
+
+```bash
+pnpm qa:online \
+  --base-url=https://<deployment-host> \
+  --identity=deployment.json \
+  --expect-sha=<rc-sha> --expect-ref=feature/<product> --expect-target=preview
+```
+
+**为什么需要它。** `pnpm qa` 证明的是「这棵树在 dev server 下是对的」。它证明不了
+「一次**部署**在 HTTPS 后面、经过平台保护层之后仍然是对的」——第三 Prototype 发布过一条整页退回
+浏览器默认样式的路由（第 7 节），那正是**部署之后**才成立的形状。
+
+### 不是两套真相
+
+同一个 `.qa/sweep.mjs`：`resolveRoutes` / `runSweep` / `reportSweep` 全部复用。
+探针、判据、矩阵、通道、配套扫描一份。**唯一变化的是 origin 和请求头**：
+
+| | LOCAL_MANAGED (`pnpm qa`) | REMOTE (`pnpm qa:online`) |
+|---|---|---|
+| origin | 本 run 起的 `127.0.0.1:3200` | `--base-url` |
+| server | 本 run 起、本 run 收（杀进程组，见第 5 节） | **不碰**：没有本地 server |
+| 额外请求头 | 无 | 仅在提供了 bypass secret 时加一条 |
+| 判据 | **完全相同** | **完全相同** |
+
+**Provider-agnostic：** 输入是「一个 base URL + 一份部署身份元数据」，不需要 Vercel CLI、
+不需要项目 link、不需要平台凭证。换平台，runner 不用改。
+
+### 它只观察，不编排
+
+不部署 · 不创建/连接 Project · 不 promote · 不 merge · 不 tag · 不创建 bypass token ·
+不改 Deployment Protection · 不持久化凭证。部署变更属于 `scripts/verify-deployment.mjs`。
+
+### 可达性三分：protected 既不是失败，也不是 public
+
+| 匿名请求 | 分类 | 能怎么说 |
+|---|---|---|
+| 2xx | public | 可以说 public |
+| 3xx（含跳 SSO）/ 401 / 403 | **protected** | **只能说 protected** |
+| 连不上 / 无状态码 | unreachable | 只能说 unknown |
+
+受 SSO 保护的 Preview 返回 302 → `vercel.com/sso` 是**平台的正常工作状态**，
+既不许报成「部署失败」，也不许写成「public」（见 `docs/vercel-bootstrap.md` 第 0.5 节）。
+没有 secret 时 `qa:online` **exit 1 并说明这一点**，而不是报一个假绿。
+
+### bypass secret：只作为输入，四条规则
+
+1. **永不自动创建 token。** 需要而没人给 → 停下来说明；
+2. 只接受**已授权**的 secret，从 `QA_ONLINE_BYPASS_SECRET` 环境变量进，
+   以 `x-vercel-protection-bypass` 请求头发送；
+3. **不打印、不持久化、不提交**：报告里只出现 `present (redacted)`；
+4. 谁创建了它、它还在不在，归 DEPLOY 契约管（`vercel curl` 会顺带创建，见 0.4 节）——
+   本 runner 只消费，不拥有。
+
+### 身份先于 QA
+
+给了 `--expect-*` 却**没给** `--identity` → **不跑**。期望值与部署记录不一致 → **在跑 QA 之前 STOP**。
+
+> **对「看起来是对的 URL」跑完 QA 再说通过，正是这一步要防的事。**
+> URL 不能推断 target / ref / SHA；`readyState: READY` 也不能（见 `docs/release-runbook.md` 第 8 节）。
+
+退出码：`0` 通过 · `1` 未通过 / 未运行 / 不可达 / 受保护 · `2` 用法错误。
+
+---
+
+## 9 · T1：dev-server 的 manifest 竞态 —— 这个长相的失败不是产品缺陷
+
+**症状（要认得出它）**：
+
+- 只在 **Turbopack dev server** 下发生（`pnpm test` / `pnpm qa`），**在 `next start`
+  生产构建、Preview、Production 上从未出现过**；
+- 大批量失败、而且形状荒谬：历史三次里的一次是 `233 passed / 119 failed in 3.6 min`，
+  紧接着原样重跑是 `352 passed in 38.0 s`；
+- 日志里能看到 dev server 读**路由 manifest** 时的 JSON 解析错误
+  （实测形状：`SyntaxError: Unexpected non-whitespace character after JSON at position 536`，
+  指向 `/r/<route>` 的 manifest），而**同一时刻磁盘上的 manifest 全是合法 JSON**
+  ⇒ 读到了正在写入的文件，不是文件坏了。
+
+**正确反应**：**重跑一次**，并把第一次的失败**记录**下来（连原始输出一起）。
+第二次全绿不能抹掉第一次红过这件事。
+
+**禁止反应**：
+
+| 不要做 | 为什么 |
+|---|---|
+| 为它改产品代码 | 产品代码没有问题；历史三次没有为它改过一行 |
+| 为它改依赖版本 | 同上，而且会把一次竞态变成一次未经评估的升级 |
+| 把它当成「Turbopack 不稳定」的一般结论 | 它是一个**具体的、可辨认的**签名，不是一句抱怨 |
+
+> **「跑得慢」不等于 T1。** 慢是慢，超时是超时，真正的断言失败是真的失败。
+> 只有当「dev-server manifest JSON 解析错误 + 重跑即绿 + 该路径从未在 `next start` 上复现」
+> 三条同时成立，才把它记为 T1。**任何一条不成立，就按真实失败处理，不许降级成 T1。**
+
+---
+
 ## 判据来自哪里
 
 | 判据 | 来源 |
@@ -269,3 +375,5 @@ pkill -f "next-server"     # ✗ 同上
 | coarse pointer 用独立 context | 同上首次扫描：`setViewportSize` 不会改变 `(pointer: coarse)` |
 | 进程组清理 | 同上首次扫描：`pnpm dev` 的孙子进程泄漏，端口被占 |
 | Style Presence（第 7 节） | 第三个 Prototype：Finding 路由的样式表没进入模块图，整页退回浏览器默认态，而所有既有检查全绿 |
+| Online QA / REMOTE（第 8 节） | 同上那次发布：在线 QA 由临时脚本逐字 import Factory 探针完成，从未被收进 `.qa/` |
+| T1（第 9 节） | 第三次复现（本阶段 1 次）：dev server 读到写入中的路由 manifest，重跑即绿，从未在生产构建上出现 |

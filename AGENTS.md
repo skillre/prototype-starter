@@ -162,6 +162,33 @@ pkill -f "next-server"     # ✗ 同上
 > 另注：Next 16 的 dev server 是**按项目**加锁的（`.next/dev/lock`），不是按端口。
 > 同一项目不能再起第二个 `next dev`；`pnpm test` 与 `pnpm qa` 不能同时跑。
 
+### 在线 QA（REMOTE）
+
+**本地绿了不等于部署上是对的。** `pnpm qa:online` 用**同一个** `.qa/sweep.mjs` 扫一个已经存在的 URL：
+
+```bash
+pnpm qa:online --base-url=<url> --identity=<deployment.json> --expect-sha=<rc-sha>
+```
+
+- **不是两套真相**：探针、判据、矩阵、style-presence 通道、DOM==AX 配套扫描全部复用；
+  只有 origin 与请求头不同；
+- **只观察，不编排**：不部署 · 不 promote · 不 merge · 不 tag · **永不创建 bypass token** ·
+  不启动本地 server · 不持久化凭证；
+- secret 只能由用户通过 `QA_ONLINE_BYPASS_SECRET` 提供（→ `x-vercel-protection-bypass` 头），
+  **不打印、不持久化、不提交**；没有 secret 时停下来说明；
+- **受保护（302 跳 SSO / 401 / 403）既不是部署失败，也不是 public**；
+- **身份先于 QA**：给了 `--expect-*` 却没给 `--identity` → 不跑；
+  期望值与部署记录不一致 → **跑 QA 之前** STOP。
+
+详见 `docs/browser-qa.md` 第 8 节、`docs/release-runbook.md`。
+
+### T1：dev-server manifest 竞态不是产品缺陷
+
+只在 Turbopack dev server 下出现、日志里是路由 manifest 的 JSON 解析错误（读到写入中的文件）、
+**重跑即绿**，且从未在 `next start` / Preview / Production 上复现 —— 三条同时成立才算 T1：
+**重跑一次并记录，不要去改产品**。**「跑得慢」不等于 T1**；任何一条不成立就按真实失败处理。
+见 `docs/browser-qa.md` 第 9 节。
+
 ## Quality Gates
 
 任何 Prototype 在「完成」之前必须全部通过：
@@ -366,6 +393,35 @@ node scripts/verify-deployment.mjs access --status <code> [--location <url>]
 
 发布到 Production 时：**Production 部署的 SHA 必须等于已验收 RC 的 SHA**（`pnpm factory:deploy`）。
 
+### 发布（RELEASE）
+
+**完整顺序见 `docs/release-runbook.md`。** 发布不是一次 push，是一个 commit 依次过门：
+
+```
+RC SHA → 本地门禁 → Preview(同一 SHA) → 在线 QA → 人工视觉验收
+       → 源码发布 → Production(同一 SHA) → annotated tag → housekeeping
+```
+
+1. **RC 是一个明确的 SHA**，不是「feature branch 上最新的 commit」。定了 RC 就不要再往同一分支推新 commit。
+2. **状态不是布尔**：`NOT READY` → `READY FOR HUMAN VISUAL ACCEPTANCE` → `READY TO RELEASE SOURCE`
+   → `READY TO DEPLOY PRODUCTION`。**没有 `READY FOR RELEASE` 这个状态**：
+   HVA 未完成时只能是 `READY FOR HUMAN VISUAL ACCEPTANCE`。
+3. **源码发布 ≠ Production 部署。** merge `main` 与「创建 Production deployment」是两次独立授权。
+4. **在线 QA 跑在部署上**（`pnpm qa:online`）：本地绿了不等于部署上是对的。
+   REMOTE 模式是**观察者**：不部署、不 promote、不 merge、不 tag、**不创建 bypass token**；
+   secret 只能由用户通过 `QA_ONLINE_BYPASS_SECRET` 提供，且不打印、不持久化、不提交。
+5. **受保护不是失败，也不是 public。** 没有 secret 时 runner 停下来说明，不报假绿。
+6. **Production 验收是多证据**：target / ref / SHA == RC / alias 正在服务 / 核心路由 HTTP /
+   Production 在线 QA。`readyState: READY` 必要但不充分；平台的 `live` 字段**不作为判据**。
+7. **tag 必须是 annotated，且 target == 已验收 RC SHA**；不要 `git push --tags`。
+   PR 走 ff-only 时不要假设 `mergeCommit.sha` 存在，也不要为了「有个 SHA 可引用」而制造 merge commit。
+8. **housekeeping 不是可选项**（九项）：bypass secret 是否已清理 · 临时 credential 是否清理 ·
+   Deployment Protection 未被改动 · working tree clean ·
+   local/origin/tag SHA 对齐 · 截图与报告不在 repo 内 · 被取消的 deployment 只作历史 ·
+   feature branch 去留已决定 · 文案/polish 进 backlog（**不偷偷塞进已验收的 SHA**）。
+
+机器判据在 `scripts/lib/release-contract.mjs`（授权/身份/可访问性一律 re-export 自 Phase A DEPLOY 契约，没有第二份实现）。
+
 ## 设计 Token
 
 一切视觉常量来自 `app/globals.css` 的 design token 层（typography `text-display/title/subtitle/heading/caption/label/eyebrow/metric/metric-sm/numeric`、semantic spacing `p-gutter/gap-stack/mt-section`、radius `rounded-field/rounded-card/rounded-panel`、motion `duration-*`/`ease-*`、内容宽度 `max-w-dashboard/content/text`）。禁止在页面里撒 magic number。
@@ -500,6 +556,7 @@ pnpm typecheck         # next typegen + tsc --noEmit
 pnpm test              # Playwright E2E（端口守卫 + 自管 server，需先 pnpm exec playwright install chromium）
 pnpm build             # production build（Turbopack）
 pnpm qa                # Browser QA 全量扫描（自带 server，端口 3200）
+pnpm qa:online         # 在线 QA（REMOTE：扫一个已存在的 URL，不碰部署，不创建 token）
 pnpm check             # lint + typecheck + test + build + qa
 
 pnpm factory:manifest  # 校验 visual-manifest.json（L1 结构 + L2 自洽 + L3 与 pack 比对）
