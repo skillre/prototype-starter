@@ -16,7 +16,32 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - ✅ Next.js 16 App Router · TypeScript · Tailwind v4 · pnpm
 - ✅ shadcn/ui（**base-nova 风格，基于 Base UI**，而非 Radix）· Motion 13 · Zustand 5 · Recharts 3 · dnd-kit · Playwright
-- ❌ 禁止加入 Database / Supabase / Authentication / Docker / Kubernetes / Monorepo / Turborepo / Microservices / Backend service / MCP / Multi-agent orchestration / GitHub Actions / Vercel API & CLI automation / Cloudflare / 任何新的 deployment platform。这些以后再处理。
+- ✅ DSH 宿主侧的**多 Subagent 编排**：允许并要求——边界与判据见下方 `factory-core-policy` 管理块。
+- ✅ GitHub Actions **只作为 CI 质量门**（`.github/workflows/ci.yml`）：lint / typecheck / build / test / qa。部署仍由 Vercel Git Integration 负责，CI 不部署。
+- ❌ 禁止加入 Database / Supabase / Authentication / Docker / Kubernetes / Monorepo / Turborepo / Microservices / Backend service / MCP / Cloudflare / 任何新的 deployment platform。这些以后再处理。
+- ❌ 禁止在**产品应用代码**里引入编排框架或编排运行时——这才是 v1.2 那句「Multi-agent orchestration」真正要守的东西。
+- ❌ 禁止 Vercel API & CLI automation（deployment token / bypass secret / `vercel` 命令自动化）：部署授权是人的决定，不是构建的副作用。
+
+<!-- BEGIN:factory-core-policy v1.3.0 -->
+> 本块由 `pnpm factory:agents --print-block` 从 `factory-policy.json` 渲染，`pnpm factory:agents` 逐字校验。
+> **不要手工编辑块内文字**：改 `factory-policy.json`（其关键值由 `lib/factory-policy.schema.json` 钉住），再同步本块。块外仍是人类写的文档。
+
+## Factory Core Policy v1.3.0（Agent 编排与并发）
+
+- **Agent 编排边界（是边界，不是禁令）**：**允许并要求**在 **DSH 宿主**内用多 **Subagent** 拆分与并行任务；
+  **禁止**在**产品应用代码**里引入编排框架或编排运行时。
+  - 允许：宿主内拆分/并行只读或彼此独立的任务；宿主的 Subagent 调用不属于产品代码。
+  - 禁止：产品应用代码及其运行时依赖（app/components/lib/hooks/stores/scripts）里出现 agent framework / orchestrator runtime / 多 agent 调度依赖。
+  - 判据：`app` `components` `lib` `hooks` `stores` `scripts` 不得 import 编排 SDK；`package.json` 的运行时依赖不得出现编排框架。宿主侧的 Subagent 调用不是产品代码，不受此限。
+- **模型路由**：provider `opencode-go-dsv41` / model `deepseek-flash` / reasoning effort `max`（2026-09-15 与 DSH 模型目录核对）。Subagent 默认走这条路由；改路由先改 `factory-policy.json`。
+- **单 worktree 单写者**（`single-writer`）：同一棵工作副本同一时间只有一个写者；要并行写就各自独立 worktree。两个写者共享一棵树，冲突不是概率问题，是时间问题。
+- **共享路径单 owner**（`single-owner`）：`AGENTS.md`、`package.json`、`factory-policy.json`、`factory.lock.json`、契约 schema 与门禁脚本这类共享面，同一时间只有一个 owner，其余 agent 只读。
+- **test / qa 串行**（`serial`）：`pnpm test` 与 `pnpm qa` **永不并发**（Next 16 dev server 按项目加锁，并行只会在错误的 server 上出结果）。CI 里同样不得拆成两个并行 job。
+- **HVA（人工视觉验收）**：`required-before-release` —— 没有 HVA 就没有发布；Agent 不能替人验收，未完成时状态只能是 `READY FOR HUMAN VISUAL ACCEPTANCE`。
+- **部署授权**：`explicit-user-authorization` —— 源码发布 ≠ Production 部署。没有用户明确授权，不创建/提升 Production 部署、不改 Deployment Protection、不 push Production Branch。详见 `docs/vercel-bootstrap.md` 第 0 节与 `docs/release-runbook.md`。
+
+机器可读副本：`factory-policy.json` · 关键值：`lib/factory-policy.schema.json` · 基线锁：`factory.lock.json` · 校验器：`scripts/guard-agent-policy.mjs`（`pnpm factory:agents`）。
+<!-- END:factory-core-policy -->
 
 ## 开发原则（必须遵守）
 
@@ -203,7 +228,7 @@ pnpm qa
 
 任何一项失败：**禁止声称完成**。必须修复后重新执行，直至全部通过。
 
-`pnpm check` 会依次跑完这五项。
+`pnpm check` 会依次跑完这五项，并把 `pnpm factory:agents`（策略门禁：编排边界、管理块同步、schema 关键值、CI 契约）作为**第一项**。
 
 ## Kits Ownership Contract
 
@@ -557,8 +582,9 @@ pnpm test              # Playwright E2E（端口守卫 + 自管 server，需先 
 pnpm build             # production build（Turbopack）
 pnpm qa                # Browser QA 全量扫描（自带 server，端口 3200）
 pnpm qa:online         # 在线 QA（REMOTE：扫一个已存在的 URL，不碰部署，不创建 token）
-pnpm check             # lint + typecheck + test + build + qa
+pnpm check             # factory:agents + lint + typecheck + test + build + qa
 
+pnpm factory:agents    # Agent 策略门禁（管理块 ↔ factory-policy.json；--print-block 同步块）
 pnpm factory:manifest  # 校验 visual-manifest.json（L1 结构 + L2 自洽 + L3 与 pack 比对）
 pnpm factory:contract  # 产品语义不变量：声明 ↔ 测试登记，双向核对
 pnpm factory:init      # 初始化边界：baseline / product、残留身份、0-scan

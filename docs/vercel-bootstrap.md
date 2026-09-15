@@ -161,7 +161,8 @@ node scripts/verify-deployment.mjs verify --deployment production.json --rc <acc
 | 自动断开 Git integration | 会切断部署来源，且难以从仓库侧恢复 |
 | 擅自修改 Deployment Protection | 保护策略是**安全设置**，不是构建配置 |
 | 擅自创建新项目 / 新部署平台 | 属于基础设施变更，需要明确授权（见 0.1） |
-| 在项目里加入 Vercel API / CLI automation / GitHub Actions | 见 `AGENTS.md` 的项目边界 |
+| 在项目里加入 Vercel API / CLI automation | 见 `AGENTS.md` 的项目边界；授权矩阵见 0.1 |
+| 让 CI 承担部署 | `.github/workflows/ci.yml` 只是**质量门**：不创建 Preview/Production、不 promote、不调用 Vercel CLI、不持有部署 token。部署仍由 **Vercel Git Integration** 负责 |
 
 > **凭证是 user-managed state。** Agent 可以读取部署结果，但不拥有认证状态。遇到凭证问题时**报告并停止**，不要"修复"它。
 >

@@ -15,7 +15,7 @@ pnpm install
 pnpm exec playwright install chromium   # first e2e / QA run only
 
 pnpm dev          # http://localhost:3000 — neutral demo at /demo
-pnpm check        # lint + typecheck + test + build + qa
+pnpm check        # factory:agents + lint + typecheck + test + build + qa
 pnpm build        # production build (Turbopack)
 ```
 
@@ -81,6 +81,53 @@ what the product is called.
 The Factory's own neutral demo does exactly this (`app/demo/_components/demo-app.tsx`) — the
 same thing an AI CRM or an AI Finance must do. `components/**` may not import a store, product
 data, or a product route; a contract test enforces it.
+
+## What changed in v1.3
+
+v1.2 banned **"Multi-agent orchestration"** in one flat list, next to Docker and Supabase. That
+rule was wrong in both directions at once: it also banned splitting work across DSH subagents —
+the workflow the Factory actually depends on — while never naming the thing that must not ship.
+A rule nobody can follow and nobody can break is a rule that protects nothing.
+
+v1.3 replaces the ban with a **boundary**, and makes it machine-readable:
+
+| Piece | What it is |
+|---|---|
+| `AGENTS.md` → `<!-- BEGIN:factory-core-policy v1.3.0 -->` | The managed block a person reads. Rendered, verified verbatim. |
+| `factory-policy.json` | The values: orchestration boundary, model route, concurrency, authorization. |
+| `lib/factory-policy.schema.json` | The key values, as `const`s — the single place a value is written. |
+| `factory.lock.json` | The baseline lock: starter v1.2.0 + its SHA, policy version, managed surfaces, and the facts that are **unknown** (recorded as `null`, never guessed). |
+| `scripts/guard-agent-policy.mjs` → `pnpm factory:agents` | The gate: schema ↔ policy ↔ block ↔ docs ↔ CI, plus `package.json` wiring. |
+
+The boundary itself, in two lines:
+
+- **Allowed and required** — multi-subagent work inside the **DSH host**: split, parallelize,
+  keep the parent's context clean.
+- **Forbidden** — an orchestration framework or orchestrator runtime inside **product
+  application code** (`app` `components` `lib` `hooks` `stores` `scripts`, or the runtime
+  dependencies in `package.json`). The product runtime must not need an agent scheduler to
+  render a page.
+
+Also locked down: model route (`opencode-go-dsv41` / `deepseek-flash` / `max`), single-writer per
+worktree, single owner per shared path, serial `test`/`qa`, HVA before release, and deployment
+authorization. `pnpm factory:agents` is the **first** item of `pnpm check`, and it fails loudly on
+a vacuous scan rather than passing on zero files.
+
+### CI exists now — as a quality gate only
+
+`.github/workflows/ci.yml` runs the gates in CI. It is **not** a deployment path:
+
+- it does not create or promote Preview/Production, does not call the Vercel CLI, and holds no
+  deployment token or bypass secret — **deployment stays with Vercel Git Integration**;
+- `pnpm test` and `pnpm qa` are **serial jobs** (`browser-qa` `needs:` the gate job), because
+  Next 16 locks the dev server per project; `pnpm factory:agents` checks that this relationship
+  still holds;
+- it is self-contained **for now**: the intended upstream call
+  (`skillre/prototype-factory-control/.github/workflows/reusable-prototype-ci.yml@v1`) could not be
+  resolved on 2026-09-15 (404 on both the API and the web URL, nothing locally, 0 grep hits), and a
+  `uses:` pointing at a nonexistent repo makes the whole workflow invalid — CI would be dead, not
+  degraded. The switch is written in the workflow header, and `factory.lock.json` records the
+  upstream as unknown so the two can't drift apart.
 
 ## The production flow
 
@@ -258,6 +305,9 @@ tests/                   # Playwright e2e + Factory contract tests
 scripts/                 # Kits manifest / install / doctor / port guard
 docs/                    # the contracts, in prose
 skills/                  # agent skills (interactive-prototype, git-delivery)
+factory-policy.json      # machine-readable agent policy (v1.3.0) — source of the AGENTS.md block
+factory.lock.json        # governance lock: baseline version + SHA + managed surfaces + unknowns
+.github/workflows/       # CI — a quality gate only; deployment stays with Vercel Git Integration
 ```
 
 ## Commands
@@ -270,8 +320,9 @@ pnpm test              # Playwright (port guard + self-managed server)
 pnpm build             # production build (Turbopack)
 pnpm qa                # Browser QA sweep (starts its own server, port 3200)
 pnpm qa:online         # Online QA against a URL this run does not own
-pnpm check             # all five, in order
+pnpm check             # factory:agents + all five, in order
 
+pnpm factory:agents    # agent policy gate: managed block ↔ factory-policy.json (+ --print-block)
 pnpm factory:manifest  # validate visual-manifest.json
 pnpm factory:kits      # install Kits assets from the manifest (dry-run by default)
 pnpm factory:deploy    # deployment authorization + identity (actions / preflight / verify / access)
@@ -298,6 +349,11 @@ pnpm qa:doctor         # Kits doctor gate
 main → feature/<name> → development → QA → commit → push → Vercel Preview
      → online QA → human review → ff-only merge main → Production → annotated tag (target == RC)
 ```
+
+CI (`.github/workflows/ci.yml`) sits beside that line, not on it: it reports whether a commit is
+green, and the **deployment remains Vercel Git Integration's job**. CI creates no deployment and
+holds no deployment credential, and a green CI run is never a substitute for Human Visual
+Acceptance or for the separate Production authorization (see `docs/release-runbook.md` §3).
 
 `main` is the stable baseline; agents never develop on it and never merge to it by default. Git
 safety rules live in `AGENTS.md`; the delivery checklist is in `skills/git-delivery/SKILL.md`;

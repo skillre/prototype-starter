@@ -92,6 +92,22 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm qa
 `pnpm qa` 是 LOCAL_MANAGED：它自己起 dev server（端口 3200）、自己收尾、不连任何已有 server。
 详见 `docs/browser-qa.md`。
 
+### CI 在这条链上的位置：质量门，不是部署方
+
+`.github/workflows/ci.yml` 跑的是**同一组门禁**，另加 `pnpm factory:agents`（Agent 策略）与几道 Factory
+契约门（`factory:init` / `factory:contract` / `qa:doctor`）。但它不在这条链的**发布**侧：
+
+- **CI 不部署。** 不创建 Preview/Production、不 promote、不调用 Vercel CLI、不读取任何部署 token 或
+  bypass secret。部署仍由 **Vercel Git Integration** 负责：push/tag 触发平台自己的构建，
+  Vercel 是部署的一方，CI 不是。
+- **CI 里的 `pnpm test` 与 `pnpm qa` 是串行 job**（`browser-qa` 用 `needs:` 依赖前一个）。
+  Next 16 的 dev server 按项目加锁，并行只会在错误的 server 上出结果；`pnpm factory:agents`
+  会检查这条关系还在，拆成两个并行 job 即 FAIL。
+- **CI 绿了不等于可以发布。** 状态机、HVA、Production 授权一步都不省（第 1 节、第 6 节）。
+
+> `pnpm check` = `pnpm factory:agents` + 上面那五道。多出来的那道是策略门禁，它不改变
+> `REQUIRED_LOCAL_GATES`（五道）的含义：缺任何一道仍然不是候选。
+
 ---
 
 ## 4 · 第 2 步：Preview —— 验证身份，不看 URL
