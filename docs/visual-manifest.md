@@ -185,7 +185,7 @@ Understand → Inspect → Product Model
 ```
 
 - **没有 Manifest 就不能进入实现。** `pnpm factory:kits` 会拒绝；`skills/interactive-prototype/SKILL.md` 把它写成不可跳过的阶段。
-- **Art Direction checkpoint 是人工决定。** 选哪个 pack、第一视觉是什么、不要什么、最多几个签名组件——这些是设计决策，不是可以默认的。Agent 不能在没有 Manifest 的情况下生成 generic AI SaaS visual；也不能代替人确认那九问（见 `docs/prototype-creation-workflow.md` 第 6 步）。
+- **Art Direction checkpoint 是人工决定。** 选哪个 pack、第一视觉是什么、不要什么、最多几个签名组件——这些是设计决策，不是可以默认的。Agent 不能在没有 Manifest 的情况下生成 generic AI SaaS visual；也不能代替人确认那九问（见 `docs/prototype-creation-workflow.md` 第 7 步）。
 - **Divergence 先于 Manifest。** 先回答「这个产品为什么不该长得像 Reference Sample / 上一个 Prototype」，再把答案写成字段。
 - **`firstVisual` 与 `avoid` 是强约束**，会被校验器强制。
 - **Manifest 是约束，不是装饰。** 写了 `avoid: ["card-everywhere"]` 却在产物里到处是卡片 = 违规；Browser QA 与人工验收是复核它的地方。

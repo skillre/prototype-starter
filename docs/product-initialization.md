@@ -83,7 +83,7 @@ pnpm factory:init           ← 检查它（stage / 残留身份 / 0-scan）
 ### 5 · Art Direction divergence
 
 回答：**这个产品为什么不应该长得像 Reference Sample / 上一个 Prototype？**
-产出一句 `divergence statement`。见 workflow 第 4 步。
+产出一句 `divergence statement`。见 workflow 第 5 步。
 
 ### 6 · Visual Manifest
 
@@ -93,7 +93,7 @@ pnpm factory:init           ← 检查它（stage / 残留身份 / 0-scan）
 
 ### 7 · Human Art Direction Gate
 
-人工确认九问（workflow 第 6 步）。Agent 可以起草，不能代替人确认。
+人工确认九问（workflow 第 7 步）。Agent 可以起草，不能代替人确认。
 
 ### 8 · Kits installation
 
