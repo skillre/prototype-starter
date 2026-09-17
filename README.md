@@ -108,7 +108,7 @@ The boundary itself, in two lines:
   dependencies in `package.json`). The product runtime must not need an agent scheduler to
   render a page.
 
-Also locked down: model route (`opencode-go-dsv41` / `deepseek-flash` / `max`), single-writer per
+Also locked down: model route (`commandcode` / `deepseek/deepseek-v4.1-flash` / `max`), single-writer per
 worktree, single owner per shared path, serial `test`/`qa`, HVA before release, and deployment
 authorization. `pnpm factory:agents` is the **first** item of `pnpm check`, and it fails loudly on
 a vacuous scan rather than passing on zero files.
